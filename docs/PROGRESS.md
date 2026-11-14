@@ -2,13 +2,18 @@
 
 One entry per milestone, newest first (ARCHITECTURE.md section 30.4). Targets are in section 31.1.
 
-## After M2: decisions for A1 (Sun 00:31; no milestone started)
+## After M2: decisions for A1 (Sun 00:31, clarified Sun 00:45; no milestone started)
 - M2 close recorded: commit `b020fd0` pushed to `main`. Deployment confirmed once from Vercel's own commit status on GitHub (state "success", "Deployment has completed", 00:11:07 IST). The public site then served the new `data/space-weather.json` (event `2023-08-08T01:00:00-SEP-001`), with the same asset files as the local build (`index-CEAMow3E.js`, `index-D7q4ypPC.css`).
 - Divyanshu accepted the M2 closure at `b020fd0` and its four additional changes: the real event in `solar-storm`, the retrieval-date fix, the clearer `--verify` wording and the documentation updates.
 - **Decided for A1 (decision D22, by Divyanshu):**
   - Raw DONKI records stay unchanged.
-  - A1 inventories the actual SEP instrument names and gives each one a class, `observed`, `model` or `unknown`, in a reviewed table. A name does not count as a measurement just because it lacks the `MODEL:` prefix: Divyanshu confirms each `observed` name.
+  - A1 inventories the actual SEP instrument names and gives each one a class: `observed`, `model` or `unknown`.
+    - Claude Code classifies the names during A1 from official instrument documentation and the DONKI record context, and records the supporting sources.
+    - A name without that support stays `unknown`. Lacking the `MODEL:` prefix is not support.
+    - A real instrument used as the input of a forecasting model does not make the forecast an observed SEP.
+    - Work continues with the supported classes. Claude Code asks Divyanshu only about a material unresolved decision.
   - Each SEP record is then observed-only, mixed, model-only or unknown.
+  - A mixed record (a measured instrument together with model or unknown names) can support a positive label, because it holds established instrument-observed evidence. Its model and unknown parts are kept and reported.
   - An eligible flare is positive only when a permitted association (direct, or through one linked CME) reaches an instrument-observed SEP record (observed-only or mixed). An extra model prediction does not disqualify it.
   - A flare whose only SEP evidence is model-generated or unknown is excluded as ambiguous, never turned into a negative.
   - A negative means "no qualifying recorded SEP association", not "no SEP occurred".
@@ -18,13 +23,17 @@ One entry per milestone, newest first (ARCHITECTURE.md section 30.4). Targets ar
     - section 26.4, rewritten;
     - sections 26.1, 26.6, 26.8, 26.9, 26.10, 26.12 and 26.14, reconciled with it;
     - section 24.6, for the `solar-flare-watch` choice;
-    - section 31.7, for the reviewed instrument table and a new manual check item;
+    - section 31.7, for the instrument table with its sources and a new manual check item;
     - the glossary.
-- **Endpoint confirmed:**
-  - Divyanshu confirmed that NASA CCMC's official announcement (https://ccmc.gsfc.nasa.gov/news/major-updates/) documents `https://ccmc.gsfc.nasa.gov/DONKI-API/get/`.
-  - Claude Code's own fetch of the page was refused at the connection, so the confirmation rests on Divyanshu's check.
-  - Recorded in ARCHITECTURE.md section 25, REFERENCES.md and README.md.
-  - The third-party note's date and redirect details stay unconfirmed.
+- **Endpoint documented:**
+  - NASA CCMC's official announcement (https://ccmc.gsfc.nasa.gov/news/major-updates/) documents the replacement endpoint `https://ccmc.gsfc.nasa.gov/DONKI-API/get/` and the announced migration of 30 September 2026.
+  - The announcement was supplied through external review. Claude Code could not retrieve the page itself: a fetch through a web service was refused at the connection, and a direct attempt from this machine timed out.
+  - Recorded in ARCHITECTURE.md section 25 and its technical references table (`ccmc-major-updates`), REFERENCES.md and README.md.
+  - The third-party note's claim that the older addresses redirect stays unconfirmed.
+- Commits, both documentation only:
+  - `07e98de` recorded the decision and the endpoint.
+  - A follow-up commit corrected two things in it and added one. It had required Divyanshu to confirm every `observed` instrument name before training, which he did not ask for. It had said he confirmed the announcement himself. The follow-up also states that a mixed record's model and unknown parts are kept and reported.
+- Checks on the final files: `npm run check` green (283 tests in 21 files), and a credential scan of the documentation changes found nothing.
 - Unchanged: no data was downloaded again and no code changed. Every source stays `verified: false`, including `donki`, and every protocol stays `reviewed: false`.
 - **Manual checks still pending** (none confirmed yet):
   - M2: open `public/seed/sleep-debt.json` and see `"simulated": true`, the fictional crew names and `expectedAlerts`.
@@ -81,7 +90,7 @@ One entry per milestone, newest first (ARCHITECTURE.md section 30.4). Targets ar
 - Manual check for Divyanshu: open `ml/data/raw/donki/meta.json` and look for `apiBase`, `requested`, `recordCounts` and `complete: true`.
 - Known issues:
   - The JavaScript bundle size warning is unchanged.
-  - ARCHITECTURE.md section 25 still asks for the `DONKI-API` address to be confirmed on the official DONKI page. (Confirmed on 15 November: see "After M2" above.)
+  - ARCHITECTURE.md section 25 still asks for the `DONKI-API` address to be confirmed on the official DONKI page. (Documented by NASA CCMC's official announcement: see "After M2" above.)
   - The A1 question above. (Decided on 15 November.)
   - Blank lines inside the `AI_USAGE.md` table split it when rendered; they were removed.
 - Next: stop. A1 waits for Divyanshu's approval.
