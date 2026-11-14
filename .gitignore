@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+*.tsbuildinfo
+.vercel/
+
+# Test coverage
+coverage/
+
+# Environment files: never commit secrets
+.env*
+*.local
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Hospital data: never committed (decision D21)
+ml/data/raw/physionet/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Editors and operating systems
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.sw?
