@@ -93,7 +93,7 @@
       "needsGround": false,
       "privateToCrew": false,
       "explain": {
-        "what": "Your latest fasting blood sugar reading is below 70 mg/dL.",
+        "what": "Your latest blood sugar reading is below 70 mg/dL. It is either the routine fasting measurement or an urgent re-check taken after this alert.",
         "whySpace": "On Earth, a reading below 70 mg/dL counts as low blood sugar. Studies of blood sugar control in flight conflict, so this check uses that clinical cut-off rather than a space-specific one."
       },
       "protocolId": "P-GLU-LOW",

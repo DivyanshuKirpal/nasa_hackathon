@@ -16,6 +16,8 @@ The Space Apps rules ask teams to acknowledge AI-generated code, data, images an
 
 | 14 Nov 2026 | Claude Code (models Claude Fable 5.2, then Claude Opus 5.5) | M3: the store, mission clock, seed loader, selectors, Home with the body map, the daily check-in, their tests; browser checks of the running app in headless Chrome (keyboard only, 390 px) and the fixes they found | `src/store/`, `src/clock/`, `src/components/`, `src/features/home/`, `src/features/checkin/`, `src/lib/`, `src/test/` |
 
+| 14 Nov 2026 | Claude Code (model Claude Opus 5.5) | M4: the alert screen, route banner, environment selector and delay slider, outbox messages, urgent re-check entry, the presenter tools drawer, their tests and the first demo script draft; browser checks of these flows in headless Chrome | `src/features/alerts/`, `src/features/demo/`, `src/components/`, `src/link/`, `src/store/`, `src/lib/`, `docs/demo-script.md` |
+
 ## AI inside the product
 
 Planned, not built yet. Each model gets a line here and a model card when it is built (ARCHITECTURE.md section 26):

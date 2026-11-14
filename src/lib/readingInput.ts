@@ -11,10 +11,11 @@ export type ParsedReading =
 export function parseReadingInput(
   text: string,
   def: IndicatorDef,
+  emptyMessage = 'Enter a value, or choose Skip for now.',
 ): ParsedReading {
   const trimmed = text.trim()
   if (trimmed === '') {
-    return { ok: false, message: 'Enter a value, or choose Skip for now.' }
+    return { ok: false, message: emptyMessage }
   }
   const value = Number(trimmed)
   if (!Number.isFinite(value)) {

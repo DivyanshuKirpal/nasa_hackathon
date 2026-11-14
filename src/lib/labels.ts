@@ -1,7 +1,11 @@
 import { healthData } from '../data/index.ts'
 import type {
+  CrewMember,
+  Environment,
+  EnvironmentId,
   IndicatorDef,
   IndicatorId,
+  Protocol,
   RegionId,
   Route,
   Rule,
@@ -23,6 +27,32 @@ export function regionLabel(id: RegionId): string {
 
 export function ruleById(ruleId: string): Rule | null {
   return healthData.rules.find((rule) => rule.id === ruleId) ?? null
+}
+
+export function protocolById(protocolId: string): Protocol | null {
+  return (
+    healthData.protocols.find((protocol) => protocol.id === protocolId) ?? null
+  )
+}
+
+export function environmentDef(id: EnvironmentId): Environment {
+  const environment = healthData.environments.find((entry) => entry.id === id)
+  if (!environment) throw new Error(`environments.json has no ${id}`)
+  return environment
+}
+
+/** "Crew member A, Commander" */
+export function crewLabel(member: CrewMember): string {
+  return `${member.name}, ${member.role}`
+}
+
+/** A protocol's re-check time in words: 0.25 -> "15 minutes", 4 -> "4 hours". */
+export function recheckWords(hours: number): string {
+  if (hours < 1) {
+    const minutes = Math.round(hours * 60)
+    return minutes === 1 ? '1 minute' : `${minutes} minutes`
+  }
+  return hours === 1 ? '1 hour' : `${hours} hours`
 }
 
 /** "blurred_vision" -> "Blurred vision" */
@@ -56,4 +86,14 @@ export const BASIS_WORDS: Record<ThresholdBasis, string> = {
   'peer-reviewed': 'Peer-reviewed research',
   'clinical-general': 'Common clinical cut-off',
   illustrative: 'Illustrative threshold',
+}
+
+/** What each basis tag says about where a check's limit comes from (section 12). */
+export const BASIS_EXPLAIN: Record<ThresholdBasis, string> = {
+  'nasa-standard': 'The limit in this check comes from a NASA standard.',
+  'peer-reviewed': 'The limit in this check comes from published research.',
+  'clinical-general':
+    'The limit in this check is a common clinical cut-off used on Earth, not one made for spaceflight.',
+  illustrative:
+    'The limit in this check is a draft value for this prototype, not an established one.',
 }

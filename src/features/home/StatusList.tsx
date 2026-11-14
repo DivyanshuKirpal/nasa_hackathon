@@ -4,8 +4,8 @@ import { StatusBadge } from '../../components/StatusBadge.tsx'
 import { STATUS_DISPLAY } from '../../components/statusDisplay.ts'
 import { healthData } from '../../data/index.ts'
 import type { Evaluation, RegionId } from '../../engine/index.ts'
-import { activeAlerts } from '../../lib/alerts.ts'
-import { indicatorDef, ruleById } from '../../lib/labels.ts'
+import { activeAlerts, missingDataText } from '../../lib/alerts.ts'
+import { ruleById } from '../../lib/labels.ts'
 import { RegionSummary } from './RegionSummary.tsx'
 
 interface StatusListProps {
@@ -23,14 +23,6 @@ function headline(evaluation: Evaluation, region: RegionId): string {
   return 'No active alert'
 }
 
-/** Missing data is shown even when an alert is active (section 9). */
-function missingText(evaluation: Evaluation, region: RegionId): string | null {
-  const gaps = evaluation.regionGaps[region]
-  const parts = gaps.overdue.map((id) => indicatorDef(id).label)
-  if (gaps.missingFeeds.length > 0) parts.push("today's habitat sample")
-  return parts.length > 0 ? `Missing: ${parts.join(', ')}` : null
-}
-
 /** The accessible status list (section 19.1): one row per region, with word, icon and headline. */
 export function StatusList({
   evaluation,
@@ -44,7 +36,7 @@ export function StatusList({
           const open = selected === region.id
           const status = evaluation.regionStatus[region.id]
           const text = headline(evaluation, region.id)
-          const missing = missingText(evaluation, region.id)
+          const missing = missingDataText(evaluation, region.id)
           const Chevron = open ? ChevronUp : ChevronDown
           // Spelled out so a screen reader hears "Head: Watch. Sleep has been
           // low…", not the parts run together.

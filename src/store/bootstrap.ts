@@ -14,8 +14,15 @@ export function useBootstrapScenario(): {
 } {
   const scenarioId = useAppStore((state) => state.mission.scenarioId)
   const loadScenario = useAppStore((state) => state.loadScenario)
+  const syncAlerts = useAppStore((state) => state.syncAlerts)
   const [failedAttempt, setFailedAttempt] = useState<number | null>(null)
   const [attempt, setAttempt] = useState(0)
+
+  // A state restored from storage may hold alerts whose messages were never
+  // queued (for example, saved before milestone M4): queue them now.
+  useEffect(() => {
+    if (scenarioId !== null) syncAlerts()
+  }, [scenarioId, syncAlerts])
 
   useEffect(() => {
     if (scenarioId !== null) return

@@ -307,6 +307,7 @@ Install every npm package above in M0, so versions are pinned at scaffold time e
 │   ├── store/
 │   │   ├── index.ts              Zustand store, persist config, migrations
 │   │   ├── selectors.ts          Memoized calls into the engine and the body view logic
+│   │   ├── alertSync.ts          Records active alerts and queues their messages (added in M4, section 15)
 │   │   └── seed.ts               Load a scenario file and the suit replay into the store
 │   ├── clock/
 │   │   └── missionClock.ts       Simulated time and ticker (section 16)
@@ -439,6 +440,7 @@ export interface ContextSample {
 export interface IndicatorDef {
   id: IndicatorId;
   label: string;
+  recheckLabel?: string;         // name of an urgent re-check where "<label> re-check" would mislead (section 10)
   unit: string;
   region: RegionId;
   input: "number" | "scale" | "in_app_test";
@@ -717,6 +719,7 @@ Edge cases:
 - Baseline not ready: baseline-relative conditions evaluate to false, absolute conditions still run, and the UI shows "Learning your normal (n of 7)" (or "n of 3" for weekly indicators).
 - More than one reading per day: use the last routine reading of the day for baseline and streak logic.
 - Urgent re-checks (`purpose: "recheck"`, for example a blood sugar re-check 15 minutes after an alert, which is not a fasting value) never enter a baseline, a streak, an average or the overdue list, and never replace the day's routine reading. They do count for `latest` conditions, so a re-check can confirm or clear an alert.
+- A re-check is named `recheckLabel` from `indicators.json`, or `<label> re-check`. Blood sugar uses "Blood sugar re-check (not fasting)", so evidence never calls an urgent re-check a fasting value (added in M4, before re-check entry was switched on). `R-GLU-02` explains that its latest reading is either the routine fasting measurement or an urgent re-check; the 70 mg/dL cut-off and its source are unchanged.
 - The chart band is `center ± 2 × spread`.
 
 ---
@@ -920,6 +923,8 @@ Rules that hold in every route:
 - An `act` alert routed to `consult_ground` still starts on board: the banner says "Start the first steps now. The reply estimate is not a reason to wait." The reply estimate is never permission to postpone action.
 - When the link is down, `act` alerts are always `act_on_board`, and `consult_ground` messages wait in the outbox with the text "Will send when the link returns."
 
+As built in M4 (14 November 2026): the banner is the first section of the alert screen, headed "Who leads". For every `act` alert it lists the protocol's first two steps, whatever the route, so they are visible without scrolling at 1024 by 768 and at 390 by 844; the full checklist follows under "What to do". The reply estimate is shown in whole minutes, followed by a note that it is an estimate and how it is made, the environment's note and the ground-handling assumption. Messages already queued for the alert are listed in the banner with a "Simulated" tag. Home lists each `act` alert with "Start now:" and its first step. The countdown to the expected reply, and a self-care re-check reminder that fires later, need the running clock (M6); until then the alert shows the protocol's re-check time.
+
 ### 13.5 Worked examples (with `groundHandlingMin = 5`)
 
 | Alert | Time to act | Station (0 s) | Moon (1.3 s) | Mars near (180 s) | Mars far (1320 s) |
@@ -956,6 +961,8 @@ Delay settings (decided on 14 November 2026): loading a scenario sets its enviro
 
 The station's 0 s is a prototype assumption, not a measured value. The Moon's 1.3 s comes from `gateway-medical-conops` (NASA HRP-48012, page 17, section 4.2 "Communication": "an average one-way light-time delay of approximately 1.3 seconds"). It is the approximate light-travel time, not the total operational latency. Divyanshu supplied the excerpt during the M1 review because direct retrieval failed on the team's network; `verified` stays false pending the human check (`docs/source-review.md`).
 
+As built in M4: the header holds the environment selector (all five environments) and, for the three Mars environments, a slider from 180 s to 1320 s in steps of 60 s. Its ends are labeled "Mars near" and "Mars far", and screen readers hear the value in words ("22 min each way (Mars far)"). The station and the Moon show their fixed delay. Choosing an environment sets a Mars slider back to 180 s. In a Moon or Mars environment the alert screen says that the check uses the same limits in every environment and that the app has no separate values for partial gravity (a statement about the app, not a health claim).
+
 What an environment changes in v1:
 
 1. The link delay used by triage.
@@ -973,6 +980,8 @@ The rover environment (named in the challenge's considerations) is built in mile
 File: `src/link/earthLink.ts`. It models the outbox only; nothing is really sent.
 
 **Cut on 14 November 2026: simulated ground replies.** Messages go `queued` → `in_transit` → `delivered` and stop there. A consult shows its expected reply time (`replyDueAtMs`, the same estimate triage uses) but no reply text arrives. `ground-replies.json`, the `reply` field and the `reply_in_transit` and `replied` states are not built. The rest of this section is the full design, kept for later.
+
+As built in M4: `src/link/earthLink.ts` writes a message from an alert (sender, mission day, evidence, route, steps ticked so far; a `privateToCrew` rule is marked "Private medical" and titled "Private message"). The store action `syncAlerts` runs after every action that can change an alert or a route (`loadScenario`, `addReading`, `reportSymptoms`, `setEnvironment`, `setDelay`) and once at start with stored state. It queues one `report` for an `act_on_board` alert and one `consult` for a `consult_ground` alert, at most one message per alert key and kind: the message id is `<kind>:<alert key>`, so moving the slider back and forth never duplicates a message, and a route that flips adds the other kind once. "Send to ground" on a self-care alert queues a `consult`. Messages stay `queued` until M6 adds `advance` and the Earth link screen. Only the active crew member's alerts are evaluated, so another crew member's messages are queued when that member becomes active (crew switch, M6).
 
 Message lifecycle, driven by the mission clock:
 
@@ -1012,6 +1021,8 @@ Demo panel (`src/features/demo/`), opened with the keyboard shortcut `Shift+D` o
 - Body view (from B1 and B2): "Restart suit replay" (re-anchors the replay at the current `nowMs`), "Force 2D" (behaves as if WebGL were missing, to show the fallback), and one read-only line per crew member with the body model in use, its version and its contract result.
 
 The panel is a presenter tool. It must never be needed for the normal crew flow. Milestone M4 adds a first version with only the scenario picker, because the M4 exit test needs it; M6 completes it.
+
+As built in M4: `src/features/demo/` holds the drawer, a modal dialog: focus moves to its heading, Escape or the close button closes it, focus returns to whatever opened it, and the page behind is `inert` while it is open. The scenario picker reads `public/seed/index.json`. Shift+D is ignored while focus is in a text field, a number field or a menu. Loading a scenario closes the drawer and shows Home.
 
 ---
 
@@ -1224,6 +1235,8 @@ For an alert whose evidence uses a model feed (`sep_risk`), "What changed" shows
 
 Actions: "Acknowledge", and "Send to ground" when the route is `self_care`.
 
+As built in M4: each section has a visible heading ("Who leads", "What changed", "Why it matters", "What to do", "Evidence", "Also contributing"). "What changed" also lists missing data for the alert's region ("Missing: …", with "Missing readings are not counted as normal."). "What to do" shows the protocol title, the "Draft guidance" tag and the protocol `note` above the steps; ticks persist in `alertState`, followed by "Steps done: n of m", the re-check time and "Get help sooner if". When a rule tests the newest value of a typed indicator (today `R-TEMP-01`, `R-TEMP-02` and `R-GLU-02`), an "Urgent re-check" form stores a reading with `purpose: "recheck"`, which counts for the alert but never enters or replaces the routine readings (section 10). "Evidence" shows the basis tag with one sentence on what it means, the rule's sources, the protocol's own sources and what "Unverified source" means. After "Acknowledge" or "Send to ground", focus moves to the result. A key that is not active now (for example after a normal re-check) says "This alert is not active now" with the latest value; a superseded alert links to the stronger one.
+
 ### 19.5 Earth link `#/earth-link`
 
 Section 15. Shows delay, link state, and the outbox. No simulated replies (cut on 14 November 2026).
@@ -1323,6 +1336,8 @@ As built in M3 (14 November 2026):
 - `addReading(indicator, value, purpose)` refuses out-of-range values with a message and never corrects them. `purpose: "recheck"` marks an urgent re-check (section 10). Re-checks are entered only from an alert (M4), never through the daily check-in, where a new value for a step replaces today's routine value.
 - The ground handling time comes from `environments.json` (`groundHandlingMin: 5`, with a note that it is a prototype assumption), so it is data, not code.
 - Tests have their own `tsconfig.test.json` (Node types, to read generated files); app code is type-checked without Node types.
+
+As built in M4: new actions `acknowledgeAlert`, `toggleStep`, `sendToGround` and `syncAlerts` (section 15). An alert interaction is created when the alert is first seen (`firstSeenDay`, `lastSeenDay`). `setDelay` clamps to the environment's range and ignores a value that does not change the delay. `loadScenario` clears `alertState` and `outbox`, then records the new scenario's alerts and queues their messages.
 
 ---
 

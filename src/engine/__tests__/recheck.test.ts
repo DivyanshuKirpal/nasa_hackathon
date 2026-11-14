@@ -4,6 +4,7 @@ import { evaluate } from '../index.ts'
 import type { EvaluationInput } from '../types.ts'
 import {
   ALL_FIXTURE_INDICATORS,
+  GLUCOSE,
   STATION_LINK,
   nineAm,
   reading,
@@ -121,10 +122,30 @@ describe('re-checks in evaluate()', () => {
       }),
     )
     expect(result.alerts.map((alert) => alert.ruleId)).toEqual(['R-LOW-01'])
+    // Never "Fasting blood sugar …": a re-check is not a fasting value.
     expect(result.alerts[0]?.evidence[0]).toMatchObject({
-      label: 'Fasting blood sugar, latest re-check',
+      label: 'Blood sugar re-check (not fasting), latest',
       value: '64 mg/dL on day 40',
     })
+  })
+
+  it('names a re-check "<label> re-check" when the indicator has no re-check label', () => {
+    // No exactOptionalPropertyTypes, so an undefined label means "not set".
+    const plainGlucose = { ...GLUCOSE, recheckLabel: undefined }
+    const result = evaluate(
+      input({
+        indicators: ALL_FIXTURE_INDICATORS.map((def) =>
+          def.id === 'blood_glucose' ? plainGlucose : def,
+        ),
+        readings: [
+          ...ROUTINE,
+          reading('blood_glucose', 40, 64, { hour: 8, recheck: true }),
+        ],
+      }),
+    )
+    expect(result.alerts[0]?.evidence[0]?.label).toBe(
+      'Fasting blood sugar re-check, latest',
+    )
   })
 
   it('re-checks never enter the baseline', () => {

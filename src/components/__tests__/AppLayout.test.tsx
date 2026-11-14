@@ -48,9 +48,11 @@ describe('app shell', () => {
       within(header).getByText('Crew member A, Commander'),
     ).toBeInTheDocument()
     expect(within(header).getByText('Day 142')).toBeInTheDocument()
-    expect(within(header).getByText('Mars transit vehicle')).toBeInTheDocument()
+    expect(within(header).getByLabelText('Environment')).toHaveValue(
+      'mars_transit',
+    )
     expect(
-      within(header).getByText('Link up, 3 min each way'),
+      within(header).getByText('Link up, 3 min each way (Mars near)'),
     ).toBeInTheDocument()
   })
 

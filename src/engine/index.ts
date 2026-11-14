@@ -24,7 +24,7 @@ import type {
 } from './types.ts'
 
 export * from './types.ts'
-export { triage } from './triage.ts'
+export { replyEtaMinutes, triage } from './triage.ts'
 export { MS_PER_DAY, missionDayOf } from './time.ts'
 export {
   BASELINE_WINDOWS,
@@ -33,6 +33,7 @@ export {
   latestReading,
 } from './baseline.ts'
 export { CONTEXT_FEED_REGION, DAILY_CONTEXT_FEEDS } from './status.ts'
+export { recheckName } from './format.ts'
 export { findDataProblems, type HealthData } from './validateData.ts'
 
 /**

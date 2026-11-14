@@ -1,9 +1,7 @@
+import { crewLabel } from '../lib/labels.ts'
 import { useAppStore } from '../store/index.ts'
-import {
-  selectActiveCrew,
-  selectEnvironment,
-  selectToday,
-} from '../store/selectors.ts'
+import { selectActiveCrew, selectToday } from '../store/selectors.ts'
+import { EnvironmentControls } from './EnvironmentControls.tsx'
 import { Tag } from './Tag.tsx'
 
 function Fact({ label, value }: { label: string; value: string | null }) {
@@ -22,51 +20,28 @@ function Fact({ label, value }: { label: string; value: string | null }) {
   )
 }
 
-/** "3 min 0 s" style wording for a one-way delay. */
-function delayWords(seconds: number): string {
-  if (seconds < 60) return `${seconds} s each way`
-  const minutes = Math.floor(seconds / 60)
-  const rest = Math.round(seconds % 60)
-  return rest === 0
-    ? `${minutes} min each way`
-    : `${minutes} min ${rest} s each way`
-}
-
 export function AppHeader() {
   const loaded = useAppStore((state) => state.mission.scenarioId !== null)
   const crew = useAppStore(selectActiveCrew)
   const today = useAppStore(selectToday)
-  const environment = useAppStore(selectEnvironment)
-  const link = useAppStore((state) => state.mission.link)
 
   return (
     <header className="border-b border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-3">
+      <div className="mx-auto max-w-5xl space-y-3 px-4 py-3">
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-xl font-semibold">Crew Health Check</p>
           <Tag>Simulated data</Tag>
         </div>
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-4">
-          <Fact
-            label="Crew member"
-            value={loaded && crew ? `${crew.name}, ${crew.role}` : null}
-          />
-          <Fact label="Mission day" value={loaded ? `Day ${today}` : null} />
-          <Fact
-            label="Environment"
-            value={loaded && environment ? environment.label : null}
-          />
-          <Fact
-            label="Earth link"
-            value={
-              loaded
-                ? link.linkUp
-                  ? `Link up, ${delayWords(link.oneWayDelaySec)}`
-                  : 'Link down'
-                : null
-            }
-          />
-        </dl>
+        <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-1">
+            <Fact
+              label="Crew member"
+              value={loaded && crew ? crewLabel(crew) : null}
+            />
+            <Fact label="Mission day" value={loaded ? `Day ${today}` : null} />
+          </dl>
+          {loaded && <EnvironmentControls />}
+        </div>
       </div>
     </header>
   )

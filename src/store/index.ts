@@ -9,12 +9,15 @@ import {
   type ScenarioFile,
   type SymptomId,
 } from '../engine/index.ts'
+import { syncedAlertSlices, alertMessage } from './alertSync.ts'
 import {
   STORAGE_KEY,
   STORAGE_VERSION,
   readPersisted,
+  type AlertInteraction,
   type PersistedState,
 } from './persistence.ts'
+import { selectEvaluation } from './selectors.ts'
 
 // The app's state (ARCHITECTURE.md section 21). Components read through
 // selectors and write through these named actions. The engine never writes here.
@@ -33,6 +36,18 @@ export interface AppActions {
   reportSymptoms(symptoms: readonly SymptomId[]): void
   setEnvironment(environmentId: EnvironmentId): void
   setDelay(oneWayDelaySec: number): void
+  acknowledgeAlert(alertKey: string): void
+  /** Ticks or unticks one protocol step (0-based) of an alert. */
+  toggleStep(alertKey: string, stepIndex: number): void
+  /** "Send to ground" for a self-care alert: the crew member's own choice. */
+  sendToGround(alertKey: string): ActionResult
+  /**
+   * Records first and last sight of each active alert and queues the
+   * automatic messages: one report for "act on board", one consult for
+   * "consult the ground", at most one per alert and kind (section 13.4).
+   * The actions below call it after every change that can move a route.
+   */
+  syncAlerts(): void
 }
 
 export type AppState = PersistedState & AppActions
@@ -68,6 +83,22 @@ export function emptyState(): PersistedState {
     outbox: [],
     prefs: {},
   }
+}
+
+/** The stored interaction with an alert, created on first sight. */
+function interactionFor(
+  state: PersistedState,
+  alertKey: string,
+): AlertInteraction {
+  const today = missionDayOf(state.mission.nowMs)
+  return (
+    state.alertState[alertKey] ?? {
+      firstSeenDay: today,
+      lastSeenDay: today,
+      acknowledgedAtMs: null,
+      stepsDone: [],
+    }
+  )
 }
 
 function pickPersisted(state: AppState): PersistedState {
@@ -116,6 +147,7 @@ export const useAppStore = create<AppState>()(
           alertState: {},
           outbox: [],
         })
+        get().syncAlerts()
       },
 
       addReading(indicator, value, purpose = 'routine') {
@@ -149,6 +181,7 @@ export const useAppStore = create<AppState>()(
             },
           ],
         })
+        get().syncAlerts()
         return { ok: true }
       },
 
@@ -175,6 +208,7 @@ export const useAppStore = create<AppState>()(
             [crewId]: reported.length === 0 ? [...noneDays, today] : noneDays,
           },
         })
+        get().syncAlerts()
       },
 
       setEnvironment(environmentId) {
@@ -190,21 +224,80 @@ export const useAppStore = create<AppState>()(
             },
           },
         })
+        get().syncAlerts()
       },
 
       setDelay(oneWayDelaySec) {
         const { mission } = get()
         const environment = environmentById(mission.environmentId)
+        if (!Number.isFinite(oneWayDelaySec)) return
         const clamped = Math.min(
           environment.oneWayDelaySecMax,
           Math.max(environment.oneWayDelaySecMin, oneWayDelaySec),
         )
+        if (clamped === mission.link.oneWayDelaySec) return
         set({
           mission: {
             ...mission,
             link: { ...mission.link, oneWayDelaySec: clamped },
           },
         })
+        get().syncAlerts()
+      },
+
+      acknowledgeAlert(alertKey) {
+        const state = get()
+        const interaction = interactionFor(state, alertKey)
+        if (interaction.acknowledgedAtMs !== null) return
+        set({
+          alertState: {
+            ...state.alertState,
+            [alertKey]: {
+              ...interaction,
+              acknowledgedAtMs: state.mission.nowMs,
+            },
+          },
+        })
+      },
+
+      toggleStep(alertKey, stepIndex) {
+        if (!Number.isInteger(stepIndex) || stepIndex < 0) return
+        const state = get()
+        const interaction = interactionFor(state, alertKey)
+        const stepsDone = interaction.stepsDone.includes(stepIndex)
+          ? interaction.stepsDone.filter((index) => index !== stepIndex)
+          : [...interaction.stepsDone, stepIndex].sort((a, b) => a - b)
+        set({
+          alertState: {
+            ...state.alertState,
+            [alertKey]: { ...interaction, stepsDone },
+          },
+        })
+      },
+
+      sendToGround(alertKey) {
+        const state = get()
+        const alert = selectEvaluation(state).alerts.find(
+          (entry) => entry.key === alertKey && entry.supersededBy === null,
+        )
+        if (!alert) {
+          return { ok: false, message: 'This alert is no longer active.' }
+        }
+        if (alert.route !== 'self_care') {
+          // Other routes queue their message automatically (section 13.4).
+          return { ok: false, message: 'This alert is already sent.' }
+        }
+        const message = alertMessage(state, alert, 'consult')
+        if (state.outbox.some((entry) => entry.id === message.id)) {
+          return { ok: true }
+        }
+        set({ outbox: [...state.outbox, message] })
+        return { ok: true }
+      },
+
+      syncAlerts() {
+        const changed = syncedAlertSlices(get())
+        if (changed) set(changed)
       },
     }),
     {

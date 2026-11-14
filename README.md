@@ -8,7 +8,7 @@ Team VoidShifters' entry for the 2026 NASA Space Apps Challenge, challenge "Crea
 
 A browser-only web app for a crew member checking their own health once a day. They enter a few readings; the app compares each one with that person's own in-flight normal, shows status on a body map, explains each result with a source, gives a short action card, and says whether to handle the problem on board or consult doctors on Earth, based on how long a reply from Earth would take.
 
-Status: milestones M0 to M3 are done: the health engine, simulated scenarios, Home with the body map, and the daily check-in. The NASA DONKI download in M2 is still blocked (see [docs/PROGRESS.md](docs/PROGRESS.md)). Next: alert details, triage and environments (M4). The plan is in [ARCHITECTURE.md](ARCHITECTURE.md), section 31; progress is in [docs/PROGRESS.md](docs/PROGRESS.md).
+Status: milestones M0, M1, M3 and M4 are done: the health engine, Home with the body map, the daily check-in, and the alert screen with triage by communication delay (change the environment or the Mars delay slider in the header and watch the route change). M2 is only partly done: the simulated scenarios are finished, but the NASA DONKI download is still blocked, so the machine learning milestones cannot start yet (see [docs/PROGRESS.md](docs/PROGRESS.md)). The plan is in [ARCHITECTURE.md](ARCHITECTURE.md), section 31; progress is in [docs/PROGRESS.md](docs/PROGRESS.md).
 
 Live site: https://void-shifters.vercel.app/
 

@@ -5,7 +5,12 @@ import {
   targetFor,
   type ModelThresholds,
 } from './comparison.ts'
-import { formatDerived, formatReading, withUnit } from './format.ts'
+import {
+  formatDerived,
+  formatReading,
+  recheckName,
+  withUnit,
+} from './format.ts'
 import { mean } from './stats.ts'
 import type {
   Baseline,
@@ -109,9 +114,7 @@ function evaluateLatest(
     met: true,
     evidence: [
       {
-        label: latest.recheck
-          ? `${inputs.def.label}, latest re-check`
-          : `${inputs.def.label}, latest`,
+        label: `${latest.recheck ? recheckName(inputs.def) : inputs.def.label}, latest`,
         value: `${formatReading(latest.value, inputs.def)} on day ${latest.day}`,
         reference: reference(
           inputs.def,

@@ -77,6 +77,43 @@ describe('Home with the sleep-debt scenario', () => {
   })
 })
 
+describe('Home alert links (M4)', () => {
+  it('links each alert to its detail screen', async () => {
+    const user = userEvent.setup()
+    loadScenario('sleep-debt')
+    renderApp('/')
+
+    const link = screen.getByRole('link', {
+      name: 'Sleep has been low for several nights',
+    })
+    expect(link).toHaveAttribute('href', '/alert/R-SLEEP-01%3Ac1')
+    await user.click(link)
+    expect(screen.getByRole('region', { name: 'Who leads' })).toHaveTextContent(
+      'You can handle this yourself.',
+    )
+  })
+
+  it('shows the first step of an act alert without a click', () => {
+    loadScenario('solar-storm')
+    renderApp('/')
+
+    const alerts = screen.getByRole('region', { name: 'Active alerts' })
+    expect(alerts).toHaveTextContent(
+      'Start now: Stop your current task and make it safe.',
+    )
+    expect(alerts).toHaveTextContent('Environment · Consult the ground')
+  })
+
+  it('marks an acknowledged alert', () => {
+    loadScenario('sleep-debt')
+    useAppStore.getState().acknowledgeAlert('R-SLEEP-01:c1')
+    renderApp('/')
+    expect(
+      screen.getByRole('region', { name: 'Active alerts' }),
+    ).toHaveTextContent('Head · You can handle this yourself · Acknowledged')
+  })
+})
+
 describe('Home with other scenarios', () => {
   it('turns Abdomen to Act after a temperature 2.5 °C above the baseline', () => {
     loadScenario('baseline-healthy')

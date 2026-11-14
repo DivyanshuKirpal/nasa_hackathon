@@ -27,7 +27,7 @@ function indicator(
   region: IndicatorDef['region'],
   fields: Pick<
     IndicatorDef,
-    'label' | 'unit' | 'step' | 'minSpread' | 'cadenceDays'
+    'label' | 'unit' | 'step' | 'minSpread' | 'cadenceDays' | 'recheckLabel'
   >,
 ): IndicatorDef {
   return {
@@ -59,6 +59,7 @@ export const TEMP = indicator('body_temp', 'core', {
 })
 export const GLUCOSE = indicator('blood_glucose', 'core', {
   label: 'Fasting blood sugar',
+  recheckLabel: 'Blood sugar re-check (not fasting)',
   unit: 'mg/dL',
   step: 1,
   minSpread: 5,

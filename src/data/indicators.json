@@ -64,6 +64,7 @@
     {
       "id": "blood_glucose",
       "label": "Fasting blood sugar",
+      "recheckLabel": "Blood sugar re-check (not fasting)",
       "unit": "mg/dL",
       "region": "core",
       "input": "number",

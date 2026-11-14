@@ -21,3 +21,12 @@ export function formatReading(value: number, def: IndicatorDef): string {
 export function formatDerived(value: number, def: IndicatorDef): string {
   return withUnit(value.toFixed(def.step < 1 ? 1 : 0), def.unit)
 }
+
+/**
+ * The name of an urgent re-check: "Body temperature re-check", or the
+ * indicator's own `recheckLabel` where the plain form would mislead
+ * ("Blood sugar re-check (not fasting)", section 10).
+ */
+export function recheckName(def: IndicatorDef): string {
+  return def.recheckLabel ?? `${def.label} re-check`
+}

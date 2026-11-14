@@ -182,6 +182,11 @@ export const indicatorDefSchema = z
   .strictObject({
     id: indicatorIdSchema,
     label: z.string().min(1),
+    /**
+     * Name of an urgent re-check of this indicator, when "<label> re-check"
+     * would be wrong: a blood sugar re-check is not a fasting value.
+     */
+    recheckLabel: z.string().min(1).optional(),
     unit: z.string(),
     region: regionIdSchema,
     input: z.enum(['number', 'scale', 'in_app_test']),
