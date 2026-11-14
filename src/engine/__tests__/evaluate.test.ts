@@ -34,7 +34,7 @@ function input(overrides: Partial<EvaluationInput>): EvaluationInput {
     indicators: ALL_FIXTURE_INDICATORS,
     rules: [sleepRule],
     spaceWeather: [],
-    models: { sepRisk: null },
+    models: { sepRisk: null, personalPattern: null, earthHospital: null },
     ...overrides,
   }
 }

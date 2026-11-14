@@ -70,7 +70,7 @@ function run(
     indicators: healthData.indicators,
     rules: healthData.rules,
     spaceWeather: [],
-    models: { sepRisk: null },
+    models: { sepRisk: null, personalPattern: null, earthHospital: null },
   }
   return evaluate(input)
 }

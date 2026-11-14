@@ -2,6 +2,64 @@
 
 One entry per milestone, newest first (ARCHITECTURE.md section 30.4). Targets are in section 31.1.
 
+## A3 ML model 2: personal pattern (started Sun 02:52, checked and committed Sun 03:55; manual checks pending)
+- A2 close recorded: commit `3e9c906` pushed to `main`. Deployment confirmed from Vercel's own commit status on GitHub (state "success", 02:41:52 IST). The public site then served `index-Be89xDW-.js` and `index-BFMLICiP.css`, byte-identical to the local build, and the same seed, index and space weather files.
+- A1 model card wording, corrected as text only (Divyanshu's instruction for A3):
+  - Three places in `ml/reports/sep-risk-v1.md` and the same three in its template in `ml/train_sep_risk.py`: the purpose sentence ("estimates the chance" and the crew reading "estimated chance"), the reliability table header ("Estimated chance", "Mean estimate") and the formula sentence ("a whole percent between 1% and 99%"). The card now calls it the model's output, which the app shows as an "Experimental model score" out of 100, never a percent chance. The third place was not in the first count of two; it was found when the template was read.
+  - The script was not re-run. The model, its threshold, the raw and processed data, the parity file, the plots, `createdAt` and every number are unchanged; `git status` shows only the two text files.
+  - CLAUDE.md says generated files are not edited by hand. Here the committed card and the template were changed identically, and the existing test that compares the committed card with what the script writes passes, so the card is still exactly the script's output.
+  - Left as it is: the reliability plot's axis label "Mean estimated chance in the bin". The PNG is a frozen A1 file and was not regenerated.
+- Built:
+  - Offline: `ml/personal_pattern.py` (baseline z-scores as in `baseline.ts`, scikit-learn `LedoitWolf` with `assume_centered=True`, a Cholesky factorization written out so both languages refuse the same matrices, leave-one-out threshold, contributions, readiness) and `ml/eval_personal_pattern.py` (the simulated evaluation and the export). One run of about a minute writes `src/data/models/personal-pattern-v1.json`, `ml/artifacts/personal-pattern-v1-parity.json` and `ml/reports/personal-pattern-v1.md`.
+  - In the app: `src/engine/models/linalg.ts` and `personalPattern.ts`, a port of the same steps. `evaluate()` returns `insights` and `patternReadiness`, computed after alerts, statuses and routes and from the same daily values (urgent re-checks never enter). The model file is checked when the app loads: schema, known sources, daily indicators only.
+  - Home: the "Second opinions" card under the alerts, with at most two insights or one line ("Learning your pattern (n of 14 days)", "Second opinions run after today's check-in", "No unusual patterns today"). The insight card is neutral: icon, "Insight", "Model estimate", the version, the headline, three readings in words with today's value and the normal, the caveat, "How this model works" and "Send to ground". No number and no percentage.
+  - "Send to ground" (store action `sendInsightToGround`) queues one consult per insight and day, titled "Second opinion sent by crew" and marked private. Nothing is sent unless the crew member presses it. The message stays "queued" until M6 builds the Earth link transit.
+  - The region rows on Home list the insight under the areas of its readings; their status does not change. (The region detail screen is M5.)
+  - The model card screen is generalized: `#/model/personal-pattern` is new and `#/model/sep-risk` is unchanged.
+  - Scenario `pattern-shift`: mission day 130 at the Mars base. Crew member A's sleep and mood go down and resting heart rate and reaction time go up for three days, each by 2.5 times the simulator's day-to-day noise of that reading, and this morning's check-in is logged. Every other scenario file is byte-identical.
+- How `pattern-shift` was built: to show an insight, so the insight is there by construction. Its shift is the evaluation's "combined" pattern at one of the evaluated sizes (a test checks that they agree), with the noise reduced on the shifted days as in every scenario story. It is an illustration; how often the model notices such a shift is in the model card's simulated evaluation.
+- **Results: read the model card, `ml/reports/personal-pattern-v1.md`, or the app's model card screen.** The numbers are not retyped here. In words, on simulated data only:
+  - On ordinary days the model gave a notice on a small share of days, close to what chance alone would give if today were like the baseline days (that value is inside the model's 95% interval). IsolationForest, scored with the same "more unusual than every baseline day" rule, gave a similar share.
+  - The small combined shift that no rule notices: the model noticed it more often than IsolationForest at every size; from size 1.5 on the two intervals do not overlap.
+  - Temperature and heart rate higher: the model noticed more shifted days than IsolationForest at every size, with intervals that do not overlap.
+  - A change in sleep alone was noticed far less often than the combined shift.
+  - The rules alone noticed none of the shifted days and gave no notice on ordinary days: every shift is smaller or shorter than the rules' triggers.
+  - These results show that the method works as designed on the project's own simulator, whose readings vary independently of each other. They do not show that it notices real illness. The card lists ten limitations.
+- `expectedInsights`, filled from the models: `personal-pattern` for `c1` in `pattern-shift`, none in every other scenario (they have no readings today at 09:00). **Not reviewed by Divyanshu yet**, so not marked as reviewed.
+- Tests:
+  - `npm run check` green: 560 tests in 30 files (454 before A3).
+  - New: parity with Python on six z-score matrices and four whole histories, all within 1e-9; contributions add up to the distance; readiness counts, including exactly four readings before the check-in; fewer than four readings today give no insight; an urgent glucose re-check never counts as today's fasting value; degenerate readings give no insight and no error; factors never name a zero or negative contribution; golden insights for every scenario; second-opinion invariance for every scenario and crew member, with and without an unusual check-in, at three delays and with and without `sep-risk`; the Home card, its readiness lines, sending once and only by choice, the factor directions, the region rows and the model card (Testing Library).
+  - Python: 153 tests in `ml/tests` (30 new; about a minute and a half, because one runs the whole evaluation to prove the committed files are its output) and 36 in `tools/tests` (3 new) pass. Two runs give the same files apart from `createdAt`.
+  - 21 deliberate bugs were planted one at a time (17 in TypeScript, 4 in Python), among them the wrong Ledoit-Wolf bound, the smallest instead of the largest leave-one-out distance, negative contributions named, an insight raising the overall status, sending twice, an unmarked private message, the raw score on the crew card, automatic sending and flipped directions. All 21 were caught, and every file was restored (SHA-256 checked).
+- Browser checks: headless Chrome through the DevTools Protocol, fresh profile, local dev server. 26 of 26 passed: `pattern-shift` loaded by keyboard shows the insight with three factors, the caveat and the tag, no percentage, no alert and Good overall; "Send to ground" by keyboard moves focus to the result and queues one private consult, still one after a reload, with no second button; the model card says first that the evaluation is simulated and its numbers match the model file and the generated card; `early-mission` says "Learning your pattern"; at 390 px there is no sideways scrolling, every tap target is at least 44 px and text at least 16 px; 55 keyboard stops, all with a focus ring; no console errors.
+- Docs: ARCHITECTURE.md sections 7, 15, 19.11, 24.1, 24.3, 26.17, 26.18, 27, 31.8 and 31.9; README, REFERENCES (the two scikit-learn estimators, the simulated histories), AI_USAGE (A3 and model 2), `ml/README.md`.
+- Unchanged: every source stays `verified: false`, and every protocol stays `reviewed: false`. No rule, threshold or other scenario was changed. A4 stays deferred.
+- Known issues:
+  - The JavaScript bundle is now 579 kB (177 kB gzipped), over Vite's 500 kB warning (550 kB after A2). Loading the model card screens lazily is a later "Fix:" if wanted.
+  - If a matrix cannot be factorized (only with constant readings), Home says "No unusual patterns today", because the model gives no insight then.
+  - The reliability plot label above.
+- **Manual checks pending** (none confirmed yet):
+  - A3 (ARCHITECTURE.md section 31.9), on the deployed site:
+    1. Load `pattern-shift`: no alerts; the "Second opinions" card shows "Unusual pattern for you" with three factors, the caveat and the "Model estimate" tag.
+    2. Open "How this model works": the simulated evaluation numbers match `ml/reports/personal-pattern-v1.md`, and the card says they come from simulated data.
+    3. Load `early-mission`: "Learning your pattern (n of 14 days)".
+    4. "Send to ground" queues one consult; pressing it again the same day adds nothing (the button is replaced by "Second opinion sent by crew: queued for Earth").
+    5. Keyboard only, and at 390 px.
+  - A3: look at the `pattern-shift` insight and confirm the scenario expectations (`expectedInsights`) before they count as reviewed.
+  - A3: read the new wording of the A1 model card (`ml/reports/sep-risk-v1.md`, the purpose sentence, the reliability table header and the formula sentence).
+  - A2 (section 31.8), on the deployed site: the five checks listed in the A2 entry below: pending.
+  - A1: read `ml/reports/sep-risk-v1.md` (the six points of section 31.7), and open two or three of its instrument documentation links: pending.
+  - Pending — Divyanshu will complete before M5:
+    - M2: open `public/seed/sleep-debt.json` and see `"simulated": true`, the fictional crew names and `expectedAlerts`.
+    - M2: open `ml/data/raw/donki/meta.json` and see `apiBase`, `requested`, `recordCounts` and `complete: true`.
+    - M3: a look by eye at Home and Check-in on the deployed site.
+    - M4: record the short screen capture of the demo flow (with the outlook step first).
+    - M4: a look by eye at the alert screen on the deployed site.
+    - M4: approve the re-check name "Blood sugar re-check (not fasting)" and the reworded `R-GLU-02` explanation.
+- Not done on purpose: `p0-complete` is still not tagged, because the human checks above are pending.
+- This commit's deployment is recorded in the next entry.
+- Next: stop. M5 and every other milestone wait for Divyanshu's approval; A4 stays deferred until after the hackathon.
+
 ## A2 ML model 1 in the app (first code Sun 01:58, checked and committed Sun 02:41, pushed right after; manual checks pending)
 - A1 close recorded: commit `4304f07` pushed to `main`. Deployment confirmed from Vercel's own commit status on GitHub (state "success", "Deployment has completed", 01:30 IST). Two earlier status queries were refused by GitHub's anonymous rate limit; one query after the reset succeeded. The public site served the same asset files as before (`index-CEAMow3E.js`, `index-D7q4ypPC.css`), as expected, because A1 changed no app code.
 - A1 kept frozen:

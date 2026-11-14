@@ -13,6 +13,8 @@ Design: ARCHITECTURE.md sections 25 and 26. Label policy: decision D22 in sectio
 | `features.py` | The eight features of the `sep-risk` model. The app's `sepRisk.ts` mirrors it | Python standard library |
 | `build_dataset.py` | Labels the flares and writes `data/processed/` | Python standard library |
 | `train_sep_risk.py` | Trains, evaluates and exports the model | the packages in `requirements.txt` |
+| `personal_pattern.py` | The personal pattern model: baseline z-scores, Ledoit-Wolf shrinkage, distance, leave-one-out threshold, contributions. The app's `personalPattern.ts` mirrors it | the packages in `requirements.txt` |
+| `eval_personal_pattern.py` | The simulated evaluation of the personal pattern model, and its export | the packages in `requirements.txt`, and `tools/simulator` |
 | `tests/` | Tests for all of the above | the packages in `requirements.txt` for the training tests |
 
 ## Reproduce
@@ -27,6 +29,7 @@ pip install -r ml/requirements.txt
 python ml/fetch_donki.py --verify        # checks the committed raw files; no network
 python ml/build_dataset.py
 python ml/train_sep_risk.py --seed 42
+python ml/eval_personal_pattern.py --seed 42
 python -m unittest discover -s ml/tests
 ```
 
@@ -49,7 +52,15 @@ Running it twice gives byte-identical files.
 
 It prints the split sizes, the chosen `C`, the threshold and the test scores. Running it twice gives the same model file apart from `createdAt`.
 
-`python -m unittest discover -s ml/tests` ends with `OK`. Without the virtual environment the training tests are skipped and the last line says how many; inside it nothing is skipped.
+`python ml/eval_personal_pattern.py --seed 42` writes, in about a minute:
+
+- `src/data/models/personal-pattern-v1.json`: the model file the app loads: the settings (two of them design values), the wording of the insight, and the simulated evaluation with every rate, count and 95% interval.
+- `ml/artifacts/personal-pattern-v1-parity.json`: six z-score matrices and four whole histories with the expected numbers. The app's TypeScript model must reproduce them within 1e-9.
+- `ml/reports/personal-pattern-v1.md`: the model card.
+
+The evaluation uses simulated data only, made with `tools/simulator/model.py`; nothing is downloaded. It prints its findings in words. Running it twice gives the same model file apart from `createdAt`.
+
+`python -m unittest discover -s ml/tests` ends with `OK`. It takes about a minute and a half, because one test runs the whole personal pattern evaluation to check the committed files. Without the virtual environment the training tests are skipped and the last line says how many; inside it nothing is skipped.
 
 ## Rules
 
@@ -58,5 +69,6 @@ It prints the split sizes, the chosen `C`, the threshold and the test scores. Ru
 - A flare is positive only when DONKI links it, directly or through one linked CME, to an SEP record observed by an instrument. A flare with only model or unknown SEP evidence is excluded as ambiguous. A negative means "no qualifying recorded SEP association", not that no particle event occurred.
 - A new instrument name in a later download is `unknown` until `sep_instrument_classes.json` records official documentation for it.
 - A retrain that changes any coefficient becomes `v2` with new files.
+- The personal pattern evaluation is simulated, and every place that shows its results says so. Never change a shift, a size or a scenario to make the results look better.
 
 Data credit: NASA Community Coordinated Modeling Center (CCMC), DONKI. DONKI describes its content as experimental research information.

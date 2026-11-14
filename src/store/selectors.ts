@@ -1,4 +1,8 @@
-import { healthData, sepRiskModel } from '../data/index.ts'
+import {
+  healthData,
+  personalPatternModel,
+  sepRiskModel,
+} from '../data/index.ts'
 import {
   evaluate,
   missionDayOf,
@@ -26,7 +30,11 @@ export function selectEvaluationInput(state: AppState): EvaluationInput {
     indicators: healthData.indicators,
     rules: healthData.rules,
     spaceWeather: state.spaceWeather,
-    models: { sepRisk: sepRiskModel },
+    models: {
+      sepRisk: sepRiskModel,
+      personalPattern: personalPatternModel,
+      earthHospital: null,
+    },
   }
 }
 

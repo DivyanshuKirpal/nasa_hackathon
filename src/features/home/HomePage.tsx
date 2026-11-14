@@ -8,6 +8,7 @@ import { useAppStore } from '../../store/index.ts'
 import { selectEvaluation } from '../../store/selectors.ts'
 import { AlertList } from './AlertList.tsx'
 import { HistoricalNote } from './HistoricalNote.tsx'
+import { SecondOpinionsCard } from './SecondOpinionsCard.tsx'
 import { StatusList } from './StatusList.tsx'
 import { TodayCard } from './TodayCard.tsx'
 
@@ -56,6 +57,7 @@ export function HomePage() {
         </Card>
         <div className="space-y-4">
           <AlertList evaluation={evaluation} />
+          <SecondOpinionsCard evaluation={evaluation} />
           <TodayCard evaluation={evaluation} />
           <StatusList
             evaluation={evaluation}

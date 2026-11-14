@@ -1,4 +1,4 @@
-import type { Alert, GroundMessage, Route } from '../engine/index.ts'
+import type { Alert, GroundMessage, Insight, Route } from '../engine/index.ts'
 import { messageId } from '../lib/ids.ts'
 import { routeSentence } from '../lib/route.ts'
 
@@ -26,6 +26,54 @@ export function hasMessage(
   return outbox.some(
     (message) => message.alertKey === alertKey && message.kind === kind,
   )
+}
+
+/** The outbox title of an insight the crew chose to send (section 26.17). */
+export const SECOND_OPINION_TITLE = 'Second opinion sent by crew'
+
+export interface InsightMessageInput {
+  insight: Insight
+  /** The model file's headline and caveat. */
+  headline: string
+  caveat: string
+  /** One line per factor, written for the ground. */
+  factorLines: readonly string[]
+  /** "Crew member A, Commander" */
+  sender: string
+  nowMs: number
+}
+
+/**
+ * A consult the crew chose to send from a second-opinion insight; never sent
+ * automatically. Marked private, because mood is among the model's inputs and
+ * mood is private (section 28). It names no route: a second opinion never
+ * sets one.
+ */
+export function composeInsightMessage(
+  input: InsightMessageInput,
+): GroundMessage {
+  const { insight } = input
+  const lines = [
+    'Private medical.',
+    `From ${input.sender}, mission day ${insight.day}.`,
+    `${SECOND_OPINION_TITLE}. Insight shown to the crew: "${input.headline}" (model estimate, ${insight.modelId} ${insight.modelVersion}).`,
+    ...input.factorLines.map((line) => `What changed: ${line}.`),
+    input.caveat,
+    'Not an alert: a second opinion never sets a status or a route.',
+  ]
+  return {
+    id: messageId('consult', insight.key),
+    crewId: insight.crewId,
+    alertKey: null,
+    insightKey: insight.key,
+    kind: 'consult',
+    title: SECOND_OPINION_TITLE,
+    body: lines.join('\n'),
+    sentAtMs: input.nowMs,
+    arrivesAtMs: null,
+    replyDueAtMs: null,
+    status: 'queued',
+  }
 }
 
 export interface AlertMessageInput {

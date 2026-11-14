@@ -1,12 +1,17 @@
 import {
   missionDayOf,
   type Alert,
+  type Evaluation,
   type GroundMessage,
+  type Insight,
 } from '../engine/index.ts'
 import { activeAlerts } from '../lib/alerts.ts'
-import { ruleById } from '../lib/labels.ts'
+import { todaysValue } from '../lib/checkin.ts'
+import { factorLineForGround, insightText } from '../lib/insights.ts'
+import { crewLabel, ruleById } from '../lib/labels.ts'
 import {
   composeAlertMessage,
+  composeInsightMessage,
   hasMessage,
   kindForRoute,
   type MessageKind,
@@ -37,6 +42,37 @@ export function alertMessage(
     day: missionDayOf(state.mission.nowMs),
     nowMs: state.mission.nowMs,
     stepsDone: state.alertState[alert.key]?.stepsDone ?? [],
+  })
+}
+
+/** The consult the crew may send from an insight, written at the current mission time. */
+export function insightMessage(
+  state: PersistedState,
+  insight: Insight,
+  evaluation: Evaluation,
+): GroundMessage {
+  const member = state.crew.find((entry) => entry.id === insight.crewId)
+  const records = {
+    crewId: insight.crewId,
+    today: insight.day,
+    readings: state.readings,
+    symptoms: state.symptoms,
+    noSymptomDays: state.noSymptomDays,
+  }
+  const text = insightText(insight)
+  return composeInsightMessage({
+    insight,
+    headline: text.headline,
+    caveat: text.caveat,
+    factorLines: insight.factors.map((factor) =>
+      factorLineForGround(
+        factor,
+        todaysValue(records, factor.indicator),
+        evaluation.baselines[factor.indicator],
+      ),
+    ),
+    sender: member ? crewLabel(member) : insight.crewId,
+    nowMs: state.mission.nowMs,
   })
 }
 

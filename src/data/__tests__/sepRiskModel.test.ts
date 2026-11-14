@@ -226,7 +226,7 @@ describe('R-RAD-03 with the real model and the solar-flare-watch scenario', () =
       indicators: healthData.indicators,
       rules: healthData.rules,
       spaceWeather: scenario.spaceWeather,
-      models: { sepRisk: model },
+      models: { sepRisk: model, personalPattern: null, earthHospital: null },
     }).alerts
   }
 

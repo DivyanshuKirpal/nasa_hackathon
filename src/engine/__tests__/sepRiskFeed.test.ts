@@ -174,7 +174,11 @@ function input(overrides: Partial<EvaluationInput>): EvaluationInput {
     indicators: ALL_FIXTURE_INDICATORS,
     rules: [eventRule, outlookRule],
     spaceWeather: [flare(NOW, 2, STRONG)],
-    models: { sepRisk: FIXTURE_MODEL },
+    models: {
+      sepRisk: FIXTURE_MODEL,
+      personalPattern: null,
+      earthHospital: null,
+    },
     ...overrides,
   }
 }
@@ -220,7 +224,11 @@ describe('what a model outlook may do', () => {
     for (const link of LINKS) {
       const withModel = evaluate(input({ ...base, link }))
       const without = evaluate(
-        input({ ...base, link, models: { sepRisk: null } }),
+        input({
+          ...base,
+          link,
+          models: { sepRisk: null, personalPattern: null, earthHospital: null },
+        }),
       )
       const others = withModel.alerts.filter(
         (alert) => alert.ruleId !== 'R-OUT-03',
@@ -232,7 +240,13 @@ describe('what a model outlook may do', () => {
   })
 
   it('raises nothing without a model or without flares, and does not fail', () => {
-    expect(evaluate(input({ models: { sepRisk: null } })).alerts).toEqual([])
+    expect(
+      evaluate(
+        input({
+          models: { sepRisk: null, personalPattern: null, earthHospital: null },
+        }),
+      ).alerts,
+    ).toEqual([])
     expect(evaluate(input({ spaceWeather: [] })).alerts).toEqual([])
   })
 

@@ -133,6 +133,33 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual(len(today), 1)
         self.assertEqual((today[0]['crewId'], today[0]['indicator'], today[0]['value']), ('c1', 'blood_glucose', 62))
 
+    def test_pattern_shift_moves_four_readings_of_crew_a_for_three_days(self):
+        scenario = scenarios.by_id('pattern-shift')
+        shifted = {(crew, indicator) for crew, indicator, _ in scenario.effects}
+        self.assertEqual(shifted, {('c1', indicator) for indicator in scenarios.PATTERN_SHIFT_DIRECTIONS})
+        self.assertEqual({days for _, _, days in scenario.effects}, {0, 1, 2})
+        for (crew, indicator, _), amount in scenario.effects.items():
+            direction = scenarios.PATTERN_SHIFT_DIRECTIONS[indicator]
+            self.assertAlmostEqual(amount, direction * scenarios.PATTERN_SHIFT_SIZE * model.NOISE_SD[indicator])
+        self.assertEqual(scenario.expected_alerts, ())
+        self.assertEqual(scenario.expected_insights, (('c1', 'personal-pattern'),))
+
+    def test_pattern_shift_logs_crew_a_morning_check_in_today_only(self):
+        document = self.build('pattern-shift')
+        today = [reading for reading in document['readings'] if reading['day'] == document['missionDay']]
+        self.assertEqual({reading['crewId'] for reading in today}, {'c1'})
+        indicators = {reading['indicator'] for reading in today}
+        self.assertNotIn('exercise_minutes', indicators)
+        self.assertTrue({'sleep_hours', 'mood', 'heart_rate', 'reaction_time'} <= indicators)
+        morning = (document['missionDay'] - 1) * model.MS_PER_DAY + model.MORNING_MS
+        self.assertTrue(all(reading['atMs'] == morning for reading in today))
+        self.assertEqual(document['expectedInsights'], [{'crewId': 'c1', 'modelId': 'personal-pattern'}])
+
+    def test_other_scenarios_expect_no_insight(self):
+        for scenario in scenarios.SCENARIOS:
+            if scenario.scenario_id != 'pattern-shift':
+                self.assertEqual(self.build(scenario.scenario_id)['expectedInsights'], [], scenario.scenario_id)
+
     def test_solar_storm_marks_only_the_mission_day(self):
         document = self.build('solar-storm')
         flagged = [sample['day'] for sample in document['context'] if sample['solar_event']]

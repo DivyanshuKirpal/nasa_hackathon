@@ -51,7 +51,7 @@ function input(overrides: Partial<EvaluationInput>): EvaluationInput {
     indicators: ALL_FIXTURE_INDICATORS,
     rules: [lowGlucose, highAverage],
     spaceWeather: [],
-    models: { sepRisk: null },
+    models: { sepRisk: null, personalPattern: null, earthHospital: null },
     ...overrides,
   }
 }

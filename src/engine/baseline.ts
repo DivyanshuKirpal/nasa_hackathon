@@ -22,6 +22,18 @@ export function baselineWindowFor(cadenceDays: number) {
   return cadenceDays >= 7 ? BASELINE_WINDOWS.weekly : BASELINE_WINDOWS.daily
 }
 
+/** First and last day of the rolling window; shared with the personal pattern model. */
+export function baselineWindowRange(
+  cadenceDays: number,
+  today: MissionDay,
+): { fromDay: MissionDay; toDay: MissionDay } {
+  const settings = baselineWindowFor(cadenceDays)
+  return {
+    fromDay: today - settings.windowDays - settings.excludeRecentDays + 1,
+    toDay: today - settings.excludeRecentDays,
+  }
+}
+
 /** One value per mission day for one indicator. */
 export interface DailyValue {
   day: MissionDay
@@ -93,8 +105,7 @@ export function computeBaseline(
   today: MissionDay,
 ): Baseline {
   const settings = baselineWindowFor(def.cadenceDays)
-  const fromDay = today - settings.windowDays - settings.excludeRecentDays + 1
-  const toDay = today - settings.excludeRecentDays
+  const { fromDay, toDay } = baselineWindowRange(def.cadenceDays, today)
   const inWindow = values
     .filter((entry) => entry.day >= fromDay && entry.day <= toDay)
     .map((entry) => entry.value)

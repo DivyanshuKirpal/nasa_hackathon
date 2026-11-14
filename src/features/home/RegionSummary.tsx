@@ -1,3 +1,4 @@
+import { Lightbulb } from 'lucide-react'
 import { Tag } from '../../components/Tag.tsx'
 import { healthData } from '../../data/index.ts'
 import {
@@ -6,6 +7,7 @@ import {
   type Evaluation,
   type RegionId,
 } from '../../engine/index.ts'
+import { factorWords, insightText } from '../../lib/insights.ts'
 import { formatNormal, formatValue, indicatorDef } from '../../lib/labels.ts'
 import { useAppStore } from '../../store/index.ts'
 import { selectToday } from '../../store/selectors.ts'
@@ -55,6 +57,42 @@ function HabitatFeeds() {
   )
 }
 
+/**
+ * Second opinions whose factors involve this region's readings (section
+ * 26.17). An insight never changes the region's status.
+ */
+function RegionInsights({
+  evaluation,
+  regionId,
+}: {
+  evaluation: Evaluation
+  regionId: RegionId
+}) {
+  const notes = evaluation.insights.flatMap((insight) => {
+    const factors = insight.factors.filter(
+      (factor) => indicatorDef(factor.indicator).region === regionId,
+    )
+    return factors.length === 0 ? [] : [{ insight, factors }]
+  })
+  if (notes.length === 0) return null
+  return (
+    <ul className="space-y-1">
+      {notes.map(({ insight, factors }) => (
+        <li key={insight.key} className="flex flex-wrap items-center gap-2">
+          <Lightbulb aria-hidden="true" size={18} />
+          <span className="font-semibold">Insight</span>
+          <Tag>Model estimate</Tag>
+          <span>
+            {insightText(insight).headline}:{' '}
+            {factors.map((factor) => factorWords(factor)).join('; ')}. Details
+            under &ldquo;Second opinions&rdquo;.
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 /** The readings behind one region's status, shown under its row on Home. */
 export function RegionSummary({
   evaluation,
@@ -73,6 +111,7 @@ export function RegionSummary({
   return (
     <div className="space-y-2 pb-3 pl-1">
       {regionId === 'whole_body' && <HabitatFeeds />}
+      <RegionInsights evaluation={evaluation} regionId={regionId} />
       {regionId === 'skin' && (
         <p>
           Skin has no measurement of its own. Good here means only that no alert

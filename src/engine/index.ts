@@ -6,6 +6,10 @@ import {
   type LatestValue,
 } from './baseline.ts'
 import type { ConditionContext } from './conditions.ts'
+import {
+  assessPattern,
+  personalPatternInsight,
+} from './models/personalPattern.ts'
 import { evaluateRules } from './rules.ts'
 import {
   missingContextFeeds,
@@ -36,10 +40,21 @@ export {
   type SepRiskFactor,
 } from './models/sepRisk.ts'
 export {
+  assessPattern,
+  ledoitWolfSecondMoment,
+  personalPatternInsight,
+  scoreToday,
+  topFactors as patternFactors,
+  type PatternAssessment,
+  type PatternScore,
+} from './models/personalPattern.ts'
+export {
   BASELINE_WINDOWS,
+  computeBaseline,
   isRecheck,
   lastReadingPerDay,
   latestReading,
+  type DailyValue,
 } from './baseline.ts'
 export { CONTEXT_FEED_REGION, DAILY_CONTEXT_FEEDS } from './status.ts'
 export { recheckName } from './format.ts'
@@ -93,6 +108,17 @@ export function evaluate(input: EvaluationInput): Evaluation {
   const gaps = regionGaps(input.indicators, overdue, missingFeeds)
   const regionStatus = regionStatuses(alerts, input.indicators, gaps)
 
+  // Second opinions run last and read only what the rules read; nothing above
+  // depends on them (decision D19, the second-opinion invariance test).
+  const patternModel = input.models.personalPattern
+  const pattern = patternModel
+    ? assessPattern(patternModel, { today, dailyValues, baselines })
+    : null
+  const insight =
+    patternModel && pattern
+      ? personalPatternInsight(patternModel, input.crewId, today, pattern)
+      : null
+
   return {
     baselines,
     alerts,
@@ -101,5 +127,7 @@ export function evaluate(input: EvaluationInput): Evaluation {
     overdue,
     missingFeeds,
     regionGaps: gaps,
+    insights: insight ? [insight] : [],
+    patternReadiness: pattern?.readiness ?? null,
   }
 }

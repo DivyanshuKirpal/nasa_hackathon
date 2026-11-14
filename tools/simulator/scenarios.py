@@ -2,7 +2,8 @@
 
 A scenario is a mission day, an environment, and a few scripted changes on top
 of the ordinary simulated history. `expected_alerts` is what the app's rules
-must show at 09:00 on the mission day; the golden tests check it exactly.
+must show at 09:00 on the mission day, and `expected_insights` what the
+second-opinion models must show then; the golden tests check both exactly.
 
 Seed histories run to the day before the mission day, so the crew member still
 has today's check-in to do. A scenario adds readings for today only where its
@@ -12,6 +13,8 @@ story needs them.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+
+import model
 
 
 @dataclass(frozen=True)
@@ -32,7 +35,11 @@ class Scenario:
     # Real DONKI flares replayed on the mission timeline (section 24.6):
     # (DONKI flare id, days before the mission day, 'HH:MM' of the flare peak).
     flares: tuple = ()
+    # Crew members whose morning check-in today is already logged (simulated, with the effects of day 0).
+    checkin_today: tuple = ()
     expected_alerts: tuple = ()
+    # Second-opinion insights at 09:00 on the mission day: (crew id, model id).
+    expected_insights: tuple = ()
 
 
 def _sleep_debt_effects() -> dict:
@@ -47,6 +54,22 @@ def _fever_effects() -> dict:
         ('c1', 'body_temp', 1): 1.6,
         ('c1', 'heart_rate', 2): 8.0,
         ('c1', 'heart_rate', 1): 16.0,
+    }
+
+
+# The "combined" pattern of the personal pattern model's simulated evaluation
+# (ml/eval_personal_pattern.py, PATTERNS); a test in ml/tests checks the two agree.
+PATTERN_SHIFT_DIRECTIONS = {'sleep_hours': -1, 'mood': -1, 'heart_rate': 1, 'reaction_time': 1}
+# One of the evaluation's sizes: 2.5 times the simulator's day-to-day noise of each reading.
+PATTERN_SHIFT_SIZE = 2.5
+
+
+def _pattern_shift_effects() -> dict:
+    # Crew member A, today and the two days before: the days the baseline leaves out.
+    return {
+        ('c1', indicator, days_before): direction * PATTERN_SHIFT_SIZE * model.NOISE_SD[indicator]
+        for indicator, direction in PATTERN_SHIFT_DIRECTIONS.items()
+        for days_before in range(0, 3)
     }
 
 
@@ -125,6 +148,20 @@ SCENARIOS = (
         title='Mission day 4: still learning your normal',
         mission_day=4,
         environment_id='leo_station',
+    ),
+    Scenario(
+        scenario_id='pattern-shift',
+        title='Several readings shift a little at once',
+        mission_day=130,
+        environment_id='mars_surface',
+        # Built to show the personal pattern model (section 26.18), so the insight appears
+        # by construction: an illustration, not a measure of how often the model notices
+        # such a shift (the simulated evaluation in its model card measures that). No rule
+        # fires: each change is smaller or shorter than the rules' triggers. As in every
+        # scenario story, the noise is reduced on the shifted days.
+        effects=_pattern_shift_effects(),
+        checkin_today=('c1',),
+        expected_insights=(('c1', 'personal-pattern'),),
     ),
 )
 

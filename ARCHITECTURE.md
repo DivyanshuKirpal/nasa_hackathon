@@ -576,7 +576,7 @@ export interface Evaluation {
   overall: Status;
   overdue: IndicatorId[];
   insights: Insight[];                     // second opinions; never change alerts or statuses (section 26.17)
-  patternReadiness: PatternReadiness;
+  patternReadiness: PatternReadiness | null; // null while no personal pattern model is loaded (A3)
 }
 ```
 
@@ -1002,6 +1002,8 @@ Message body is generated from the alert: who, mission day, the evidence items, 
 
 The Earth link screen shows: current delay, link state, each message with a progress bar between its states, and the expected reply time.
 
+As built in A3: a consult sent from an insight has the id `consult:<insight key>`, the title "Second opinion sent by crew", `insightKey` set and `alertKey` null, and a body marked "Private medical." (section 26.17). It is queued only when the crew member presses "Send to ground"; `syncAlerts` never queues one.
+
 ---
 
 ## 16. Mission clock and demo mode
@@ -1277,6 +1279,8 @@ Both bodies side by side at a shared camera position and scale, each with its fi
 ### 19.11 Model cards `#/model/:modelId` (P0 for `sep-risk`, P1 for the others)
 
 One screen per model, read only from its model file: what it estimates or notices, its data, how it works, how well it did and on what (held-out years, simulated data, or a second hospital system), its limits and its sources (sections 26.10 and 26.17). A2 built `#/model/sep-risk` (the route is `model/:modelId`; any other ID says there is no card); A3 generalizes it. Linked from alerts and insights.
+
+As built in A3: `#/model/personal-pattern` is the second card, linked from each insight as "How this model works" and from the "Second opinions" card. It says first that the evaluation used simulated data only. It shows the settings with their "Design value" tags, the simulated results as short tables of percentages with a one-line summary each and the counts and 95% intervals under "Counts and 95% intervals", the limitations and the sources, all read from the model file. Under "Today" it shows the active crew member's raw score with its meaning (above 1 means more unusual than every baseline day), never as a percent. Any other ID still says there is no card.
 
 ---
 
@@ -1773,6 +1777,8 @@ Python 3, standard library only, in `tools/simulator/`. Output is committed to `
 
 `expectedAlerts` lists the non-superseded alerts that must be active at `missionDay`. Tests assert an exact match (section 27). Golden tests evaluate at 09:00 on `missionDay`, the same moment `loadScenario` sets (section 21). `expectedInsights` lists the insights (`{ crewId, modelId }`) that must be present at that moment; the golden test checks them for every second-opinion model that is loaded. A3 and A4 fill in `expectedInsights` for every scenario from what the models give, after Divyanshu has looked at each insight. `pattern-shift` is built to show the personal pattern model; no other scenario, threshold or model is changed to make an insight appear or disappear.
 
+As built in A3: the generator writes `expectedInsights` from `expected_insights` in `scenarios.py`. A new field `checkin_today` lists the crew members whose morning check-in of the mission day is already logged (simulated, with the scenario's effects for that day; exercise, logged in the evening, is not). The personal pattern model needs at least four of today's readings, and the other scenarios stop their histories the day before the mission day, so only `pattern-shift` has an insight: `personal-pattern` for `c1`. Every other scenario expects none, and the golden test checks both ways. Divyanshu has not yet looked at the insight (pending), so these expectations are not marked as reviewed.
+
 `spaceWeather` holds `FlareObservation` records (section 26.11), copied from real DONKI flares; it is empty in most scenarios. `basedOn` is null or a short note naming the real event a scenario uses, for example "Timing and flare from NASA DONKI event 2024-05-09T08:45:00-FLR-001". The demo panel and the alert evidence show it.
 
 The generator also writes `public/seed/index.json`, a list of `{ scenarioId, title, environmentId, missionDay }` that the demo panel reads. Scenario files never contain body view data.
@@ -1809,7 +1815,7 @@ For each crew member and indicator, a daily value is `personal mean + adaptation
 | `cognitive-compound` | Sleep debt, slower reaction time, CO2 creeping over 3 mmHg | `R-COG-01`, `R-CO2-01` | M7 |
 | `vision-drift` | Near-vision score falls over three weeks | `R-VIS-01` | M7 |
 | `missed-exercise` | A week of short sessions | `R-EXE-01` | M7 |
-| `pattern-shift` | Over the last three days several readings drift a little at once (sleep and mood down, resting heart rate up, reaction time slower), none enough for a rule | none; the insight `personal-pattern` for `c1` | A3 |
+| `pattern-shift` | Over the last three days several readings drift a little at once (sleep and mood down, resting heart rate up, reaction time slower), none enough for a rule. As built: mission day 130 at the Mars base; crew member A's morning check-in today is logged; each change is 2.5 times the simulator's day-to-day noise of that reading (the "combined" pattern of the simulated evaluation at one of its sizes), with the noise reduced on the shifted days. Built to show the insight, so the insight is there by construction; how often the model notices such a shift is in its model card, not in this scenario | none; the insight `personal-pattern` for `c1` | A3 |
 
 The default scenario on first load is `sleep-debt`. The three P0 scenarios are `baseline-healthy`, `sleep-debt` and `solar-storm`.
 
@@ -2256,6 +2262,15 @@ export interface PatternReadiness {
 
 `Evaluation` gains `insights` and `patternReadiness`, and `EvaluationInput.models` gains `personalPattern` and `earthHospital` (section 7). An insight exists only when it is notable.
 
+As built in A3 (15 November 2026):
+
+- `PatternReadiness` also carries `indicatorsToday` and `indicatorsNeeded`, so Home can say why there is no insight. `patternReadiness` is null while no personal pattern model is loaded. `EvaluationInput.models.earthHospital` is always null until A4.
+- Before today's check-in (fewer than `minIndicatorsToday` of the model's readings today), readiness counts the baseline-window days on which at least that many of the model's readings were recorded. Home then says "Learning your pattern (n of 14 days)" if that count is short, and otherwise "Second opinions run after today's check-in", with how many of today's readings it has. After the check-in the count is the complete days for today's indicators, as in section 26.18.
+- Factors: the largest positive contributions, at most three. A reading whose contribution is zero or negative is never named. The words are "<indicator label>: higher than your normal" or "lower than your normal", with today's value and the normal in brackets.
+- Region view: until the region detail screen exists (M5), Home's region rows list the insight under each area of its factors. The area's status does not change.
+- "Send to ground": the store action `sendInsightToGround` queues one `consult` per insight (section 15). Its body is marked "Private medical.", because mood is among the model's inputs and mood is private (section 28). It names the factors for the ground ("lower than usual for this crew member", with today's value and the usual value), the model version and the caveat, and says it is not an alert and sets no route. After sending, the button is replaced by "Second opinion sent by crew: queued for Earth at HH:MM mission time" with the "Simulated" tag; the store ignores a second request for the same insight. Nothing is queued unless the crew member presses the button.
+- When a matrix cannot be factorized (only with constant, degenerate readings), the model gives no insight and no error.
+
 ### 26.18 Model 2: personal pattern (`personal-pattern`)
 
 Priority P1, milestone A3. Code: `src/engine/models/personalPattern.ts` and `linalg.ts` in the app; `ml/personal_pattern.py` and `ml/eval_personal_pattern.py` offline.
@@ -2271,6 +2286,15 @@ Priority P1, milestone A3. Code: `src/engine/models/personalPattern.ts` and `lin
 - **Model file.** `src/data/models/personal-pattern-v1.json`, written by `ml/eval_personal_pattern.py`: `modelId`, `version`, `kind` ("shrinkage-mahalanobis"), `indicators`, `minIndicatorsToday` (4) and `minDays` (14), both design values; `thresholdRule`; `headline` ("Unusual pattern for you"); `caveat` ("Learned from your own readings. Tested only on simulated data. A second opinion only."); the simulated evaluation results, comparisons and limitations.
 - **Limitations, in the model card.** Evaluated only on simulated data; the simulator's independent noise makes correlations simpler than real physiology; a person whose readings are often unusual raises their own threshold; a slow drift over weeks becomes part of the baseline, by design (section 10); on stable readings a notice still appears by chance now and then, and the simulated evaluation measures how often; an insight can repeat what an alert already says.
 - **Scenario.** `pattern-shift` (section 24.3): several readings drift a little at once, none enough for a rule. Expected alerts: none. Expected insight: `personal-pattern` for `c1`.
+
+As built in A3 (15 November 2026):
+
+- **Evaluation design** (constants at the top of `ml/eval_personal_pattern.py`). 300 fictional histories for each of the simulator's three crew profiles. Each history is checked on one day drawn from mission days 31 to 120, so its baseline window is full and the histories are independent. The clean day gives the false-notice rate. Shifted copies of the same history add a shift for the last three days (the days the baseline leaves out) on top of the same noise, so each shifted day has a clean twin. Three patterns: "combined" (sleep and mood lower, resting heart rate and reaction time higher), temperature and heart rate higher, and sleep only. Sizes 1, 1.5, 2, 2.5 and 3 times the simulator's day-to-day noise of each shifted reading. Every rate has a Wilson 95% interval.
+- **Rules alone.** A Python copy of the rules engine for conditions on readings (`latest`, `streak`, `average`, `any`, `all`), reading `src/data/rules.json`. A test checks it against the expected alerts of every scenario file. Rules on habitat feeds, space weather or symptoms are not part of the simulation; the model file lists them.
+- **IsolationForest.** scikit-learn's default settings, fitted on the same baseline z-scores. It flags today when today's score is lower than every baseline day's score. The baseline days are scored in-sample (no leave-one-out), to keep the run short. It is a benchmark, not tuned.
+- **Results.** In `ml/reports/personal-pattern-v1.md` and on the app's model card screen, both read from the model file. They are not retyped here.
+- **Parity file.** Six z-matrix cases: five from simulated histories (one cut to four indicators and exactly 14 days) and one built from numbers so that a contribution is negative. Four whole-history cases, from daily values to the factors: all eight readings today, six readings, three readings (before the check-in), and an early day that is not ready.
+- **Reproducibility.** One run takes about a minute. `ml/tests` runs it once and checks that the committed model file (apart from `createdAt`), parity file and card are what it writes.
 
 ### 26.19 Model 3: Earth hospital (`earth-hospital`)
 
@@ -2326,6 +2350,8 @@ Tests exist to prove validity, not to chase coverage.
 | Hospital pipeline (deferred with A4) | Baseline window, floors read from `indicators.json`, carried-forward limits, exclusions, patient-level split, determinism | Python unittest |
 
 The golden scenario tests double as evidence for judges: every claim "the app detects X" is backed by a test that runs.
+
+As built in A3: `src/engine/__tests__/personalPattern.test.ts` (linear algebra, score, factors, readiness, the four-reading minimum, the glucose re-check, degenerate readings), `src/data/__tests__/personalPatternModel.test.ts` (model file and parity), `src/data/__tests__/secondOpinionInvariance.test.ts` (every scenario and crew member, with and without an unusual check-in, at three delays, with and without `sep-risk`), the golden insights in `goldenScenarios.test.ts`, `src/features/home/__tests__/SecondOpinions.test.tsx` (Home card, sending, region rows, model card), and in Python `ml/tests/test_personal_pattern.py` and `ml/tests/test_eval_personal_pattern.py`.
 
 Where tests live (M1): engine logic tests use inline fixtures in `src/engine/__tests__/`. Tests that need the real data files (data integrity, the six P0 rules, the section 13.5 table) live in `src/data/__tests__/`, because engine code, its tests included, may not import `src/data`. Engine and body view tests may import Vitest; otherwise the same import boundary applies to them.
 
@@ -2682,7 +2708,7 @@ Manual check:
 5. Keyboard only, and at 390 px.
 
 Exit test: the parity test is green; `solar-flare-watch` shows `R-RAD-03` with its model estimate; the model card screen reads the file.
-Status after A2 (15 November 2026): built and pushed. Changed from the plan above, by Divyanshu's decision of 15 November: the model output is shown as an experimental model score out of 100 with its limits, never as a percent chance (section 26.10). The frozen A1 model, its threshold and its parity file were not touched. The A1 model card `ml/reports/sep-risk-v1.md` still says "estimated chance" and "whole percent" in two sentences, because it is written by the training script and A2 did not re-run it; the app's model card screen is the current wording. The manual checks above were run by Claude Code in headless Chrome, not yet by a person.
+Status after A2 (15 November 2026): built and pushed. Changed from the plan above, by Divyanshu's decision of 15 November: the model output is shown as an experimental model score out of 100 with its limits, never as a percent chance (section 26.10). The frozen A1 model, its threshold and its parity file were not touched. The A1 model card `ml/reports/sep-risk-v1.md` still says "estimated chance" and "whole percent" in two sentences, because it is written by the training script and A2 did not re-run it; the app's model card screen is the current wording. (Corrected in A3 as a text-only change; see section 31.9.) The manual checks above were run by Claude Code in headless Chrome, not yet by a person.
 After the push: tag `p0-complete`.
 Docs: `docs/demo-script.md` gets the forecast step before the decisive moment.
 Commit: "A2: Run SEP risk model in the app with the R-RAD-03 outlook".
@@ -2719,6 +2745,7 @@ Manual check (Divyanshu):
 5. Keyboard only, and at 390 px.
 
 Exit test: parity green; `pattern-shift` shows the insight with no alert; the second-opinion invariance test is green.
+Status after A3 (15 November 2026): built; the exit test passes. Changed from the plan above: the insights are listed in Home's region rows, because the region detail screen is M5; `PatternReadiness` gained two counts (section 26.17). Also in this milestone, a text-only correction of the A1 model card: `ml/reports/sep-risk-v1.md` and the template in `ml/train_sep_risk.py` now call the output a model output that the app shows as an experimental model score, never a percent chance. Both were edited the same way and the script was not re-run, so the model, its threshold, the data, the parity file, the plots and every number are unchanged; the `ml` test that compares the committed card with the script's output passes. The reliability plot's axis label still reads "Mean estimated chance in the bin", because the plot is a frozen A1 file. The manual checks above were run by Claude Code in headless Chrome, not yet by a person, and Divyanshu has not yet looked at the scenario insights.
 Docs: AI_USAGE (model 2); REFERENCES (scikit-learn `LedoitWolf` and `IsolationForest`); PROGRESS.
 Commit: "A3: Add personal pattern model with on-board second opinions".
 

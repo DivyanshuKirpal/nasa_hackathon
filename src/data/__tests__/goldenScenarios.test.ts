@@ -2,17 +2,22 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { MS_PER_DAY, evaluate } from '../../engine/index.ts'
-import type { ScenarioFile, SepRiskModel } from '../../engine/index.ts'
+import type {
+  PersonalPatternModel,
+  ScenarioFile,
+  SepRiskModel,
+} from '../../engine/index.ts'
 import {
   scenarioFileSchema,
   scenarioIndexSchema,
   spaceWeatherFileSchema,
 } from '../../engine/schemas.ts'
-import { healthData, sepRiskModel } from '../index.ts'
+import { healthData, personalPatternModel, sepRiskModel } from '../index.ts'
 
 // Golden scenario tests (ARCHITECTURE.md section 27): every generated file in
-// public/seed must trigger exactly its expectedAlerts at 09:00 on its mission
-// day, the moment loadScenario sets. These back every "the app detects X" claim.
+// public/seed must trigger exactly its expectedAlerts, and give exactly its
+// expectedInsights, at 09:00 on its mission day, the moment loadScenario sets.
+// These back every "the app detects X" claim.
 
 const SEED_DIR = join(process.cwd(), 'public', 'seed')
 const NINE_AM_MS = 9 * 3_600_000
@@ -29,11 +34,21 @@ function load(name: string): ScenarioFile {
   return scenarioFileSchema.parse(readJson(join(SEED_DIR, name)))
 }
 
+interface Models {
+  sepRisk: SepRiskModel | null
+  personalPattern: PersonalPatternModel | null
+}
+
+const LOADED: Models = {
+  sepRisk: sepRiskModel,
+  personalPattern: personalPatternModel,
+}
+
 /** One crew member at 09:00 on the scenario's mission day, as the app evaluates it. */
 function evaluateAt(
   scenario: ScenarioFile,
   crewId: string,
-  model: SepRiskModel | null = sepRiskModel,
+  models: Models = LOADED,
 ) {
   const environment = healthData.environments.find(
     (env) => env.id === scenario.environmentId,
@@ -54,18 +69,18 @@ function evaluateAt(
     indicators: healthData.indicators,
     rules: healthData.rules,
     spaceWeather: scenario.spaceWeather,
-    models: { sepRisk: model },
+    models: { ...models, earthHospital: null },
   })
 }
 
 /** Non-superseded alerts for every crew member, as "crew:rule", sorted. */
 function activeAlerts(
   scenario: ScenarioFile,
-  model: SepRiskModel | null = sepRiskModel,
+  models: Models = LOADED,
 ): string[] {
   return scenario.crew
     .flatMap((member) =>
-      evaluateAt(scenario, member.id, model)
+      evaluateAt(scenario, member.id, models)
         .alerts.filter((alert) => alert.supersededBy === null)
         .map((alert) => `${alert.crewId}:${alert.ruleId}`),
     )
@@ -103,6 +118,32 @@ describe('generated scenario files', () => {
     expect(activeAlerts(scenario)).toEqual(expected)
   })
 
+  it.each(scenarioFiles)('%s gives exactly its expected insights', (name) => {
+    const scenario = load(name)
+    const insights = scenario.crew
+      .flatMap((member) => evaluateAt(scenario, member.id).insights)
+      .map((insight) => `${insight.crewId}:${insight.modelId}`)
+      .sort()
+    // Only models that are loaded can give an insight; earth-hospital is deferred with A4.
+    const expected = scenario.expectedInsights
+      .filter((insight) => insight.modelId === 'personal-pattern')
+      .map((insight) => `${insight.crewId}:${insight.modelId}`)
+      .sort()
+    expect(insights).toEqual(expected)
+  })
+
+  it('pattern-shift gives no alert and exactly the personal-pattern insight for c1', () => {
+    const scenario = load('pattern-shift.json')
+    expect(activeAlerts(scenario)).toEqual([])
+    const evaluation = evaluateAt(scenario, 'c1')
+    expect(evaluation.insights).toHaveLength(1)
+    const [insight] = evaluation.insights
+    expect(insight?.key).toBe(`personal-pattern:c1:${scenario.missionDay}`)
+    expect(insight?.score).toBeGreaterThan(1)
+    expect(insight?.factors).toHaveLength(3)
+    expect(evaluation.overall).toBe('good')
+  })
+
   it('solar-flare-watch gives exactly the model outlook R-RAD-03, as a watch alert', () => {
     const scenario = load('solar-flare-watch.json')
     expect(activeAlerts(scenario)).toEqual([
@@ -132,12 +173,17 @@ describe('generated scenario files', () => {
     for (const name of scenarioFiles) {
       const scenario = load(name)
       const withModel = activeAlerts(scenario)
-      const without = activeAlerts(scenario, null)
+      const without = activeAlerts(scenario, { ...LOADED, sepRisk: null })
       expect(without).toEqual(
         withModel.filter((alert) => !alert.endsWith(':R-RAD-03')),
       )
     }
-    expect(activeAlerts(load('solar-flare-watch.json'), null)).toEqual([])
+    expect(
+      activeAlerts(load('solar-flare-watch.json'), {
+        ...LOADED,
+        sepRisk: null,
+      }),
+    ).toEqual([])
   })
 
   it('scenario flares are real DONKI records, each named in the scenario note', () => {

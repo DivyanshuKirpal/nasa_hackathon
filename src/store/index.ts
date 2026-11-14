@@ -9,7 +9,7 @@ import {
   type ScenarioFile,
   type SymptomId,
 } from '../engine/index.ts'
-import { syncedAlertSlices, alertMessage } from './alertSync.ts'
+import { alertMessage, insightMessage, syncedAlertSlices } from './alertSync.ts'
 import {
   STORAGE_KEY,
   STORAGE_VERSION,
@@ -41,6 +41,11 @@ export interface AppActions {
   toggleStep(alertKey: string, stepIndex: number): void
   /** "Send to ground" for a self-care alert: the crew member's own choice. */
   sendToGround(alertKey: string): ActionResult
+  /**
+   * "Send to ground" for a second-opinion insight: only by the crew member's
+   * choice, at most one consult per insight (its key includes the day).
+   */
+  sendInsightToGround(insightKey: string): ActionResult
   /**
    * Records first and last sight of each active alert and queues the
    * automatic messages: one report for "act on board", one consult for
@@ -288,6 +293,23 @@ export const useAppStore = create<AppState>()(
           return { ok: false, message: 'This alert is already sent.' }
         }
         const message = alertMessage(state, alert, 'consult')
+        if (state.outbox.some((entry) => entry.id === message.id)) {
+          return { ok: true }
+        }
+        set({ outbox: [...state.outbox, message] })
+        return { ok: true }
+      },
+
+      sendInsightToGround(insightKey) {
+        const state = get()
+        const evaluation = selectEvaluation(state)
+        const insight = evaluation.insights.find(
+          (entry) => entry.key === insightKey,
+        )
+        if (!insight) {
+          return { ok: false, message: 'This insight is no longer shown.' }
+        }
+        const message = insightMessage(state, insight, evaluation)
         if (state.outbox.some((entry) => entry.id === message.id)) {
           return { ok: true }
         }

@@ -32,14 +32,16 @@ FLARES_CSV = model.REPO_ROOT / 'ml' / 'data' / 'processed' / 'flares.csv'
 
 def build_readings(scenario: Scenario, rng: random.Random, indicators: dict) -> list:
     readings = []
-    last_seeded_day = scenario.mission_day - 1
     for crew in model.CREW:
-        for day in range(1, last_seeded_day + 1):
+        last_day = scenario.mission_day if crew['id'] in scenario.checkin_today else scenario.mission_day - 1
+        for day in range(1, last_day + 1):
             days_before = scenario.mission_day - day
             for indicator in model.INDICATOR_ORDER:
                 definition = indicators[indicator]
                 if not model.is_due(definition, day):
                     continue
+                if days_before == 0 and model.reading_time_ms(indicator, day) % model.MS_PER_DAY != model.MORNING_MS:
+                    continue  # by 09:00 today's check-in holds only the morning readings
                 effect = scenario.effects.get((crew['id'], indicator, days_before), 0.0)
                 noise_scale = 0.4 if effect and scenario.quiet_effects else 1.0
                 value = model.daily_value(rng, crew['id'], indicator, day, definition, effect, noise_scale)
@@ -178,7 +180,9 @@ def build_scenario(scenario: Scenario, seed: int, indicators: dict) -> dict:
         'expectedAlerts': [
             {'crewId': crew_id, 'ruleId': rule_id} for crew_id, rule_id in scenario.expected_alerts
         ],
-        'expectedInsights': [],
+        'expectedInsights': [
+            {'crewId': crew_id, 'modelId': model_id} for crew_id, model_id in scenario.expected_insights
+        ],
     }
 
 

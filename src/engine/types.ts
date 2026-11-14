@@ -32,6 +32,12 @@ export type SepRiskFeature = z.infer<typeof schemas.sepRiskFeatureSchema>
 export type SepRiskModel = z.infer<typeof schemas.sepRiskModelSchema>
 /** The whole model file, for the model card screen. Inference needs only SepRiskModel. */
 export type SepRiskModelFile = z.infer<typeof schemas.sepRiskModelFileSchema>
+export type PersonalPatternModel = z.infer<
+  typeof schemas.personalPatternModelSchema
+>
+export type PersonalPatternModelFile = z.infer<
+  typeof schemas.personalPatternModelFileSchema
+>
 export type ScenarioFile = z.infer<typeof schemas.scenarioFileSchema>
 export type ScenarioIndex = z.infer<typeof schemas.scenarioIndexSchema>
 export type GroundMessage = z.infer<typeof schemas.groundMessageSchema>
@@ -93,6 +99,45 @@ export interface Alert {
   supersededBy: string | null
 }
 
+// Second opinions (section 26.17). An insight is derived and never stored. It
+// never sets a status, creates or hides an alert, changes a route or queues
+// a message by itself (decision D19).
+
+export type InsightModelId = 'personal-pattern' | 'earth-hospital'
+
+export interface InsightFactor {
+  indicator: IndicatorId
+  /** Today's z-score against the person's baseline (section 10). */
+  z: number
+  /** This indicator's share of the model's score. */
+  contribution: number
+}
+
+export interface Insight {
+  /** `${modelId}:${crewId}:${day}`: one insight per model, crew member and day. */
+  key: string
+  modelId: InsightModelId
+  modelVersion: string
+  crewId: string
+  day: MissionDay
+  /** personal-pattern: today's distance ÷ the largest baseline-day distance (above 1). */
+  score: number
+  /** At most three, largest first. */
+  factors: InsightFactor[]
+}
+
+export interface PatternReadiness {
+  ready: boolean
+  /** Complete baseline days for today's indicators (before today's check-in: days with enough readings). */
+  daysAvailable: number
+  /** minDays from the model file. */
+  daysNeeded: number
+  /** The model's readings logged today. */
+  indicatorsToday: number
+  /** minIndicatorsToday from the model file. */
+  indicatorsNeeded: number
+}
+
 export interface EvaluationInput {
   nowMs: MissionMs
   crewId: string
@@ -107,6 +152,10 @@ export interface EvaluationInput {
   models: {
     /** null turns the sep_risk feed off: no model, no outlook (section 26.15). */
     sepRisk: SepRiskModel | null
+    /** null turns the personal pattern second opinion off: no insight. */
+    personalPattern: PersonalPatternModel | null
+    /** The Earth hospital model is deferred with A4 (section 26.19). */
+    earthHospital: null
   }
 }
 
@@ -126,4 +175,8 @@ export interface Evaluation {
   /** Daily habitat feeds with no sample for today; never treated as normal. */
   missingFeeds: ContextFeedId[]
   regionGaps: Record<RegionId, RegionGaps>
+  /** Notable second opinions for today; never used by alerts, statuses or routes. */
+  insights: Insight[]
+  /** null while no personal pattern model is loaded. */
+  patternReadiness: PatternReadiness | null
 }

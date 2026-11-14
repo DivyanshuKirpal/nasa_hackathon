@@ -51,6 +51,13 @@
       "environmentId": "leo_station",
       "missionDay": 4,
       "basedOn": null
+    },
+    {
+      "scenarioId": "pattern-shift",
+      "title": "Several readings shift a little at once",
+      "environmentId": "mars_surface",
+      "missionDay": 130,
+      "basedOn": null
     }
   ]
 }

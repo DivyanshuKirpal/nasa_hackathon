@@ -638,7 +638,7 @@ def model_card(model: dict, summary: dict, sources: dict[str, dict], plot_names:
     add('')
     add('## Purpose')
     add('')
-    add('For a solar flare of class M1.0 or above, the model estimates the chance that NASA DONKI analysts link it to a solar energetic particle (SEP) event that an instrument observed. For the crew this reads: "estimated chance this flare is followed by a solar particle event".')
+    add('For a solar flare of class M1.0 or above, the model gives an output between 0 and 1 for whether NASA DONKI analysts link it to a solar energetic particle (SEP) event that an instrument observed. The app shows this output to the crew as an "Experimental model score" out of 100, never as a percent chance; "Reliability on the test years" below shows how the output compares with what was recorded.')
     add('')
     add('In the app the estimate may raise one watch-level alert, `R-RAD-03`, labeled "Model estimate". It never raises an act-level alert and never changes a route by itself.')
     add('')
@@ -808,7 +808,7 @@ def model_card(model: dict, summary: dict, sources: dict[str, dict], plot_names:
     add('### Reliability on the test years')
     add('')
     lines += _table(
-        ['Estimated chance', 'Flares', 'Mean estimate', 'Share that were positive'],
+        ['Model output', 'Flares', 'Mean output', 'Share that were positive'],
         [[f"{item['binFrom']:.1f} to {item['binTo']:.1f}", item['n'], _pct(item['meanPredicted']), _pct(item['observed'])] for item in metrics['reliability']],
     )
     add('')
@@ -837,7 +837,7 @@ def model_card(model: dict, summary: dict, sources: dict[str, dict], plot_names:
         [[f"`{item['name']}`", item['group'], _f(item['mean'], 4), _f(item['scale'], 4), f"{item['coef']:+.4f}"] for item in model['features']],
     )
     add('')
-    add(f"Intercept: {model['intercept']:+.4f}. Estimate = 1 / (1 + exp(-(intercept + sum of coefficient x (value - mean) / scale))). The app shows it as a whole percent between 1% and 99%.")
+    add(f"Intercept: {model['intercept']:+.4f}. Output = 1 / (1 + exp(-(intercept + sum of coefficient x (value - mean) / scale))). The app shows it as an \"Experimental model score\": the output times 100, a whole number from 1 to 99, never a percent chance.")
     add('')
     add('## Limitations')
     add('')

@@ -1,6 +1,7 @@
 import {
   environmentsFileSchema,
   indicatorsFileSchema,
+  personalPatternModelFileSchema,
   protocolsFileSchema,
   regionsFileSchema,
   rulesFileSchema,
@@ -10,6 +11,7 @@ import {
 import { findDataProblems, type HealthData } from '../engine/validateData.ts'
 import environmentsJson from './environments.json'
 import indicatorsJson from './indicators.json'
+import personalPatternModelJson from './models/personal-pattern-v1.json'
 import sepRiskModelJson from './models/sep-risk-v1.json'
 import protocolsJson from './protocols.json'
 import regionsJson from './regions.json'
@@ -48,11 +50,42 @@ if (problems.length > 0) {
  */
 export const sepRiskModel = sepRiskModelFileSchema.parse(sepRiskModelJson)
 
-const unknownModelSources = sepRiskModel.sourceIds.filter(
-  (id) => !healthData.sources.some((source) => source.id === id),
+/**
+ * The personal pattern model (section 26.18), written by
+ * ml/eval_personal_pattern.py. Its evaluation is simulated; it can only ever
+ * produce an insight (decision D19).
+ */
+export const personalPatternModel = personalPatternModelFileSchema.parse(
+  personalPatternModelJson,
 )
-if (unknownModelSources.length > 0) {
-  throw new Error(
-    `The sep-risk model file names unknown sources: ${unknownModelSources.join(', ')}`,
-  )
+
+function modelFileProblems(): string[] {
+  const knownSource = (id: string) =>
+    healthData.sources.some((source) => source.id === id)
+  const problems = [
+    ...sepRiskModel.sourceIds
+      .filter((id) => !knownSource(id))
+      .map((id) => `the sep-risk model file names an unknown source: ${id}`),
+    ...personalPatternModel.sourceIds
+      .filter((id) => !knownSource(id))
+      .map(
+        (id) =>
+          `the personal-pattern model file names an unknown source: ${id}`,
+      ),
+  ]
+  // The model scores today's readings, so each must be a daily indicator.
+  for (const id of personalPatternModel.indicators) {
+    const def = healthData.indicators.find((entry) => entry.id === id)
+    if (def?.cadenceDays !== 1) {
+      problems.push(
+        `the personal-pattern model needs a daily indicator, not ${id}`,
+      )
+    }
+  }
+  return problems
+}
+
+const modelProblems = modelFileProblems()
+if (modelProblems.length > 0) {
+  throw new Error(`Model files are inconsistent:\n${modelProblems.join('\n')}`)
 }
