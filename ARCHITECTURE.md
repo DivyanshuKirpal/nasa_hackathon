@@ -22,6 +22,15 @@ Changes on 14 November 2026:
 4. The build plan is rewritten as detailed milestones with tests, a manual check and a push to GitHub after each one; all work goes directly to `main` (sections 30 to 32).
 5. The challenge's Resources tab is recorded in `docs/challenge-resources.md`. It lists informational pages and no datasets; its five items are in the evidence registry (section 17).
 
+Decisions on 14 November 2026, evening (milestone M0 started at 17:13, about six hours after the planned 11:00 start):
+
+6. Scope, option B: the Earth hospital model (A4) is deferred until after the hackathon. A1, A2, A3 and the body view milestones B1, B2 and B3 stay in the target scope. The time checkpoints stay; Claude Code proposes and Divyanshu decides every further cut (section 32).
+7. Smaller cuts: simulated ground replies (the outbox stays), sensor trend charts (sensor value, contact and freshness stay) and the standalone Library screen (source links on alerts and the model card screens stay).
+8. `R-RAD-03` takes its threshold by reference from the generated model file through a new comparison kind, `modelThreshold`; `rules.json` holds no number for it (sections 11.1 and 12). The schema change is built in M1.
+9. All evidence registry entries are added in M1. Questionable references are checked against primary sources before the rules that use them are built, and `verified` stays false until Divyanshu confirms the review (section 17).
+10. Environment setup: `solar-storm` starts at the space station with a fixed one-way delay of 0 s (reply estimate 5 min); 180 s is Mars near (11 min) and 1320 s is Mars far (49 min). Tests and the demo keep these apart (sections 13.5, 14 and 31.6).
+11. The schedule is recalculated from the actual start (section 31.1). `public/models/` is created only by Divyanshu when the body model files arrive, and generated-output folders are created by their scripts. Two packages were added with approval: `@tailwindcss/vite` and `@testing-library/dom` (section 5).
+
 Contents:
 
 | Part | Sections |
@@ -111,9 +120,9 @@ The challenge page lists optional considerations. Each one is covered, and the m
 | Health insights in different environments: spacecraft, space station, rover, base on another planet or moon | Environment selector: space station, Moon base, Mars transit vehicle, Mars base, Mars rover. It changes the Earth delay, and so the triage route, and the context shown in explanations | 14 | M4 |
 | Prompt measurements or actions from time to time as part of the mission routine | Cadence per indicator, overdue prompts in the Today card, re-check reminders from action cards | 8, 9, 18, 19 | M3, M4 |
 | A gamification system | Check-in streak on Home: consecutive mission days with a completed check-in, with short milestone messages | 19.1 | M5 |
-| Dynamic charts of indicators over time | Trend charts with the personal baseline band; trend lines on suit sensor cards | 19.3, 22.6 | M5, B1 |
+| Dynamic charts of indicators over time | Trend charts with the personal baseline band (trend lines on suit sensor cards were cut on 14 November 2026) | 19.3 | M5 |
 | Color coding to read status at a glance | Good, Watch, Act, No data: always color plus icon plus word | 9, 20 | M3 |
-| Simple instructions and explanations for measurements, indicators and risks | "How to measure", "Why it matters in space", action cards, the Library, and a plain-language model card for each ML model | 8, 18, 19, 26 | M3, M4, A2, A3, A4, M7 |
+| Simple instructions and explanations for measurements, indicators and risks | "How to measure", "Why it matters in space", action cards, and a plain-language model card for each ML model that is built | 8, 18, 19, 26 | M3, M4, A2, A3 |
 
 ---
 
@@ -200,14 +209,14 @@ The three machine-learning models (section 26) run on board as plain arithmetic 
 | Language | TypeScript, strict | `noUncheckedIndexedAccess` on if it does not slow the team down. |
 | Build | Vite, React template with TypeScript | Scaffold with `npm create vite@latest`. |
 | UI | React with function components and hooks | No class components. |
-| Styling | Tailwind CSS | Install by following the current official Tailwind and Vite guide. Setup differs between major versions, so do not write the config from memory. |
+| Styling | Tailwind CSS with its Vite plugin `@tailwindcss/vite` | Installed in M0 by following the official Tailwind guide for Vite (Tailwind v4: `npm install tailwindcss @tailwindcss/vite`, the plugin in `vite.config.ts`, `@import "tailwindcss";` in the CSS). Setup differs between major versions, so do not write the config from memory. |
 | Routing | React Router with a hash router | D7. |
 | State | Zustand with the `persist` middleware | localStorage. Section 21. |
 | Validation | Zod | Validates every JSON data file at load and in tests. |
 | Charts | Recharts | Line chart with a reference band for the baseline. |
 | Icons | lucide-react | Never emoji as status icons. |
 | 3D | three (Three.js), with `GLTFLoader` and `OrbitControls` from `three/addons/` | Body view only (section 22.8). Imported only in `src/features/body/viewer/` and loaded lazily. Types from `@types/three`. |
-| Tests | Vitest; jsdom, React Testing Library, `@testing-library/user-event` and `@testing-library/jest-dom` for smoke tests | Section 27. |
+| Tests | Vitest; jsdom, React Testing Library with its required peer `@testing-library/dom`, `@testing-library/user-event` and `@testing-library/jest-dom` for smoke tests | Section 27. |
 | Lint and format | ESLint and Prettier | Defaults from the Vite template plus Prettier. |
 | Tools | Python 3, standard library only, in `tools/` and `ml/fetch_donki.py` | Seed and suit replay generator, DONKI fetcher, body model checker. No pip installs. |
 | Machine learning (offline) | Python 3 with numpy, pandas, scikit-learn and matplotlib in a virtual environment (`.venv`), versions pinned in `ml/requirements.txt` | Section 26. Never shipped: the app ships only the exported JSON model file. |
@@ -236,6 +245,7 @@ Install every npm package above in M0, so versions are pinned at scaffold time e
 ├── tsconfig.json
 ├── eslint.config.js              Includes the import boundaries listed below
 ├── .gitignore                    node_modules, dist, coverage, .env*, .venv, ml/data/raw/physionet/
+├── .gitattributes                LF line endings for text files on every operating system
 ├── public/
 │   ├── seed/                     Generated by tools/simulator. Never edited by hand (section 24)
 │   │   ├── index.json            List of scenarios for the demo panel
@@ -245,7 +255,8 @@ Install every npm package above in M0, so versions are pinned at scaffold time e
 │   │   ├── solar-flare-watch.json
 │   │   ├── ...
 │   │   └── suit-replay.json      Simulated suit sensor samples (section 24.5)
-│   ├── models/                   Body models from Chirag (section 23). Never edited in this repository
+│   ├── models/                   Body models from Chirag (section 23). Never edited in this repository;
+│   │                             the folder is created by Divyanshu when the files arrive (B3)
 │   │   ├── crew-a.glb            Added in milestone B3
 │   │   └── crew-b.glb
 │   └── data/
@@ -284,7 +295,7 @@ Install every npm package above in M0, so versions are pinned at scaffold time e
 │   │   ├── protocols.json
 │   │   ├── sources.json
 │   │   ├── environments.json
-│   │   ├── ground-replies.json
+│   │   ├── ground-replies.json   Not built: simulated replies were cut on 14 November 2026
 │   │   ├── body-models.json      Model manifest and fictional body profiles (sections 22.3, 23.8)
 │   │   ├── body-areas.json       Named and general body areas (section 22.4)
 │   │   ├── sensor-sites.json     Suit sensor sites and display settings (section 22.6)
@@ -307,7 +318,6 @@ Install every npm package above in M0, so versions are pinned at scaffold time e
 │   │   ├── alerts/               Alert detail, protocol steps, route banner
 │   │   ├── earthlink/            Outbox screen
 │   │   ├── tests/                Reaction test, near-vision check
-│   │   ├── library/              Sources and measurement how-tos
 │   │   ├── model/                Model card screens, #/model/:modelId (section 26.17)
 │   │   ├── body/                 Body screen: soreness form and list, sensor cards, compare view
 │   │   │   └── viewer/           three.js only: scene, controls, placeholder, loading, picking, markers
@@ -340,7 +350,7 @@ Install every npm package above in M0, so versions are pinned at scaffold time e
 │   │   ├── raw/physionet/        PhysioNet files (NOT committed, decision D21); only meta.json is
 │   │   └── processed/            flares.csv, dataset summaries (committed); hospital rows (not committed)
 │   ├── artifacts/                Model files and parity files for all three models (committed)
-│   ├── reports/                  The three model cards and their plots (committed)
+│   ├── reports/                  The model cards and their plots (committed)
 │   └── tests/                    unittest for parsing, labels, splits and determinism
 └── docs/
     ├── PROGRESS.md               Milestone log, updated at every milestone close (section 30.4)
@@ -702,8 +712,11 @@ type Comparison =
   | { kind: "absolute"; op: Op; value: number }
   | { kind: "baselineOffset"; op: Op; offset: number }    // value vs center + offset
   | { kind: "baselinePercent"; op: Op; percent: number }  // value vs center × (1 + percent/100)
-  | { kind: "zScore"; op: Op; z: number };
+  | { kind: "zScore"; op: Op; z: number }
+  | { kind: "modelThreshold"; op: Op; model: "sep-risk" }; // value vs the loaded model file's threshold
 ```
+
+`modelThreshold` (decided on 14 November 2026) compares a value with the `threshold` field of the loaded model file, so no model number is ever typed into `rules.json`. It is valid only in a `context` condition on the `sep_risk` feed. With no model loaded the condition is false, as for a missing `sep_risk` value. M1 adds it to the types and schemas; A2 uses it in `R-RAD-03`.
 
 ### 11.2 Conditions
 
@@ -783,6 +796,7 @@ Alerts are **derived**, never stored. What is stored is the crew member's intera
 - Every `supersedes` entry is a real rule ID, with no cycles.
 - `timeToActMin` is a positive number.
 - Rule IDs are unique and match `R-[A-Z0-9]+-[0-9]{2}`.
+- A `modelThreshold` comparison appears only in a `context` condition on the `sep_risk` feed.
 
 ---
 
@@ -809,7 +823,7 @@ All triggers below are draft design values for review. "Basis" says where the th
 | `R-CO2-02` | head | 3-day CO2 average 2.8 mmHg or higher and headache reported in the last day | watch | 6 hours | no | `co2-nasa-ochmo` | peer-reviewed |
 | `R-RAD-01` | whole_body | Solar particle event in progress | act | 30 min | no | `radiation-nasa-ochmo`, `donki` | illustrative |
 | `R-RAD-02` | whole_body | Cumulative dose at or above 480 mSv (80% of the 600 mSv career limit) | watch | 30 days | yes | `radiation-nasa-ochmo` | illustrative |
-| `R-RAD-03` | whole_body | Model estimate `sep_risk` at or above the model's threshold within the last day (sections 26.7 and 26.10) | watch | 2 hours | no | `donki`, `radiation-nasa-ochmo`, `sep-ml-inceoglu-2018` | illustrative |
+| `R-RAD-03` | whole_body | Model estimate `sep_risk` at or above the model's threshold within the last day (comparison `modelThreshold`, no number in `rules.json`; sections 11.1, 26.7 and 26.10) | watch | 2 hours | no | `donki`, `radiation-nasa-ochmo`, `sep-ml-inceoglu-2018` | illustrative |
 
 Missed measurements are handled as overdue prompts (section 9), not as a rule.
 
@@ -826,7 +840,7 @@ Notes for the health adviser:
 - `clinical-general` means a common terrestrial clinical cut-off used as a safety net. It is not specific to spaceflight and needs review.
 - The 2.8 mmHg figure in `R-CO2-02` is the low end of the range where headaches have been reported on the station (`co2-nasa-ochmo`).
 - `R-RAD-01` time-to-act is a placeholder; real shelter timing depends on the event.
-- `R-RAD-03` takes its threshold from the trained model file, never from a typed number, and a test checks that they match. Its time to act is a placeholder. It is built in milestone A2.
+- `R-RAD-03` reads its threshold from the trained model file through the `modelThreshold` comparison (section 11.1). `rules.json` holds no number for it, and a test checks that evaluation uses the model file's value. Its time to act is a placeholder. It is built in milestone A2.
 
 ---
 
@@ -892,6 +906,8 @@ Rules that hold in every route:
 
 The demo should show `R-RAD-01` or `R-GLU-02` flipping from `consult_ground` to `act_on_board` as the delay slider moves toward Mars at its farthest. These rows are golden tests (section 27). The `R-RAD-03` row shows that a model estimate never changes the route on its own: it is a watch alert without a ground need.
 
+The four columns stay distinct in tests and in the demo (decided on 14 November 2026): the station is a fixed one-way delay of 0 s (reply estimate 5 min), the Moon a fixed 1.3 s (5 min), Mars near is 180 s on the slider (11 min) and Mars far is 1320 s (49 min).
+
 ---
 
 ## 14. Environments
@@ -908,6 +924,8 @@ Stored in `src/data/environments.json`. The selector sits in the app header.
 
 Sources: Mars one-way delay up to about 22 minutes (`delay-nasa-m2m-2023`); light-time figures of about 182 s at closest and about 1338 s at farthest (`delay-nasa-timedelay-2017`); Mars gravity three-eighths of Earth's (`hrp-hazards`).
 
+Delay settings (decided on 14 November 2026): loading a scenario sets its environment from `environmentId`. The station uses its fixed 0 s and the Moon its fixed 1.3 s. A Mars environment starts the slider at 180 s (Mars near, reply estimate 11 min) until it is moved; 1320 s is Mars far (49 min). `solar-storm` starts at the station, so its first banner reads "Reply expected in about 5 min".
+
 What an environment changes in v1:
 
 1. The link delay used by triage.
@@ -923,6 +941,8 @@ The rover environment (named in the challenge's considerations) is built in mile
 ## 15. Earth link simulator
 
 File: `src/link/earthLink.ts`. It models the outbox only; nothing is really sent.
+
+**Cut on 14 November 2026: simulated ground replies.** Messages go `queued` → `in_transit` → `delivered` and stop there. A consult shows its expected reply time (`replyDueAtMs`, the same estimate triage uses) but no reply text arrives. `ground-replies.json`, the `reply` field and the `reply_in_transit` and `replied` states are not built. The rest of this section is the full design, kept for later.
 
 Message lifecycle, driven by the mission clock:
 
@@ -967,12 +987,12 @@ The panel is a presenter tool. It must never be needed for the normal crew flow.
 
 ## 17. Evidence registry
 
-Stored in `src/data/sources.json`, displayed in the Library screen and linked from every alert and indicator.
+Stored in `src/data/sources.json` and linked from every alert, indicator explanation and model card. (The standalone Library screen was cut on 14 November 2026.)
 
 Rules for the registry:
 
 - `keyFinding` is written in our own words, one sentence, with the number.
-- `verified` starts `false`. Set it to `true` only after a team member has opened the source and confirmed the figure. The Library screen shows an "unverified" tag otherwise.
+- `verified` starts `false`. Set it to `true` only after a team member has opened the source and confirmed the figure. Source links show an "unverified" tag otherwise.
 - Prefer NASA primary pages and technical reports. Where we only have news coverage of a study, find the primary paper before submission.
 - No source, no claim. If a sentence in the app states a fact about spaceflight, it needs a source ID.
 
@@ -1016,9 +1036,11 @@ Initial entries (all `verified: false` until checked):
 | `physionet-sepsis-2019` | Early Prediction of Sepsis from Clinical Data: The PhysioNet/Computing in Cardiology Challenge 2019 (dataset, version 1.0.0) | PhysioNet | https://physionet.org/content/challenge-2019/1.0.0/ | Hourly ICU data for 40,336 patients from two hospital systems with a sepsis label; training and test data of the Earth hospital model. |
 | `sepsis-ccm-2020` | Early Prediction of Sepsis From Clinical Data: The PhysioNet/Computing in Cardiology Challenge 2019 | Critical Care Medicine | https://pubmed.ncbi.nlm.nih.gov/31939789/ | Describes the challenge data and labels, and concludes that generalizing to other hospital systems remains a challenge. |
 
-To do: add every item from the challenge's Resources tab as a source, and prefer those where they cover the same fact. Paste the tab into `docs/challenge-resources.md` first.
+Done on 14 November 2026: every item from the challenge's Resources tab is in the table above (see `docs/challenge-resources.md`). Prefer those where they cover the same fact.
 
-Kinds for the new entries: `biomonitor-csa` is `space-agency`; `deltoid-uw-atlas` is `reference`; `sep-ml-inceoglu-2018` and `sep-gsep-2023` are `peer-reviewed` once the journal versions are confirmed; the NASA and NTRS entries are `nasa`. The body view entries are added in B1, the ML entries in A1 and A4, and the Resources-tab entries in M1. `hrp-ongoing-research` is `nasa`; the two CSA articles are `space-agency`; `physionet-sepsis-2019` is `reference`; `sepsis-ccm-2020` is `peer-reviewed`.
+Kinds for the new entries: `biomonitor-csa` is `space-agency`; `deltoid-uw-atlas` is `reference`; `sep-ml-inceoglu-2018` and `sep-gsep-2023` are `peer-reviewed` once the journal versions are confirmed; the NASA and NTRS entries are `nasa`. All entries, including the body view and ML ones, are added in M1 (decided on 14 November 2026).
+
+**Source review (decided on 14 November 2026).** Before a rule that relies on a questionable entry is built, Claude Code reads the primary source and shows Divyanshu the supporting passage and any proposed correction (title, year, URL or key finding). Nothing changes until he confirms, and `verified` becomes `true` only after his review. Open questions: `bp-norsk-2015` (the URL may be malformed: PMC article links normally read `/articles/PMC<number>/`), `insulin-commsbio-2024` (the DOI suggests a 2023 article; confirm title and year), `immune-herpes-iss` (journal unknown), `sleep-barger-2014` (news coverage; find the primary paper), `delay-nasa-timedelay-2017` and `osdr-i4-nasa` (confirm titles), `sep-ml-inceoglu-2018` and `sep-gsep-2023` (confirm journal references). This review checks that a source says what we cite. It is not clinical validation, and thresholds marked `illustrative` stay labeled illustrative. `hrp-ongoing-research` is `nasa`; the two CSA articles are `space-agency`; `physionet-sepsis-2019` is `reference`; `sepsis-ccm-2020` is `peer-reviewed`.
 
 Technical references. These support how we build, not what the app tells the crew, so they go in `REFERENCES.md` only:
 
@@ -1114,7 +1136,7 @@ Three draft examples to set the tone:
 
 ## 19. Screens and routes
 
-All routes are hash routes. The layout shell has a header (crew member, mission day, environment, link status) and a bottom navigation: Home, Check-in, Body, Earth link, Library. The Body item appears from milestone B1.
+All routes are hash routes. The layout shell has a header (crew member, mission day, environment, link status) and a bottom navigation: Home, Check-in, Body, Earth link. The Body item appears from milestone B1. (Library was cut on 14 November 2026.)
 
 ### 19.1 Home `#/`
 
@@ -1166,9 +1188,11 @@ Actions: "Acknowledge", and "Send to ground" when the route is `self_care`.
 
 ### 19.5 Earth link `#/earth-link`
 
-Section 15. Shows delay, link state, and the outbox.
+Section 15. Shows delay, link state, and the outbox. No simulated replies (cut on 14 November 2026).
 
 ### 19.6 Library `#/library`
+
+**Cut on 14 November 2026.** Its parts live elsewhere: measurement how-tos in the check-in steps ("How to measure"), source links on alerts and indicator explanations, model cards linked from alerts and insights, the disclaimer in the footer, and the list of what is simulated in the README and the "Simulated" tags. The original design, kept for later:
 
 - Measurement how-tos for every indicator.
 - Full source list with links, publisher, key finding, and verified tag.
@@ -1197,7 +1221,7 @@ Both bodies side by side at a shared camera position and scale, each with its fi
 
 ### 19.11 Model cards `#/model/:modelId` (P0 for `sep-risk`, P1 for the others)
 
-One screen per model, read only from its model file: what it estimates or notices, its data, how it works, how well it did and on what (held-out years, simulated data, or a second hospital system), its limits and its sources (sections 26.10 and 26.17). A2 builds `#/model/sep-risk`; A3 generalizes the route. Linked from alerts, insights and the Library.
+One screen per model, read only from its model file: what it estimates or notices, its data, how it works, how well it did and on what (held-out years, simulated data, or a second hospital system), its limits and its sources (sections 26.10 and 26.17). A2 builds `#/model/sep-risk`; A3 generalizes the route. Linked from alerts and insights.
 
 ---
 
@@ -1251,7 +1275,7 @@ Rules:
 
 - Components read through selectors and write through named actions (`addReading`, `reportSymptoms`, `acknowledgeAlert`, `toggleStep`, `setEnvironment`, `setDelay`, `advanceClock`, `loadScenario`, `resetToSeed`, and from B1 `addSorenessReport`, `removeSorenessReport`, `restartSuitReplay`, `setShow3d`, `setForce2d`, and from A3 `sendInsightToGround`).
 - Actions validate input. A reading outside the indicator's input range is rejected.
-- `loadScenario` replaces `crew`, `readings`, `symptoms`, `context` and `spaceWeather`, sets `nowMs` to 09:00 on the scenario's mission day (`(missionDay - 1) × 86_400_000 + 32_400_000`), clears `alertState`, `outbox` and `soreness`, and anchors the suit replay at that `nowMs`.
+- `loadScenario` replaces `crew`, `readings`, `symptoms`, `context` and `spaceWeather`, sets the environment from the file's `environmentId` (with its fixed delay, or 180 s on a Mars environment; section 14), sets `nowMs` to 09:00 on the scenario's mission day (`(missionDay - 1) × 86_400_000 + 32_400_000`), clears `alertState`, `outbox` and `soreness`, and anchors the suit replay at that `nowMs`.
 - If persisted state fails schema validation on load, discard it and load the default scenario. Never crash on bad storage.
 
 ---
@@ -1424,6 +1448,8 @@ Pins:
 - Copy: "Crew-reported soreness". Never "strain", "injury" or "inflammation".
 
 ### 22.6 Suit sensors
+
+**Cut on 14 November 2026: sensor trend charts.** Cards keep the current value, contact state, freshness and the last valid reading with its time. The trend chart, its one-line summary, `trendWindowMin` and the `trend` and `trendDeltaC` readout fields are not built. The replay file keeps its scripted shapes. The rest of this section is the full design, kept for later.
 
 Sites are in `src/data/sensor-sites.json`:
 
@@ -1646,6 +1672,8 @@ Chirag's self-check before sending, with no code: re-import each `.glb` into an 
 - Chirag sends a rough first export of one body as early as possible, even an untidy one, so the format and the pipeline can be tested before the final models.
 - Final files by Sunday 14:00 at the latest.
 - If the files arrive after 16:00 on Sunday, integrate them only if the checker passes on the first run (section 32.3). Otherwise ship the labeled placeholder and say so in the README. After the 18:00 code freeze there are no model changes.
+- The 3D body stays a target, with a fallback (decided on 14 November 2026): if the after-B1 checkpoint (section 32.3) shows too little time and Divyanshu decides to skip B2 and B3, the app ships the 2D body view, and the README and slides credit the Blender models as work in progress.
+- The standalone checker (`tools/check_body_model.py`) is brought forward when the first rough export arrives, with Divyanshu's OK (section 30.5).
 - If only one file arrives, integrate it; the other crew member keeps the placeholder, and the compare view labels each body.
 
 ---
@@ -1700,9 +1728,9 @@ For each crew member and indicator, a daily value is `personal mean + adaptation
 |---|---|---|---|
 | `baseline-healthy` | Nothing unusual | none | M2 |
 | `sleep-debt` | Five short nights | `R-SLEEP-01` | M2 |
-| `solar-storm` | A real large flare yesterday, then a solar particle event starts today | `R-RAD-01` (it supersedes `R-RAD-03`) | M2; flare added in A2 |
+| `solar-storm` | A real large flare yesterday, then a solar particle event starts today. Starts at the space station (0 s delay, reply estimate 5 min) | `R-RAD-01` (it supersedes `R-RAD-03`) | M2; flare added in A2 |
 | `solar-flare-watch` | A real large flare from the model's test years peaked this morning; no particle event yet | `R-RAD-03` | A2 |
-| `fever` | Temperature climbs over the last two days, with resting heart rate rising alongside | `R-TEMP-02`; from A4 the insight `earth-hospital` is expected (section 26.19) | M2 if time, else A4 |
+| `fever` | Temperature climbs over the last two days, with resting heart rate rising alongside | `R-TEMP-02` (the `earth-hospital` insight is deferred with A4) | M2 if time, else M7 |
 | `low-glucose` | One low fasting reading today | `R-GLU-02` | M2 if time, else M7 |
 | `early-mission` | Mission day 4, baselines not ready | none (UI shows "Learning your normal") | M2 if time, else A3 |
 | `cognitive-compound` | Sleep debt, slower reaction time, CO2 creeping over 3 mmHg | `R-COG-01`, `R-CO2-01` | M7 |
@@ -1773,7 +1801,7 @@ How DONKI data is fetched:
 
 - `ml/fetch_donki.py` (Python standard library only) downloads FLR, CME and SEP records year by year into `ml/data/raw/donki/<TYPE>/<YEAR>.json.gz`, plus `ml/data/raw/donki/meta.json` with the base address used, every query, the retrieval time and the record counts. If a year is refused, it retries month by month. It waits briefly between requests. Run it once in M2, commit the files, and never fetch at app runtime (decision D8).
 - The address: a third-party note says that since 30 September 2026 the API is served at `https://ccmc.gsfc.nasa.gov/DONKI-API/get/` without a key, and that the older `https://kauai.ccmc.gsfc.nasa.gov/DONKI/WS/get/` and `https://api.nasa.gov/DONKI/` addresses answer with redirects. Confirm on the official DONKI page (`donki`). The script tries, in order, the `DONKI-API` address, the `kauai` web service, then `api.nasa.gov` with `DEMO_KEY` (heavily rate limited); it follows redirects and records which address worked.
-- DONKI describes its content as experimental research information, and points to NOAA's Space Weather Prediction Center for official U.S. forecasts. The model card and the Library say so.
+- DONKI describes its content as experimental research information, and points to NOAA's Space Weather Prediction Center for official U.S. forecasts. The model card says so.
 - Credit DONKI and NASA's Community Coordinated Modeling Center (CCMC) as the source in `REFERENCES.md`, the model card and the README.
 - If no address works within 20 minutes in M2, hand-enter two or three real events from the DONKI website into `public/data/space-weather.json` so the scenarios still work, say so in `REFERENCES.md`, and tell the team at once: milestone A1 needs this data (decision point in section 32.3).
 
@@ -1787,7 +1815,7 @@ Three models, each with one job and limited by its evidence (decision D19). Trai
 |---|---|---|---|---|---|---|
 | Solar particle event risk (`sep-risk`) | Real NASA DONKI flares, CMEs and particle events; tested on held-out years | Radiation outlook after a flare | Raise the watch alert `R-RAD-03` | P0 | A1, A2 | 26.1 to 26.16 |
 | Personal pattern (`personal-pattern`) | Each crew member's own in-flight readings, learned on board; evaluated on simulated data only | Notices when today's combination of readings is unusual for that person | Show an insight; the crew may send it to the ground | P1 | A3 | 26.17, 26.18 |
-| Earth hospital (`earth-hospital`) | Real Earth ICU patients (PhysioNet 2019 challenge, two hospital systems), using only changes from each patient's own baseline; never tested on astronauts | Second opinion on whether recent changes resemble an Earth early-warning pattern | Show an insight; the crew may send it to the ground | P1 | A4 | 26.17, 26.19 |
+| Earth hospital (`earth-hospital`) | Real Earth ICU patients (PhysioNet 2019 challenge, two hospital systems), using only changes from each patient's own baseline; never tested on astronauts | Second opinion on whether recent changes resemble an Earth early-warning pattern | Show an insight; the crew may send it to the ground | Deferred until after the hackathon (14 November 2026) | A4, deferred | 26.17, 26.19 |
 
 The rules of section 12 stay in charge: they alone set Good, Watch and Act, and only they and `R-RAD-03` feed triage. Sections 26.1 to 26.16 describe model 1 in full. Sections 26.13 (reproduce) and 26.15 (honesty) cover all three models; limitations are per model: section 26.14 for model 1, and sections 26.18 and 26.19 for the others.
 
@@ -1941,7 +1969,7 @@ A retrain that changes any coefficient becomes `v2` with new files; the app read
 - **Rule `R-RAD-03`** (section 12): watch, region `whole_body`, `sep_risk` at or above the model threshold within 1 day, protocol `P-RAD-PREPARE`. `R-RAD-01` supersedes it, so an event in progress replaces the outlook.
 - **Evidence item.** Label "Solar flare risk (model estimate)"; value such as "62% estimated chance of a solar particle event"; reference such as "Flare X2.2 at S17W33, peak on day 141 at 15:00. Model sep-risk v1." Probabilities are shown as whole percents clamped to 1% to 99%. The top three factors follow in words, for example "Flare class X2.2 raises the estimate", "Source location S17W33 raises the estimate", "No linked CME lowers the estimate".
 - **Alert detail.** "What changed" shows the estimate and its factors. "Evidence" adds the tag "Model estimate" and the link "How this model was made" to the model card screen.
-- **Model card screen `#/model/sep-risk`.** Reads the model file and shows, in plain words: what it estimates; the data (source, dates, counts per split, filters); how it works (features in words, the threshold rule); how well it did on the held-out test years (metrics with intervals, the comparisons, the reliability table, each metric with a one-line meaning); its limits; and the sources. No number on this screen is typed by hand. It also states that DONKI is experimental research information and that official U.S. space weather forecasts come from NOAA's Space Weather Prediction Center (`donki`). The Library links to it.
+- **Model card screen `#/model/sep-risk`.** Reads the model file and shows, in plain words: what it estimates; the data (source, dates, counts per split, filters); how it works (features in words, the threshold rule); how well it did on the held-out test years (metrics with intervals, the comparisons, the reliability table, each metric with a one-line meaning); its limits; and the sources. No number on this screen is typed by hand. It also states that DONKI is experimental research information and that official U.S. space weather forecasts come from NOAA's Space Weather Prediction Center (`donki`).
 - **Wording.** "Estimate", "estimated chance", "possible". Never "will", never "predicts that", never a value without the word "estimate" nearby.
 
 ### 26.11 Types
@@ -1995,7 +2023,7 @@ Python, `python -m unittest discover -s ml/tests`:
 TypeScript, Vitest:
 
 - Parity: for every row of the parity file, each feature matches within 1e-12 and the probability within 1e-9.
-- The threshold in `R-RAD-03` equals `threshold` in the model file.
+- `R-RAD-03` uses the `modelThreshold` comparison (no number in `rules.json`), and evaluation applies the model file's `threshold`: a flare scored just below it gives no alert, one at or above it gives the alert.
 - `topFactors`: sorted by absolute contribution; the intercept plus all contributions equals the logit.
 - The `sep_risk` window: a flare 23 hours before `nowMs` counts, one 25 hours before does not, one after `nowMs` does not.
 - No model, or no flares: no `R-RAD-03` and no error.
@@ -2057,7 +2085,7 @@ Evidence ladder (decision D19):
 
 - **Insights.** An insight is a derived note that a second-opinion model found something notable for one crew member today. It never sets a region status, never creates or hides an alert, never changes a route, and never queues a message by itself. A test proves it: `evaluate()` with the two second-opinion models loaded and with them set to null gives identical alerts, statuses and routes.
 - **Where insights show.** Home has a "Second opinions" card under the alert list: at most two insights, or a readiness line such as "Learning your pattern (9 of 14 days)", or "No unusual patterns today". Before today's check-in it says "Second opinions run after today's check-in". Region detail lists insights whose factors involve that region's indicators. Each model has a model card at `#/model/:modelId`.
-- **Insight card.** Model name, the tag "Model estimate", the model version, a headline from the model file, the top three factors in words ("Sleep lower than your normal", "Resting heart rate higher than your normal"), one caveat line from the model file, a "How this model works" link, and a "Send to ground" button. Pressing it queues one consult labeled "Second opinion sent by crew", linked by `insightKey` (at most one per insight; the key includes the day); the ground answers with the generic simulated reply.
+- **Insight card.** Model name, the tag "Model estimate", the model version, a headline from the model file, the top three factors in words ("Sleep lower than your normal", "Resting heart rate higher than your normal"), one caveat line from the model file, a "How this model works" link, and a "Send to ground" button. Pressing it queues one consult labeled "Second opinion sent by crew", linked by `insightKey` (at most one per insight; the key includes the day); it is delivered after the one-way delay (simulated replies were cut on 14 November 2026).
 - **Styling.** A neutral card with an icon and the word "Insight". Never status tokens, never on the body map. No percentage for the second-opinion models on the crew card; the model card shows the raw score with its meaning.
 - **Wording.** "Unusual for you", "resembles", "consider", "second opinion". Never a diagnosis, never "you have", never "risk of" a named disease on the crew card.
 
@@ -2109,7 +2137,9 @@ Priority P1, milestone A3. Code: `src/engine/models/personalPattern.ts` and `lin
 
 ### 26.19 Model 3: Earth hospital (`earth-hospital`)
 
-Priority P1, milestone A4. Code: `ml/fetch_physionet_sepsis.py`, `ml/build_hospital_dataset.py` and `ml/train_earth_hospital.py` offline; `src/engine/models/earthHospital.ts` on a shared `logistic.ts` in the app.
+**Deferred until after the hackathon (team decision, 14 November 2026).** The design below is kept for later. Nothing in it is built during the hackathon, `EvaluationInput.models.earthHospital` stays null, and no PhysioNet data is downloaded.
+
+Originally priority P1, milestone A4. Code: `ml/fetch_physionet_sepsis.py`, `ml/build_hospital_dataset.py` and `ml/train_earth_hospital.py` offline; `src/engine/models/earthHospital.ts` on a shared `logistic.ts` in the app.
 
 - **Data.** The public training data of the PhysioNet/Computing in Cardiology Challenge 2019 (`physionet-sepsis-2019`, `sepsis-ccm-2020`): hourly records of ICU patients from two hospital systems, training set A (20,336 patients) and training set B (20,000 patients), with 8 vital signs, 26 laboratory values and 6 demographic fields, and an hourly `SepsisLabel` based on the Sepsis-3 criteria: for a patient who develops sepsis it is 1 from 6 hours before onset, and otherwise 0. Open access; the AWS Open Data registry lists the license as Creative Commons Attribution 4.0. Confirm the license on the PhysioNet page, record it with the citation PhysioNet asks for in `ml/data/raw/physionet/meta.json`, and follow it. This is not NASA data and is credited separately (section 33).
 - **Why Earth hospital data at all, given section 1.4?** Earth absolute ranges mislead in space, so the model never sees an absolute value. It sees only changes from each patient's own baseline, computed with the formula the app uses for a crew member's in-flight baseline (decision D20); only the window differs: the first 24 ICU hours there, about four weeks of days here. It learns "this combination of changes came before sepsis in ICU patients", not "this value is abnormal".
@@ -2137,14 +2167,14 @@ Tests exist to prove validity, not to chase coverage.
 | Stats | median, MAD, mean on small fixed arrays | Vitest |
 | Baseline | Window edges, exclusion of recent days, not-ready case, spread floor | Vitest |
 | Conditions | One test per condition type and per comparison kind, including not-ready baselines | Vitest |
-| Triage | Every cell of the table in section 13.5, link-down cases | Vitest |
+| Triage | Every cell of the table in section 13.5 with its four delay columns kept distinct (station 0 s, Moon 1.3 s, Mars near 180 s, Mars far 1320 s), link-down cases | Vitest |
 | Data integrity | All JSON in `src/data` parses with its Zod schema; cross-references resolve (section 11.6) | Vitest |
 | Golden scenarios | For each scenario file in `public/seed`, `evaluate()` at 09:00 on its mission day yields exactly its `expectedAlerts` | Vitest |
 | UI smoke | Home renders with the default scenario; check-in accepts one reading; alert detail shows a route banner | React Testing Library |
 | Model parity | TypeScript features and probabilities equal Python's on every parity row (section 26.12) | Vitest |
-| Model rule | The `R-RAD-03` threshold equals the model file; the `sep_risk` window; no model means no alert and no error | Vitest |
+| Model rule | `R-RAD-03` takes its threshold from the model file through `modelThreshold`; the `sep_risk` window; no model means no alert and no error | Vitest |
 | ML pipeline | Parsing, label rule, splits, determinism (section 26.12) | Python unittest |
-| Body view logic | Report building and validation, entry labels, pin visibility by model version, crew separation, sensor readouts (current, stale, contact lost, no data), trend delta | Vitest |
+| Body view logic | Report building and validation, entry labels, pin visibility by model version, crew separation, sensor readouts (current, stale, contact lost, no data) | Vitest |
 | Pin anchoring | A pin's world position follows the model root when it rotates; a local point round-trips through world space (three.js math, no WebGL) | Vitest |
 | Placeholder and contract | The placeholder has every contract node; `checkNodeNames` accepts, degrades and rejects correctly; `readGlbJson` reads a small GLB built in the test | Vitest |
 | Delivered models | Every manifest entry with `status: "delivered"` has a file that parses, has the required nodes and is at most 4 MB; `tools/check_body_model.py` passes | Vitest, Python tool |
@@ -2153,10 +2183,10 @@ Tests exist to prove validity, not to chase coverage.
 | Copy | No data file contains the banned whole words or phrases "you have", "diagnosis", "diagnose", "injury", "strain" | Vitest |
 | Tools | Simulator helpers; `check_body_model.py` on a tiny GLB built in the test | Python unittest |
 | Personal pattern | Parity with Python; contributions add up to the distance; readiness; fewer than four indicators gives no insight | Vitest |
-| Earth hospital | Parity with Python; needs five ready baselines; no percentage on the crew card | Vitest |
+| Earth hospital (deferred with A4) | Parity with Python; needs five ready baselines; no percentage on the crew card | Vitest |
 | Second-opinion invariance | `evaluate()` with the second-opinion models loaded and set to null gives identical alerts, statuses and routes | Vitest |
 | Golden insights | Each scenario gives exactly its `expectedInsights` for the loaded models | Vitest |
-| Hospital pipeline | Baseline window, floors read from `indicators.json`, carried-forward limits, exclusions, patient-level split, determinism | Python unittest |
+| Hospital pipeline (deferred with A4) | Baseline window, floors read from `indicators.json`, carried-forward limits, exclusions, patient-level split, determinism | Python unittest |
 
 The golden scenario tests double as evidence for judges: every claim "the app detects X" is backed by a test that runs.
 
@@ -2256,39 +2286,43 @@ Chirag's work runs in parallel and joins the build in B3. Agree on these targets
 | C2 | The shoulder patch and the three sensor empties in both bodies; patch placement checked against the atlas | Sunday morning |
 | C3 | Final export of both files, self-check done (section 23.9), `model-notes.md` written, files sent to Divyanshu | Sunday 14:00 at the latest |
 
-When a rough export arrives, run the checker on it if it exists yet (it is built in B2) and send Chirag feedback within the hour. Integration waits for B3.
+When the first rough export arrives, bring the standalone checker forward (decided on 14 November 2026): `tools/check_body_model.py` from B2 step 8, Python standard library only, no app code, about 30 to 45 minutes. Claude Code flags the moment and asks Divyanshu before starting it, without starting the rest of B2. Divyanshu sends Chirag feedback within the hour. Integration waits for B3.
 
-With all three ML models in the plan, B2 and B3 come after B1 and happen only if at least 3.5 hours remain before 18:00 at that point (section 32.3). Tell Chirag this early, so he can decide how much time to put in; the team can also swap priorities (section 34).
+Decision of 14 November 2026 (option B): the 3D body (B2) and Chirag's models (B3) stay in the target scope, and the Earth hospital model (A4) is deferred instead. The fallback stays: if the after-B1 checkpoint (section 32.3) shows too little time, Claude Code tells Divyanshu, and he decides whether to skip B2 and B3. The app then ships the 2D body view, and the README and slides credit Chirag's models as work in progress. `docs/body-model-handoff.md` tells Chirag this.
 
 ---
 
 ## 31. Milestones
 
-Local schedule: work starts about 11:00 on Saturday. Submission closes Sunday 23:59 India time; the plan is to submit by 21:00. Code freeze is Sunday 18:00: after it, only fixes for bugs found in rehearsal, documentation and submission assets. The targets assume work until about 01:30 on Saturday night and a restart at 08:00 on Sunday; the order matters more than the clock.
+Local schedule: work was planned to start about 11:00 on Saturday; M0 actually started at 17:13. Submission closes Sunday 23:59 India time; the plan is to submit by 21:00. Code freeze is Sunday 18:00: after it, only fixes for bugs found in rehearsal, documentation and submission assets. The targets assume work until about 01:30 on Saturday night and a restart at 08:00 on Sunday; the order matters more than the clock.
 
 ### 31.1 Overview
 
-| # | Milestone | Priority | Exit test | Target |
-|---|---|---|---|---|
-| M0 | Scaffold and deploy | P0 | Public URL shows the shell; `npm run check` passes | Sat 12:30 |
-| M1 | Engine core | P0 | Unit tests green; triage matches every row of section 13.5 | Sat 15:30 |
-| M2 | Seed data and DONKI cache | P0 | Golden tests green for the three P0 scenarios; DONKI raw data committed | Sat 17:00 |
-| M3 | Home and check-in | P0 | Enter a reading and see the status change | Sat 20:30 |
-| M4 | Alerts, triage and environments | P0 | `solar-storm` flips route when the slider reaches Mars at its farthest | Sat 23:00 |
-| A1 | ML model 1: dataset, training and model card | P0 | Model file, parity file and model card produced by one command; Python tests green | Sun 01:30 |
-| A2 | ML model 1 in the app | P0 | Parity test green; `solar-flare-watch` shows `R-RAD-03` with its model estimate; model card screen reads the file | Sun 09:00 |
-| A3 | ML model 2: personal pattern | P1 | Parity green; `pattern-shift` shows the insight with no alert; second opinions cannot change alerts | Sun 10:45 |
-| A4 | ML model 3: Earth hospital | P1 | Model file, parity file and model card from one command; parity green; `fever` checked (section 26.19); no PhysioNet data in git | Sun 12:45 |
-| M5 | Trends and streak | P1 | Sleep chart shows the dip against the band; streak shows on Home | Sun 13:45 |
-| M6 | Earth link, clock and demo panel | P1 | A consult message gets its reply after the delay at 600× | Sun 15:00 |
-| B1 | Body view without 3D | P1 | Report saved by keyboard; forearm shows "No current reading"; invariance test green | Sun 16:15 |
-| B2 | 3D viewer with the placeholder body | P1 | Shoulder tap gives the named area, calf tap gives a free pin, pins stay on rotation, compare view and Force 2D work | Only if at least 3.5 hours remain before 18:00 after B1 (about 2 hours) |
-| B3 | Chirag's body models | P1 | Delivered files pass the checker and the B2 checks on the deployed site | Only after B2, when the files are here |
-| M7 | Evidence, remaining rules and polish | P1 | Every alert shows sources and a basis tag; all golden tests green; keyboard pass done | Sun 17:45 |
-| | Code freeze | | | Sun 18:00 |
-| M8 | Submission | P0 | Submitted with a working public link | Sun 21:00 |
+Recalculated on 14 November 2026 from the actual start (17:13, rounded to 17:15), with the plan's own durations. M6, B1 and M7 are shortened by the work the 14 November cuts removed; A4 is deferred.
 
-P0 is complete after A2. If ahead of schedule, continue in order. If more than an hour behind any target, use the decision points in section 32.3. With all three models in the plan, the 3D viewer (B2, B3) fits only if the team is ahead after B1; section 30.5 says what to tell Chirag.
+| # | Milestone | Priority | Exit test | Plan hours | Target at plan pace |
+|---|---|---|---|---|---|
+| M0 | Scaffold and deploy | P0 | Public URL shows the shell; `npm run check` passes | 1.5 | Sat 18:45 |
+| M1 | Engine core | P0 | Unit tests green; triage matches every row of section 13.5 | 3 | Sat 21:45 |
+| M2 | Seed data and DONKI cache | P0 | Golden tests green for the three P0 scenarios; DONKI raw data committed | 1.5 | Sat 23:15 |
+| M3 | Home and check-in | P0 | Enter a reading and see the status change | 3.5 | Sun 09:15 (2.25 h on Saturday, 1.25 h on Sunday) |
+| M4 | Alerts, triage and environments | P0 | `solar-storm` starts at the station (5 min) and flips route when the slider reaches Mars far (1320 s, 49 min) | 2.5 | Sun 11:45 |
+| A1 | ML model 1: dataset, training and model card | P0 | Model file, parity file and model card produced by one command; Python tests green | 2.5 | Sun 14:15 |
+| A2 | ML model 1 in the app | P0 | Parity test green; `solar-flare-watch` shows `R-RAD-03` with its model estimate; model card screen reads the file | 1 | Sun 15:15 (P0 complete) |
+| A3 | ML model 2: personal pattern | P1 | Parity green; `pattern-shift` shows the insight with no alert; second opinions cannot change alerts | 1.75 | Sun 17:00 |
+| A4 | ML model 3: Earth hospital | Deferred | Deferred until after the hackathon (decision of 14 November 2026) | 0 | None |
+| M5 | Trends and streak | P1 | Sleep chart shows the dip against the band; streak shows on Home | 1 | Sun 18:00 |
+| M6 | Earth link, clock and demo panel | P1 | At 600×, a consult message is delivered after the one-way delay and shows its expected reply time | 1 | After the freeze at plan pace |
+| B1 | Body view without 3D | P1 | Report saved by keyboard; forearm shows "No current reading"; invariance test green | 1 | After the freeze at plan pace |
+| B2 | 3D viewer with the placeholder body | P1, target | Shoulder tap gives the named area, calf tap gives a free pin, pins stay on rotation, compare view and Force 2D work | 2 | After the freeze at plan pace |
+| B3 | Chirag's body models | P1, target | Delivered files pass the checker and the B2 checks on the deployed site | 0.5 | After the freeze at plan pace; last start Sun 16:00 |
+| M7 | Evidence, remaining rules and polish | P1 | Every alert shows sources and a basis tag; all golden tests green; keyboard pass done | 1.25 | After the freeze at plan pace |
+| | Code freeze | | | | Sun 18:00 |
+| M8 | Submission | P0 | Submitted with a working public link | 3 | Sun 21:00 |
+
+What the recalculation shows: the remaining work up to the freeze is about 24 hours at the plan's durations, and the working hours before the freeze are about 18.25. At plan pace P0 is complete around Sunday 15:15, and the freeze falls after M5, so M6, B1, B2, B3 and M7 (about 5.75 hours) do not fit unless the pace beats the plan or the working hours grow. `docs/PROGRESS.md` records the actual finish of each milestone, and the projection is updated from it.
+
+P0 is complete after A2. If ahead of schedule, continue in order. If more than an hour behind any target, use the decision points in section 32.3: Claude Code proposes, Divyanshu decides every cut.
 
 ### 31.2 M0 Scaffold and deploy
 
@@ -2301,15 +2335,15 @@ Build:
 2. Check the repository. Divyanshu's project folder is `C:\Users\divya\Downloads\sem_5_project_work\hackathons\nasa`; teammates may use other paths. If the folder is not yet a git repository with `origin` set to https://github.com/DivyanshuKirpal/nasa_hackathon.git, show Divyanshu the exact commands first (`git init`, branch `main`, add `origin`, fetch, and bring in any commits GitHub already has without losing `CLAUDE.md`, `ARCHITECTURE.md` or `docs/`), and run them only after his go. If GitHub already holds files (for example a README), keep them.
 3. Scaffold Vite's React and TypeScript template into the repository root, keeping `CLAUDE.md`, `ARCHITECTURE.md` and `docs/`. If the template refuses a non-empty folder, scaffold into a temporary folder and move the files in.
 4. TypeScript strict, with `noUncheckedIndexedAccess`.
-5. Install every npm package in section 5 now, including the ones used later (Recharts, three, `@types/three`), so versions are pinned at scaffold time.
+5. Install every npm package in section 5 now, including the ones used later (Recharts, three, `@types/three`) and the approved `@tailwindcss/vite` and `@testing-library/dom`, so versions are pinned at scaffold time.
 6. Tailwind, following the current official Tailwind guide for Vite. Read the guide; do not write the setup from memory.
 7. Tokens in `src/styles/`: the four status tokens (background, foreground and border each) and the 3D color variables from section 20. Check the amber text contrast on white against WCAG AA.
-8. Hash router with placeholder pages for Home, Check-in, Earth link and Library.
+8. Hash router with placeholder pages for Home, Check-in and Earth link (the Library screen was cut on 14 November 2026).
 9. Layout shell: header (crew member, mission day, environment, link status as placeholders) with the "Simulated data" tag; bottom navigation; footer with "Prototype for the NASA Space Apps Challenge. Not a medical device." and a "Presenter tools" link that does nothing yet.
 10. ESLint from the template plus Prettier. Add the `no-restricted-imports` boundaries from section 6 now, while the folders are empty.
 11. Vitest with jsdom and the Testing Library packages; one smoke test.
 12. npm scripts: `dev`, `build`, `preview`, `typecheck`, `lint`, `test`, `test:watch`, `check` (typecheck, lint and test in order, stopping at the first failure), `format`. Cross-platform: no bash-only syntax.
-13. The folders from section 6, with `.gitkeep` where empty. `.gitignore` covering `node_modules`, `dist`, coverage, `.env*` and `.venv/`.
+13. The folders from section 6, with `.gitkeep` in source folders where useful. Not `public/models/` (Divyanshu creates it when the files arrive) and not the generated-output folders (`public/seed/`, `public/data/`, `src/data/models/`, `ml/data/`, `ml/artifacts/`, `ml/reports/`), which their scripts create. `.gitignore` covering `node_modules`, `dist`, coverage, `.env*`, `.venv/` and `ml/data/raw/physionet/`, and `.gitattributes` for LF line endings; both are created and checked before the first `git add`.
 14. `README.md` stub (what it is, how to run, disclaimer), `AI_USAGE.md`, `REFERENCES.md` (sections: NASA; other space agencies; papers; data; libraries; tools and assets), `docs/PROGRESS.md`.
 15. Commit and push `main`. M0 is the one milestone that pushes before the manual check, because the deployment needs the code on GitHub.
 16. Deployment: give Divyanshu the Vercel steps (import the GitHub repository, framework preset Vite, build command `npm run build`, output folder `dist`). Confirm the public URL loads.
@@ -2334,7 +2368,7 @@ Commit: "M0: Scaffold app with Tailwind, router, tests and deploy".
 
 Build:
 
-1. `src/engine/types.ts` (section 7) and `schemas.ts`: Zod schemas for every health data file; derive types from schemas where practical. Include the space weather and model types from section 26.11 now so the shapes are fixed early; the `sep_risk` feed stays inactive until A2.
+1. `src/engine/types.ts` (section 7) and `schemas.ts`: Zod schemas for every health data file; derive types from schemas where practical. Include the space weather and model types from section 26.11 now so the shapes are fixed early, and the `modelThreshold` comparison kind (section 11.1) with its schema check (section 11.6); the `sep_risk` feed stays inactive until A2.
 2. `stats.ts`: median, scaled MAD, mean.
 3. `baseline.ts` (section 10), with the window constants in one place.
 4. `conditions.ts`: every condition type and comparison kind (sections 11.1 and 11.2), each returning `{ met, evidence }`.
@@ -2342,7 +2376,7 @@ Build:
 6. `triage.ts`: exactly the function in section 13.3.
 7. `status.ts`: region and overall roll-up and the overdue list (section 9).
 8. `index.ts`: `evaluate(input)`.
-9. Data files: `indicators.json` (all ten indicators, with `howToMeasure`, `whyInSpace` from section 8.3, and `sourceIds`), `regions.json`, `sources.json` (all of section 17, `verified: false`), `environments.json` (section 14, all five environments), `rules.json` with the six P0 rules `R-SLEEP-01`, `R-TEMP-01`, `R-TEMP-02`, `R-GLU-02`, `R-CO2-01`, `R-RAD-01`, and `protocols.json` with their six protocols (drafts, `reviewed: false`, following section 18).
+9. Data files: `indicators.json` (all ten indicators, with `howToMeasure`, `whyInSpace` from section 8.3, and `sourceIds`), `regions.json`, `sources.json` (all of section 17, `verified: false`; before a rule that relies on a questionable entry is built, its primary source is checked and the passage shown to Divyanshu, section 17), `environments.json` (section 14, all five environments, with the station at 0 s and the Moon at 1.3 s), `rules.json` with the six P0 rules `R-SLEEP-01`, `R-TEMP-01`, `R-TEMP-02`, `R-GLU-02`, `R-CO2-01`, `R-RAD-01`, and `protocols.json` with their six protocols (drafts, `reviewed: false`, following section 18).
 
 Tests:
 
@@ -2350,7 +2384,7 @@ Tests:
 - Baseline: window edges, recent days excluded, not ready below the minimum, spread floor, last reading of the day wins.
 - Conditions: one test per condition type and comparison kind, including a baseline that is not ready.
 - Rules: `R-TEMP-02` supersedes `R-TEMP-01`; one alert per rule per crew member.
-- Triage: every cell of the table in section 13.5, building the rule objects inline in the test where a rule is not in `rules.json` yet, plus link-down cases (an `act` alert goes `act_on_board`; `replyEtaMin` is null).
+- Triage: every cell of the table in section 13.5, building the rule objects inline in the test where a rule is not in `rules.json` yet, plus link-down cases (an `act` alert goes `act_on_board`; `replyEtaMin` is null). The reply estimates are checked per column: station 0 s gives 5 min, Mars near 180 s gives 11 min, Mars far 1320 s gives 49 min.
 - Data integrity: every file parses; the cross-references in section 11.6 resolve.
 
 Manual check: Claude Code prints the section 13.5 table as computed by the engine; Divyanshu compares it with the document.
@@ -2368,7 +2402,9 @@ Build:
 2. Generate `baseline-healthy`, `sleep-debt` and `solar-storm`, plus `fever`, `low-glucose` and `early-mission` if they fit. Write `public/seed/index.json`.
 3. A Zod schema for the scenario file format.
 4. `ml/fetch_donki.py` (standard library only, section 25): fetch FLR, CME and SEP records from 2010 to now into `ml/data/raw/donki/`, with `meta.json`. Time-box the address search to 20 minutes, then use the fallback in section 25 and tell Divyanshu immediately.
-5. `solar-storm` takes its timing from one real DONKI particle event; `basedOn` names it, and `public/data/space-weather.json` lists it.
+5. `solar-storm` takes its timing from one real DONKI particle event; `basedOn` names it, and `public/data/space-weather.json` lists it. Its `environmentId` is `leo_station` (section 14).
+
+DONKI access check (read-only, during M0 on 14 November 2026): both CCMC addresses resolved but did not accept connections from the team's network, and `api.nasa.gov` answered 429 (rate limited) for `DEMO_KEY`. Before M2, Divyanshu chooses: try again or from another network, use a personal api.nasa.gov key kept out of git, or use the hand-entered fallback in section 25.
 
 Tests:
 
@@ -2433,12 +2469,13 @@ Tests:
 
 - The alert detail shows a route banner and its sections in the fixed order.
 - In `solar-storm`, a delay of 1320 s turns `R-RAD-01` from `consult_ground` to `act_on_board` (store and selector test).
+- `solar-storm` loads at the station: `R-RAD-01` is `consult_ground` with a 5 min reply estimate. Mars near (180 s) gives 11 min and `consult_ground`; Mars far (1320 s) gives 49 min and `act_on_board`.
 - Moving the slider many times leaves one outbox entry per alert key and kind.
 
 Manual check:
 
 1. Load `solar-storm` from the demo panel. Open the radiation alert: "Consult the ground. Reply expected in about 5 min.", with the first steps visible.
-2. Switch to Mars transit and move the slider to 1320 s: the banner changes to "Act now on board. A reply from Earth would take about 49 min."; the steps stay at the top.
+2. Switch to Mars transit: the slider starts at 180 s (Mars near) and the banner reads "Consult the ground. Reply expected in about 11 min." Move the slider to 1320 s (Mars far): the banner changes to "Act now on board. A reply from Earth would take about 49 min."; the steps stay at the top.
 3. Switch to Mars rover: the same delay range and the same route logic.
 4. Every alert shows sources and a basis tag.
 5. Keyboard only: environment selector, slider, checklist ticks, acknowledge.
@@ -2485,14 +2522,14 @@ Build:
 
 1. Zod schema for the model file; `src/engine/models/sepRisk.ts` with `flareFeatures`, `sepRiskProbability` and `topFactors`.
 2. Engine: `spaceWeather` and `models` in `EvaluationInput`; the `sep_risk` context feed with its 24-hour window; the evidence item with the top factors.
-3. `R-RAD-03` in `rules.json` with the threshold copied from the model file, protocol `P-RAD-PREPARE` (section 18), a ground reply, and `R-RAD-01` superseding `R-RAD-03`.
+3. `R-RAD-03` in `rules.json` with a `modelThreshold` comparison that reads the threshold from the model file (no number typed in `rules.json`), protocol `P-RAD-PREPARE` (section 18), and `R-RAD-01` superseding `R-RAD-03`.
 4. Scenarios (section 24.6): `solar-flare-watch` with a real flare from the test years, and the preceding flare in `solar-storm`; update `public/data/space-weather.json`.
 5. The store loads `spaceWeather` with the scenario; the selector passes the model in.
 6. Alert detail: the "Model estimate" tag, the estimate and its factors, the "How this model was made" link.
 7. The model card screen `#/model/sep-risk` (section 19.11), reading only the model file.
 8. The demo panel shows the scenario's `basedOn` note.
 
-Tests: all TypeScript tests in section 26.12, including parity, the threshold match, the window and the two golden scenarios.
+Tests: all TypeScript tests in section 26.12, including parity, the threshold reference, the window and the two golden scenarios.
 
 Manual check:
 
@@ -2543,6 +2580,8 @@ Docs: AI_USAGE (model 2); REFERENCES (scikit-learn `LedoitWolf` and `IsolationFo
 Commit: "A3: Add personal pattern model with on-board second opinions".
 
 ### 31.10 A4 ML model 3: Earth hospital
+
+**Deferred on 14 November 2026 (option B).** Not built during the hackathon; kept as the plan for later.
 
 **Goal.** A second opinion trained on real Earth ICU data that uses only changes from each person's own baseline, tested on a second hospital system.
 **Read first.** 26.17, 26.19, 26.8, 26.13 to 26.15, 10, 28.
@@ -2597,13 +2636,13 @@ Build:
 
 1. The ticker in `missionClock.ts`: speeds 0, 1, 60 and 600; it writes `nowMs` at most four times a second.
 2. `src/link/earthLink.ts`: the pure state machine `advance(messages, nowMs, link)` with the transitions in section 15; link down keeps messages queued.
-3. `ground-replies.json`: replies keyed by rule ID with a generic fallback; every reply shows "Simulated reply".
+3. Cut on 14 November 2026: simulated ground replies. Consults stop at `delivered` and show their expected reply time (section 15).
 4. Earth link screen: delay, link state, each message with progress between states and the expected reply time; private messages listed as "Private message".
 5. Demo panel complete (section 16), without the body view items.
 
-Tests: every transition, including link down and link back up; a consult reply is due at sent + delay + handling + delay; the private message title.
-Manual check: at 600×, send a consult at Mars far: it goes in transit, delivered, reply in transit, replied; toggle the link down and up; "+1 day" moves the mission day.
-Exit test: a consult message returns a reply after the delay at 600×.
+Tests: every transition (queued, in transit, delivered), including link down and link back up; a consult's expected reply time is sent + delay + handling + delay; the private message title.
+Manual check: at 600×, send a consult at Mars far: it goes in transit, then delivered after the one-way delay, with its expected reply time shown; toggle the link down and up; "+1 day" moves the mission day.
+Exit test: at 600×, a consult message is delivered after the one-way delay and shows its expected reply time.
 Commit: "M6: Add Earth link outbox, mission clock and demo panel".
 
 ### 31.13 B1 Body view without 3D
@@ -2624,7 +2663,7 @@ Build:
 Tests:
 
 - Reports: validation (score an integer 0 to 10, location text required), entry label format, crew separation.
-- Sensors: current value; stale after 15 minutes; contact lost shows no current value but keeps the last valid one; no data; trend delta.
+- Sensors: current value; stale after 15 minutes; contact lost shows no current value but keeps the last valid one; no data.
 - `suit.py`: the same seed gives the same file; the forearm has no contact from offset −30.
 - The separation (invariance) test in section 27.
 - Keyboard only: save a report with Tab, arrow keys and Enter (Testing Library with user-event).
@@ -2634,7 +2673,7 @@ Manual check:
 1. Keyboard only: save "Right outer shoulder · 4/10 · after overhead work".
 2. Switch crew member: the other person's list is empty; switch back and the report returns.
 3. The forearm card shows "No current reading" and "Last valid reading ... (35 min ago)".
-4. The upper back card shows a rising trend with its one-line summary.
+4. The upper back card shows its current value with time and contact state (trend charts were cut on 14 November 2026).
 5. Load another scenario: soreness cleared, sensors re-anchored.
 6. Alerts and the outbox look the same before and after saving reports.
 7. At 390 px.
@@ -2657,7 +2696,7 @@ Build:
 5. Sensor markers at the anchors; card and marker selection linked; "Turn to this sensor".
 6. The compare view `#/body/compare` (section 22.7).
 7. The fallbacks in section 22.10; the demo panel's "Force 2D" and the model line per crew member.
-8. `tools/check_body_model.py` (standard library only), implementing section 23.9 and reading expected values from `src/data/`; exit code 1 on any FAIL; output lines Divyanshu can forward to Chirag. A `unittest` in `tools/tests/` builds a tiny GLB in memory and checks a pass and a fail.
+8. `tools/check_body_model.py` (standard library only; brought forward when Chirag's first rough export arrives, with Divyanshu's OK, section 30.5), implementing section 23.9 and reading expected values from `src/data/`; exit code 1 on any FAIL; output lines Divyanshu can forward to Chirag. A `unittest` in `tools/tests/` builds a tiny GLB in memory and checks a pass and a fail.
 9. ESLint: `three` allowed only in `src/features/body/viewer/`.
 
 Tests:
@@ -2703,22 +2742,22 @@ Commit: "B3: Add Chirag's Blender body models for crew A and B".
 
 ### 31.16 M7 Evidence, remaining rules and polish
 
-**Goal.** Breadth and quality: every rule in section 12, the Library, the reaction test, and an accessibility pass.
+**Goal.** Breadth and quality: every rule in section 12, the reaction test, and an accessibility pass.
 **Read first.** 8.4, 12, 17, 18, 19.6, 19.7, 20, 24.3.
 
 Build:
 
-1. The remaining rules `R-COG-01`, `R-MOOD-01`, `R-VIS-01`, `R-BP-01`, `R-BP-02`, `R-HR-01`, `R-GLU-01`, `R-EXE-01`, `R-IMM-01`, `R-CO2-02` and `R-RAD-02`, with their protocols, ground replies and superseding (section 12).
+1. The remaining rules `R-COG-01`, `R-MOOD-01`, `R-VIS-01`, `R-BP-01`, `R-BP-02`, `R-HR-01`, `R-GLU-01`, `R-EXE-01`, `R-IMM-01`, `R-CO2-02` and `R-RAD-02`, with their protocols and superseding (section 12).
 2. The remaining scenarios in section 24.3, with golden tests.
 3. The reaction test `#/test/reaction` (section 8.4) as a check-in step; results saved with `origin: "in_app_test"`.
-4. The Library `#/library` (section 19.6): measurement how-tos, the full source list with verified tags, links to the three model cards, the disclaimer, and the list of everything simulated (seed data, habitat feeds, ground replies, suit sensors, body profiles, placeholder model).
+4. Cut on 14 November 2026: the standalone Library screen (section 19.6). Source links with verified tags stay on alerts and indicator explanations, and the model cards stay linked from alerts and insights.
 5. Accessibility pass on every screen: keyboard only, focus rings, 44 px targets, 390 px, amber contrast, reduced motion, chart summaries, body map names.
 6. The copy check over `src/data/*.json` (section 27).
 
 Tests: golden tests for every scenario; reaction test logic (median of valid trials; a false start repeats the trial); the copy check; cross-references for the new rules.
 Manual check: run `docs/demo-script.md` end to end on the deployed site; a keyboard-only pass; phone width.
 Exit test: every alert shows sources and a basis tag; all golden tests green; keyboard pass done.
-Commit: "M7: Add remaining rules, reaction test, Library and accessibility fixes".
+Commit: "M7: Add remaining rules, reaction test and accessibility fixes".
 
 ### 31.17 M8 Submission
 
@@ -2727,7 +2766,7 @@ Commit: "M7: Add remaining rules, reaction test, Library and accessibility fixes
 
 Build:
 
-1. `README.md`: what it is; the live URL; how to run; how it works (one paragraph each for triage, the three ML models and the body view); what is simulated; "Prototype for the NASA Space Apps Challenge. Not a medical device."; team and roles; credits (Chirag for the body models; DONKI and CCMC for the space weather data); AI use summary; links to `REFERENCES.md`, `AI_USAGE.md` and the three model cards in `ml/reports/`.
+1. `README.md`: what it is; the live URL; how to run; how it works (one paragraph each for triage, the ML models that were built, with a note that the Earth hospital model was deferred, and the body view); what is simulated; "Prototype for the NASA Space Apps Challenge. Not a medical device."; team and roles; credits (Chirag for the body models; DONKI and CCMC for the space weather data); AI use summary; links to `REFERENCES.md`, `AI_USAGE.md` and the model cards in `ml/reports/`.
 2. `REFERENCES.md` complete, NASA items first; `AI_USAGE.md` complete.
 3. `docs/demo-script.md` final: the person (sleep change), a second opinion (`pattern-shift`), the radiation outlook (model estimate), the body (shoulder report, calf pin, sensors), the decisive moment (`solar-storm` flips to an onboard response at far-Mars delay), with timings and talking points.
 4. Slides (at most seven, title included) or a video of 30 seconds or less, per the 2026 guide. Screenshots keep the "Simulated data" tag, the "Model estimate" tag on estimates and insights and, where it applies, the "AI-assisted model" tag. No NASA logos in AI-generated material. Model numbers are copied from the model card.
@@ -2746,37 +2785,37 @@ Commit: "M8: Add submission docs, demo script and final references".
 ### 32.1 Priorities
 
 - **P0, must ship**: daily check-in; 2D body map and accessible status list; personal baseline; at least six rules; alert detail with protocol; triage with environment and delay; sources on alerts; three scenarios; ML model 1 with its model card, running in the app as `R-RAD-03` (A1, A2); public deploy.
-- **P1, should ship**: the two second-opinion models, personal pattern (A3) and Earth hospital (A4); trend charts and the check-in streak; Earth link outbox with simulated replies; demo panel; reaction test; Library screen; all v1 rules; the personal body view: soreness form and list with three simulated suit sensors (B1), the 3D viewer with free pins, the named shoulder patch and the compare view (B2), and Chirag's two models (B3).
+- **P1, should ship**: the personal pattern model (A3); trend charts and the check-in streak; the Earth link outbox; demo panel; reaction test; all v1 rules; the personal body view: soreness form and list with three simulated suit sensors (B1), the 3D viewer with free pins, the named shoulder patch and the compare view (B2), and Chirag's two models (B3).
+- **Deferred or cut on 14 November 2026**: the Earth hospital model (A4, deferred until after the hackathon); simulated ground replies; sensor trend charts; the standalone Library screen.
 - **P2, stretch**: near-vision test; dark theme; link blackout windows; offline install; bone-loss projection graphic; soreness dots on the 2D figure (front and back); more named surface areas; NASA RadLab dose data for the radiation context, if the team agrees (section 34, item 22); the future ML work in section 26.16.
 
 ### 32.2 Cut order
 
-First to go first:
+Already cut on 14 November 2026, by Divyanshu's decision: P2 items, the near-vision check, simulated replies (the outbox list stays), sensor trend charts (value, contact and time stay on the cards), the standalone Library screen (source links on alerts and the model card screens stay), and the Earth hospital model (A4, deferred; option B kept the 3D body instead).
 
-1. P2 items.
-2. Near-vision check.
-3. Simulated replies (keep the outbox list).
-4. Compare view (keep the single body).
-5. Sensor trend charts (keep value, contact and time on the cards).
-6. The 3D viewer and B3 (keep the B1 body view: form, list and sensor cards).
-7. Library screen (keep source links on alerts and the model card screens).
-8. The Earth hospital model (A4), keeping the personal pattern model (A3).
-9. Extra scenarios (keep the three P0 ones, `solar-flare-watch`, `pattern-shift`, and `fever` if A4 shipped).
-10. The personal pattern model (A3).
-11. Only as a last resort, although it is P0: the in-app part of model 1 (A2), keeping the trained model, its model card and its tests from A1 for the submission.
+Next candidates, first to go first. Claude Code proposes; Divyanshu decides each one:
+
+1. Compare view (keep the single body).
+2. The 3D viewer and B3 (keep the B1 body view: form, list and sensor cards). This is the fallback in section 30.5.
+3. Extra scenarios (keep the three P0 ones, `solar-flare-watch` and `pattern-shift`).
+4. The personal pattern model (A3).
+5. Only as a last resort, although it is P0: the in-app part of model 1 (A2), keeping the trained model, its model card and its tests from A1 for the submission.
 
 Never cut: triage, sources on alerts, simulated-data labels, the "Not a medical device" notice, the 2D path, the honesty rules for the models (section 26.15) and the evidence ladder (section 26.17).
 
 ### 32.3 Decision points
 
+Updated on 14 November 2026 for the actual start. In every row, Claude Code reports the situation and proposes; Divyanshu decides any cut.
+
 | When | If | Then |
 |---|---|---|
-| Sat 17:30 | No DONKI address works | Use the hand-entered events for the scenarios; tell the team; carry on with the next milestones and run A1 and A2 as soon as the API answers. If there is still no data at Sun 12:00, drop A1 and A2 and say so in the submission |
-| Sun 09:00 | P0 (up to A2) not complete | Finish P0 before any P1 work |
-| 30 minutes into A4 | The PhysioNet download is not working | Drop A4, keep A3, say so in the submission |
-| Sun 13:00 | A4 not done | Keep A4 only if its model file, model card and parity test are already green; otherwise drop it and go to M5 |
-| Sun 15:30 | M6 not done | Cut simulated replies; finish the outbox list and the demo panel |
-| After B1 | Less than 3.5 hours left before 18:00 | Skip B2 and B3 and go to M7. Ship the 2D body view and mention the Blender models as work in progress in the README and slides |
+| M2, after the 20-minute DONKI time box | No DONKI address works | Use the hand-entered events for the scenarios (section 25); tell Divyanshu at once; carry on and run A1 and A2 as soon as the API answers. If there is still no data when A1 is due to start, propose dropping A1 and A2 and saying so in the submission |
+| Sat 01:30, end of day 1 | More than an hour behind section 31.1 | Report the actual times and propose cuts from section 32.2 |
+| Before A2 is pushed | Any P1 work tempts | Finish P0 before any P1 work |
+| After A2 | The remaining P1 milestones need more time than is left before 18:00 | Propose the next cuts in the order of section 32.2 |
+| When Chirag's first rough export arrives | | Propose bringing the standalone checker forward (section 30.5) |
+| After B1 | Less than 3.5 hours left before 18:00 | Propose skipping B2 and B3 and going to M7: ship the 2D body view and credit the Blender models as work in progress in the README and slides (the fallback in section 30.5) |
+| Sun 16:00 | Chirag's files are not integrated yet | Last start for B3; later files go in only if they pass the checker on the first run |
 | Sun 17:00 | B2 is in and Chirag's files arrive late | Integrate only if both pass the checker on the first run and B3 takes under 30 minutes |
 | Sun 18:00 | | Code freeze |
 
@@ -2794,8 +2833,8 @@ Based on the Project Submission Guide available on November 11, 2026, which stil
 | Link to final project | Public deployed URL, with the repository linked from the README |
 | Detailed description | Section 2 table turned into prose, plus how it works (section 4), the three ML models, the evidence ladder and their evaluations (section 26), the body view (section 22) and how validity is tested (section 27) |
 | NASA data | `REFERENCES.md`, NASA section: DONKI (training and test data of the model, and the real events in scenarios) and the NASA research behind the rules |
-| Space agency partner and other data | `REFERENCES.md`, other sections: the CSA articles from the Resources tab, the CSA Bio-Monitor page, and the PhysioNet 2019 sepsis data used by the Earth hospital model |
-| Use of artificial intelligence | `AI_USAGE.md`: the three ML models in the product (with links to their model cards), Claude Code's work in this repository, Claude for the planning documents, and Chirag's use of Claude for the Blender models |
+| Space agency partner and other data | `REFERENCES.md`, other sections: the CSA articles from the Resources tab and the CSA Bio-Monitor page (the PhysioNet data is not used while the Earth hospital model is deferred) |
+| Use of artificial intelligence | `AI_USAGE.md`: the ML models in the product (with links to their model cards), Claude Code's work in this repository, Claude for the planning documents, and Chirag's use of Claude for the Blender models |
 
 Other requirements noted in that guide: everything in English, AI-generated images and video carry a visible watermark, AI-generated code and data are acknowledged in text, no NASA logos in AI-generated material, and all external resources are listed. Screenshots or video that show a body model AI helped make keep the "AI-assisted model" tag visible, and any model number shown is copied from the model card.
 
@@ -2804,7 +2843,7 @@ Other requirements noted in that guide: everything in English, AI-generated imag
 ## 34. Open questions and things to verify
 
 1. Does the local event allow preparation before Saturday 09:00, and if so what kind? Ask the local lead before writing code early.
-2. Read the challenge's Resources tab and add each item to the registry.
+2. Done on 14 November 2026: the Resources tab items are in the registry (item 10).
 3. Confirm the 2026 submission rules (demo length, required fields, AI disclosure).
 4. Verify every figure in section 17 against its source and flip `verified`.
 5. Find the primary paper for `sleep-barger-2014` and the journal for `immune-herpes-iss`.
@@ -2822,9 +2861,10 @@ Other requirements noted in that guide: everything in English, AI-generated imag
 17. Update the concept brief PDF: it still names standalone MakeHuman and OBJ files, and does not mention the ML model.
 18. Make the GitHub repository public before submission, or confirm that judges can open it.
 19. Confirm the three-model plan and the evidence ladder (decision D19) with the whole team.
-20. Record the PhysioNet license and its citation request before A4 (section 26.19).
-21. If time runs short, the plan cuts the 3D viewer (B2, B3) before the Earth hospital model (A4) (section 32.2). Confirm this order with the team and tell Chirag, or swap them.
+20. Record the PhysioNet license and its citation request before A4 (section 26.19). Deferred with A4.
+21. Decided on 14 November 2026: option B. The 3D viewer (B2, B3) stays and the Earth hospital model (A4) is deferred. Chirag is told through `docs/body-model-handoff.md`.
 22. Decide whether to add NASA RadLab dose data (real ISS dosimetry) for the radiation context; it is P2 for now.
+23. DONKI access, before M2: in the read-only check during M0 the CCMC addresses did not accept connections from the team's network and `api.nasa.gov` answered 429 for `DEMO_KEY`. Options: try again or from another network, a personal api.nasa.gov key kept out of git, or the hand-entered fallback (section 25).
 
 ---
 

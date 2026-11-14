@@ -8,14 +8,14 @@ Recorded on 14 November 2026 from the Resources tab of the challenge page, "Crea
 |---|---|---|---|
 | 5 Hazards of Human Spaceflight | https://www.nasa.gov/hrp/hazards/ | `hrp-hazards` | Evidence for rules and "Why it matters in space" text (ARCHITECTURE.md sections 8.3 and 12) |
 | Risks of Human Spaceflight | https://www.nasa.gov/hrp/risks/ | `hrp-risks` | Evidence for rules (section 12) |
-| Ongoing HRP Research in Space | https://www.nasa.gov/hrp/ongoing-hrp-research/ | `hrp-ongoing-research` | Background; listed in the Library |
+| Ongoing HRP Research in Space | https://www.nasa.gov/hrp/ongoing-hrp-research/ | `hrp-ongoing-research` | Background; listed in `REFERENCES.md` and the source registry (the Library screen was cut on 14 November 2026) |
 
 ## Space agency partner resources
 
 | Resource | URL | Source ID | How the project uses it |
 |---|---|---|---|
-| CSA: Monitoring Radiation for Astronaut Health | https://www.asc-csa.gc.ca/eng/news/articles/2026/2026-02-26-monitoring-radiation-astronaut-health.asp | `csa-radiation-monitoring-2026` | Context for the radiation features (sections 2 and 26); listed in the Library |
-| CSA: Why Do We Conduct Science Experiments in Space? | https://www.asc-csa.gc.ca/eng/iss/science/why-do-we-conduct-science-experiments-in-space.asp | `csa-why-science` | Background; listed in the Library |
+| CSA: Monitoring Radiation for Astronaut Health | https://www.asc-csa.gc.ca/eng/news/articles/2026/2026-02-26-monitoring-radiation-astronaut-health.asp | `csa-radiation-monitoring-2026` | Context for the radiation features (sections 2 and 26); listed in `REFERENCES.md` and the source registry |
+| CSA: Why Do We Conduct Science Experiments in Space? | https://www.asc-csa.gc.ca/eng/iss/science/why-do-we-conduct-science-experiments-in-space.asp | `csa-why-science` | Background; listed in `REFERENCES.md` and the source registry |
 
 ## Disclaimer on the tab
 

@@ -4,6 +4,18 @@ For: Chirag (Blender, with your own Claude)
 From: Divyanshu (the app, with Claude Code)
 Source of truth: `ARCHITECTURE.md` section 23 in https://github.com/DivyanshuKirpal/nasa_hackathon. If this file and section 23 ever differ, section 23 wins; tell Divyanshu so this file gets fixed.
 
+## Update, 14 November 2026 (evening)
+
+We started the app later than planned, so the team re-planned the schedule. **The 3D body is still a goal.** The 3D viewer and your two models stay in the plan, and the team postponed a different feature (a third machine-learning model) to make room.
+
+There is a fallback. If time runs out before the 3D viewer is finished, the app ships the 2D body view (a soreness form and list, plus the sensor cards), and the README and slides credit your models as work in progress. Divyanshu decides this at a checkpoint on Sunday and will tell you.
+
+What this means for you:
+
+- **Send a rough export of one body as early as you can, tonight if possible.** It can be untidy. It lets us test the format and the pipeline early. When it arrives, Divyanshu checks it and replies with any failing lines within about an hour.
+- **Deadlines are unchanged.** Final `crew-a.glb`, `crew-b.glb` and `model-notes.md` by Sunday 14:00. Files that arrive after Sunday 16:00 go in only if they pass the checker on the first try. Nothing changes after the 18:00 code freeze.
+- **Nothing else in this document changed:** names, axes, units, pose, export settings and checks are the same.
+
 ## 1. What the models are for
 
 Crew Health Check is VoidShifters' app for the NASA Space Apps Challenge 2026. Its Body screen shows a plain gray 3D body of a fictional crew member. The crew member rotates it, taps where it hurts to save a soreness report, and checks three simulated suit sensors (chest, upper back, left forearm). The app paints the body gray itself, and it reads a few named objects from your file to know where the shoulder area and the sensors are.
