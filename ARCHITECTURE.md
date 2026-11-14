@@ -151,6 +151,7 @@ The challenge page lists optional considerations. Each one is covered, and the m
 | D19 | Evidence ladder: what a signal may do depends on its evidence. Rules with sourced thresholds raise watch and act alerts and drive triage; the `sep-risk` model, tested on real outcomes, may raise one watch alert; the `personal-pattern` and `earth-hospital` models, never tested on astronauts, may only show insights that the crew can choose to send to the ground. | The app can use three kinds of machine learning without an unvalidated model changing a health decision. Each claim is as strong as its evidence, which is what judges check under validity. |
 | D20 | Models trained on Earth data see only changes from each person's own baseline, computed with the app's baseline formula (median and 1.4826 × MAD with the same minimum spreads, section 10), never absolute values. | Earth absolute ranges mislead in space (section 1.4); patterns of change are the part that can plausibly carry over. |
 | D21 | No patient-level hospital data in the repository: PhysioNet files are downloaded by a script and kept out of git; only scripts, metadata, summaries and the trained model are committed. | Respects the dataset's terms and keeps the public repository free of clinical records. |
+| D22 | `sep-risk` labels count only SEP records observed by an instrument (section 26.4). Raw DONKI files are never changed. Each SEP instrument name gets a reviewed class (`observed`, `model` or `unknown`); a name is never `observed` just because it lacks the `MODEL:` prefix. Each SEP record is then observed-only, mixed, model-only or unknown. A flare is positive when a permitted association (direct, or through one linked CME) reaches an observed-only or mixed record, whatever model records it also reaches; a flare whose associations reach only model-only or unknown records is excluded as ambiguous, never made negative; a negative means "no qualifying recorded SEP association", never "no SEP occurred". Decided by Divyanshu on 15 November 2026. | 140 of the 494 downloaded SEP records are model output, not measurements. Counting them would let model output become the answer the model learns; turning them into negatives would hide real uncertainty. The model card reports the record classes, labels and exclusions by year and split, so the selection is visible. |
 
 Changing any of these needs agreement from the whole team, and an edit to this table.
 
@@ -1849,7 +1850,7 @@ On some systems the command is `python3` or `py`. After regenerating, run the te
 From A2 on, the generator reads `ml/data/processed/flares.csv` (section 26.4) with the standard `csv` module and copies real flares into scenarios as `FlareObservation` records:
 
 - Only flares from the model's test years are used, so the demo never shows the model a flare it was trained on.
-- Each scenario names its flare by DONKI ID in `scenarios.py`. For `solar-flare-watch`, Claude Code picks a test-year flare that DONKI links to a particle event and that the model scores at or above its threshold; the golden test proves the choice.
+- Each scenario names its flare by DONKI ID in `scenarios.py`. For `solar-flare-watch`, Claude Code picks a test-year flare that is a positive under decision D22 (DONKI links it to an instrument-observed particle event) and that the model scores at or above its threshold; the golden test proves the choice.
 - The flare's peak is placed on the scenario's mission timeline: `solar-flare-watch` at 07:30 on the mission day, `solar-storm` at 15:00 the day before. Both fall inside the 24-hour window of `R-RAD-03` at 09:00 (section 26.10). Real dates stay in `basedOn` and in `public/data/space-weather.json`, which lists every real event used, with its DONKI ID, link and the retrieval date.
 
 ---
@@ -1869,7 +1870,7 @@ What we use:
 How DONKI data is fetched:
 
 - `ml/fetch_donki.py` (Python standard library only) downloads FLR, CME and SEP records year by year into `ml/data/raw/donki/<TYPE>/<YEAR>.json.gz`, plus `ml/data/raw/donki/meta.json` with the base address used, every query, the retrieval time and the record counts. If a year is refused, it retries month by month. It waits briefly between requests. Run it once in M2, commit the files, and never fetch at app runtime (decision D8).
-- The address: a third-party note says that since 30 September 2026 the API is served at `https://ccmc.gsfc.nasa.gov/DONKI-API/get/` without a key, and that the older `https://kauai.ccmc.gsfc.nasa.gov/DONKI/WS/get/` and `https://api.nasa.gov/DONKI/` addresses answer with redirects. Confirm on the official DONKI page (`donki`). The script tries, in order, the `DONKI-API` address, the `kauai` web service, then `api.nasa.gov` with the personal key from `NASA_API_KEY` or else `DEMO_KEY` (heavily rate limited), and records which address worked (redirects: see the change below). On 14 November 2026 the `DONKI-API` address answered without a key and served the whole download; the official page has not been checked yet.
+- The address: `https://ccmc.gsfc.nasa.gov/DONKI-API/get/`, without a key. NASA CCMC's official announcement documents this endpoint: https://ccmc.gsfc.nasa.gov/news/major-updates/ (confirmed by Divyanshu on 15 November 2026; Claude Code's own fetch of the page was refused). A third-party note also said that the change dates from 30 September 2026 and that the older `https://kauai.ccmc.gsfc.nasa.gov/DONKI/WS/get/` and `https://api.nasa.gov/DONKI/` addresses answer with redirects; those two details are not confirmed. The script tries, in order, the `DONKI-API` address, the `kauai` web service, then `api.nasa.gov` with the personal key from `NASA_API_KEY` or else `DEMO_KEY` (heavily rate limited), and records which address worked (redirects: see the change below). On 14 November 2026 the `DONKI-API` address answered without a key and served the whole download.
 - DONKI describes its content as experimental research information, and points to NOAA's Space Weather Prediction Center for official U.S. forecasts. The model card says so.
 - Credit DONKI and NASA's Community Coordinated Modeling Center (CCMC) as the source in `REFERENCES.md`, the model card and the README.
 - If no address works within 20 minutes in M2, hand-enter two or three real events from the DONKI website into `public/data/space-weather.json` so the scenarios still work, say so in `REFERENCES.md`, and tell the team at once: milestone A1 needs this data (decision point in section 32.3).
@@ -1900,7 +1901,7 @@ The rules of section 12 stay in charge: they alone set Good, Watch and Act, and 
 
 ### 26.1 What the model does, and why this one
 
-- **Task.** For a solar flare, together with its linked coronal mass ejection (CME) if there is one, estimate the probability that DONKI analysts linked it to a solar energetic particle (SEP) event. For the crew this reads: "estimated chance this flare is followed by a solar particle event".
+- **Task.** For a solar flare, together with its linked coronal mass ejection (CME) if there is one, estimate the probability that DONKI analysts linked it to a solar energetic particle (SEP) event observed by an instrument (decision D22). For the crew this reads: "estimated chance this flare is followed by a solar particle event".
 - **Why it matters.** A solar particle event is a radiation storm, and space radiation is one of NASA's five hazards of human spaceflight (`hrp-hazards`). The app already alerts when an event is in progress (`R-RAD-01`, act) and on cumulative dose (`R-RAD-02`). An estimate before the event gives the crew time to prepare, which answers the brief's question "What actions can be taken to prevent a critical health condition?". Far from Earth a warning from the ground arrives late: the one-way delay to Mars reaches about 22 minutes (`delay-nasa-m2m-2023`), and Mars missions need crew medical autonomy (`autonomy-nasa-exmc-2021`). An estimate computed on board supports that autonomy, which is the same idea as triage by communication delay.
 - **Why this data.** DONKI holds real flares, CMEs and SEP events with analyst-curated links between them, which gives a real supervised label. Published work has trained machine-learning classifiers on DONKI's flare, CME and SEP associations (`sep-ml-inceoglu-2018`), and SEP studies use flare magnitude, location and rise time and CME speed and width as predictors, comparing logistic regression with tree models (`sep-gsep-2023`). Our model follows that line at hackathon scale.
 
@@ -1929,12 +1930,32 @@ Keep every catalog the API returns by default and record the `catalog` field. DO
 
 ### 26.4 Building the dataset (`ml/build_dataset.py`)
 
+The raw files in `ml/data/raw/donki/` are only read: nothing in them is changed, filtered or rewritten. Every choice below happens in the processed files (decision D22).
+
 1. Load the raw files. Keep one record per ID (the API returns the latest version). Drop exact duplicates.
-2. Build one undirected link graph from the `linkedEvents` lists of all three types, because a link may be listed on either side.
-3. Filter flares, counting every drop by reason: class must parse as a letter (A, B, C, M or X) and a number, and only class M1.0 and above is kept; `peakTime` and `beginTime` must be present; `sourceLocation` must parse (for example `S14W59`).
-4. Linked CME: among the CMEs linked to the flare, take each CME's analysis marked `isMostAccurate` (the first analysis if none is marked), and keep the analysis with the highest speed. A flare with no linked CME analysis gets `has_cme = 0`.
-5. Label: `1` if the flare is linked to an SEP record directly, or through one linked CME (flare to CME to SEP); otherwise `0`. Paths through other flares or through interplanetary shocks do not count.
-6. Write `ml/data/processed/flares.csv` (one row per flare: DONKI IDs, link, raw fields, `riseMin`, `durationMin`, features, label, split) and `ml/data/processed/dataset_summary.json` (counts by year, split and catalog; positives; drop reasons; first and last dates).
+2. Inventory the SEP instrument names: every distinct `instruments[].displayName`, with its record count by year. Each name takes its class from the reviewed table `ml/sep_instrument_classes.json`:
+   - `model`: the name starts with `MODEL:`.
+   - `observed`: a team member has confirmed the name is a measuring instrument, and the table records the basis.
+   - `unknown`: every other name, including a name missing from the table.
+
+   A name is never `observed` just because it lacks the `MODEL:` prefix.
+3. Classify every SEP record by its instrument names:
+   - **Observed-only:** every name is `observed`.
+   - **Mixed:** at least one `observed` name, together with `model` or `unknown` names.
+   - **Model-only:** every name is `model`.
+   - **Unknown:** no instrument is listed, or no name is `observed` and at least one is `unknown`.
+
+   Observed-only and mixed records count as instrument-observed.
+4. Build one undirected link graph from the `linkedEvents` lists of all three types, because a link may be listed on either side.
+5. Filter flares, counting every drop by reason: class must parse as a letter (A, B, C, M or X) and a number, and only class M1.0 and above is kept; `peakTime` and `beginTime` must be present; `sourceLocation` must parse (for example `S14W59`). The flares that remain are eligible.
+6. Linked CME: among the CMEs linked to the flare, take each CME's analysis marked `isMostAccurate` (the first analysis if none is marked), and keep the analysis with the highest speed. A flare with no linked CME analysis gets `has_cme = 0`.
+7. Label each eligible flare through the permitted associations only: a direct link to an SEP record, or a link through one CME (flare to CME to SEP). Paths through other flares or through interplanetary shocks do not count.
+   - **Positive (`1`):** an association reaches at least one instrument-observed SEP record. Associations with model-only or unknown records as well do not change this.
+   - **Excluded as ambiguous:** associations reach SEP records, but none of them is instrument-observed (only model-only or unknown records). The flare is neither positive nor negative. It is left out of training, validation and test, and it is counted.
+   - **Negative (`0`):** no permitted association reaches any SEP record. A negative means "no qualifying recorded SEP association", never "no SEP occurred".
+8. Write two files:
+   - `ml/data/processed/flares.csv`: one row per eligible flare, with DONKI IDs, link, raw fields, `riseMin`, `durationMin`, features, label status (`positive`, `negative` or `ambiguous`), label, the associated SEP IDs with their record classes, and split.
+   - `ml/data/processed/dataset_summary.json`: counts by year, split and catalog; the instrument inventory with each name's class; SEP record classes by year of `eventTime` and by split; positives, negatives and ambiguous exclusions by year and split; drop reasons; first and last dates.
 
 ### 26.5 Features
 
@@ -1955,7 +1976,7 @@ Why sine and cosine of the longitude: together they let the model learn which lo
 
 ### 26.6 Splits
 
-Chronological, by flare peak year (UTC): train from the first year to 2020; validation 2021 and 2022; test from 2023 to the last fetched month. No shuffling across years. If a split ends up with fewer than 10 positives, move the boundary by one year, keep the order train, validation, test, and record the change and the reason in the model card. The test set is used once, after every choice is fixed.
+Chronological, by flare peak year (UTC): train from the first year to 2020; validation 2021 and 2022; test from 2023 to the last fetched month. No shuffling across years. If a split ends up with fewer than 10 positives, move the boundary by one year, keep the order train, validation, test, and record the change and the reason in the model card. The test set is used once, after every choice is fixed. Flares excluded as ambiguous (section 26.4) are not used for training or scoring in any split, but their counts are still reported per year and split.
 
 ### 26.7 Models and training (`ml/train_sep_risk.py`)
 
@@ -1972,7 +1993,7 @@ Every random element uses seed 42, so two runs give identical files.
 
 ### 26.8 Evaluation
 
-On validation and test (definitions in section 35):
+On validation and test (definitions in section 35). Only positive and negative flares are scored; ambiguous flares are reported, never scored.
 
 - ROC AUC and average precision (PR AUC).
 - Brier score, and Brier skill score against climatology.
@@ -1997,7 +2018,7 @@ Report the results whichever way they go. If the shipped model does not beat the
   "version": "v1",
   "kind": "logistic-regression",
   "createdAt": "<written by the script>",
-  "label": "Flare linked in DONKI to a solar energetic particle event, directly or through a linked CME",
+  "label": "1: flare linked in DONKI, directly or through one linked CME, to a solar energetic particle record observed by an instrument. 0: no qualifying recorded SEP association. Flares whose only SEP evidence is model output or of unknown origin are excluded as ambiguous.",
   "data": {
     "source": "NASA CCMC DONKI",
     "sourceId": "donki",
@@ -2007,10 +2028,11 @@ Report the results whichever way they go. If the shipped model does not beat the
     "lastFlare": "<date>",
     "filters": ["GOES class M1.0 or above", "begin and peak time present", "source location parseable"],
     "dropped": { "<reason>": 0 },
+    "sepRecordClasses": { "observedOnly": 0, "mixed": 0, "modelOnly": 0, "unknown": 0 },
     "splits": {
-      "train": { "years": "<first>-2020", "n": 0, "positives": 0 },
-      "validation": { "years": "2021-2022", "n": 0, "positives": 0 },
-      "test": { "years": "2023-<last>", "n": 0, "positives": 0 }
+      "train": { "years": "<first>-2020", "n": 0, "positives": 0, "excludedAmbiguous": 0 },
+      "validation": { "years": "2021-2022", "n": 0, "positives": 0, "excludedAmbiguous": 0 },
+      "test": { "years": "2023-<last>", "n": 0, "positives": 0, "excludedAmbiguous": 0 }
     }
   },
   "features": [
@@ -2035,7 +2057,7 @@ Report the results whichever way they go. If the shipped model does not beat the
 ```
 
 2. `ml/artifacts/sep-risk-v1-parity.json`: up to 50 rows from the test split (all of them if fewer), sorted by DONKI ID, each with the raw inputs the app receives (`classType`, `sourceLocation`, `riseMin`, `durationMin`, `cme`), the expected feature values and the expected probability.
-3. `ml/reports/sep-risk-v1.md`, the model card: purpose; data and retrieval; label; filters and drop counts; features in plain words; splits with counts; training choices; metrics with intervals; comparisons; reliability table; threshold; limitations; references; how to reproduce. The plots sit next to it.
+3. `ml/reports/sep-risk-v1.md`, the model card: purpose; data and retrieval; label and selection policy (decision D22: why only instrument-observed SEP records count, the instrument names with their classes, SEP record classes by year and split, and positives, negatives and ambiguous exclusions by year and split); filters and drop counts; features in plain words; splits with counts; training choices; metrics with intervals; comparisons; reliability table; threshold; limitations; references; how to reproduce. The plots sit next to it.
 
 A retrain that changes any coefficient becomes `v2` with new files; the app reads the version from the file. Zod validates the model file at load and in tests.
 
@@ -2046,7 +2068,7 @@ A retrain that changes any coefficient becomes `v2` with new files; the app read
 - **Rule `R-RAD-03`** (section 12): watch, region `whole_body`, `sep_risk` at or above the model threshold within 1 day, protocol `P-RAD-PREPARE`. `R-RAD-01` supersedes it, so an event in progress replaces the outlook.
 - **Evidence item.** Label "Solar flare risk (model estimate)"; value such as "62% estimated chance of a solar particle event"; reference such as "Flare X2.2 at S17W33, peak on day 141 at 15:00. Model sep-risk v1." Probabilities are shown as whole percents clamped to 1% to 99%. The top three factors follow in words, for example "Flare class X2.2 raises the estimate", "Source location S17W33 raises the estimate", "No linked CME lowers the estimate".
 - **Alert detail.** "What changed" shows the estimate and its factors. "Evidence" adds the tag "Model estimate" and the link "How this model was made" to the model card screen.
-- **Model card screen `#/model/sep-risk`.** Reads the model file and shows, in plain words: what it estimates; the data (source, dates, counts per split, filters); how it works (features in words, the threshold rule); how well it did on the held-out test years (metrics with intervals, the comparisons, the reliability table, each metric with a one-line meaning); its limits; and the sources. No number on this screen is typed by hand. It also states that DONKI is experimental research information and that official U.S. space weather forecasts come from NOAA's Space Weather Prediction Center (`donki`).
+- **Model card screen `#/model/sep-risk`.** Reads the model file and shows, in plain words: what it estimates; the data (source, dates, counts per split, filters, flares excluded as ambiguous); how it works (features in words, the threshold rule); how well it did on the held-out test years (metrics with intervals, the comparisons, the reliability table, each metric with a one-line meaning); its limits; and the sources. No number on this screen is typed by hand. It also states that DONKI is experimental research information and that official U.S. space weather forecasts come from NOAA's Space Weather Prediction Center (`donki`).
 - **Wording.** "Estimate", "estimated chance", "possible". Never "will", never "predicts that", never a value without the word "estimate" nearby.
 
 ### 26.11 Types
@@ -2093,7 +2115,15 @@ export interface SepRiskModel {
 Python, `python -m unittest discover -s ml/tests`:
 
 - Class parsing (`X2.2`, `M1`, `C9.9`, bad strings), location parsing (`S17W33`, `N05E80`, bad strings), minute differences.
-- The label rule on a tiny hand-made link graph: direct link, link through a CME, and paths that must not count.
+- Instrument and record classes: a `MODEL:` name is `model`; a name missing from the table is `unknown`, never `observed`; one record each for observed-only, mixed, model-only and unknown, including a record with no instruments.
+- The label rule on a tiny hand-made link graph:
+  - a direct link and a link through one CME to an observed record are positive;
+  - an observed record plus an extra model-only record is still positive;
+  - links only to model-only or unknown records are excluded as ambiguous and counted, never negative;
+  - no qualifying link is negative;
+  - paths through other flares or shocks do not count.
+- The raw files stay untouched: building the dataset from fixture files leaves them byte-identical.
+- The summary's SEP record classes and its positives, negatives and ambiguous exclusions by year and split add up to the totals.
 - Split boundaries and the minimum-positives rule.
 - Determinism: two training runs give identical coefficients and threshold.
 
@@ -2129,10 +2159,11 @@ On a fresh machine, `pip install -r ml/requirements.txt` replaces the install li
 ### 26.14 Limitations (copied into the model card)
 
 - DONKI links are analysts' judgments, and catalog practice changed over time (the M2M office from June 2020, `donki`); labels carry that noise.
-- DONKI keeps SEP records per instrument and energy channel. The label means "linked to at least one SEP record", not a particular intensity or energy.
+- DONKI keeps SEP records per instrument and energy channel, and some records are model output (instrument names starting `MODEL:`). A positive label means "linked to at least one SEP record observed by an instrument", not a particular intensity or energy. A negative label means "no qualifying recorded SEP association", not that no particle event occurred.
+- Flares whose only SEP evidence is model output or of unknown origin are excluded as ambiguous, with their counts by year and split. The model was neither trained nor tested on them.
 - DONKI attributes some particle events to CMEs from the far side of the Sun with no visible flare (`donki`). A flare-based model cannot see those.
 - CME analyses can come hours after the flare, so the full estimate is not available in the first minutes.
-- The labels describe particle events recorded by the instruments DONKI lists. How well the estimate carries over to a crew elsewhere in the solar system is not tested.
+- Positive labels rest on particle events recorded by the instruments DONKI lists and that the team confirmed as measurements (section 26.4). How well the estimate carries over to a crew elsewhere in the solar system is not tested.
 - Positive cases are few, so the intervals are wide. This is a prototype estimate for a hackathon, not an operational forecast.
 
 ### 26.15 Honesty rules
@@ -2483,7 +2514,7 @@ Build:
 4. `ml/fetch_donki.py` (standard library only, section 25): fetch FLR, CME and SEP records from 2010 to now into `ml/data/raw/donki/`, with `meta.json`. Time-box the address search to 20 minutes, then use the fallback in section 25 and tell Divyanshu immediately.
 5. `solar-storm` takes its timing from one real DONKI particle event; `basedOn` names it, and `public/data/space-weather.json` lists it. Its `environmentId` is `leo_station` (section 14).
 
-DONKI status after M2: **retrieved and committed; M2 is complete** (closed 15 November 2026). A first attempt (14 November, 20:04 to 20:08) failed: every CCMC host (`ccmc`, `kauai`, `webtools`, `iswa`) refused or timed out from the team's network and from an outside fetch service, and `api.nasa.gov` refused the shared `DEMO_KEY` (HTTP 429). After the downloader was hardened (section 25, "Changed on 14 November 2026"), Divyanshu ran it over a personal mobile hotspot, where `https://ccmc.gsfc.nasa.gov/DONKI-API/get/` answered without a key (22:57 to 23:27 IST). Every one-year request got HTTP 400, and the month-by-month fallback then fetched every month from 2010-01 to 2026-10. `solar-storm` takes its timing from the SEP record `2023-08-08T01:00:00-SEP-001` (selection rule in `tools/simulator/scenarios.py`), which `public/data/space-weather.json` lists. Counts, coverage and limitations: `ml/data/raw/donki/meta.json`, `REFERENCES.md` and `docs/PROGRESS.md`. A1 is no longer blocked by data; its open question about model-only SEP records is in `docs/PROGRESS.md`.
+DONKI status after M2: **retrieved and committed; M2 is complete** (closed 15 November 2026). A first attempt (14 November, 20:04 to 20:08) failed: every CCMC host (`ccmc`, `kauai`, `webtools`, `iswa`) refused or timed out from the team's network and from an outside fetch service, and `api.nasa.gov` refused the shared `DEMO_KEY` (HTTP 429). After the downloader was hardened (section 25, "Changed on 14 November 2026"), Divyanshu ran it over a personal mobile hotspot, where `https://ccmc.gsfc.nasa.gov/DONKI-API/get/` answered without a key (22:57 to 23:27 IST). Every one-year request got HTTP 400, and the month-by-month fallback then fetched every month from 2010-01 to 2026-10. `solar-storm` takes its timing from the SEP record `2023-08-08T01:00:00-SEP-001` (selection rule in `tools/simulator/scenarios.py`), which `public/data/space-weather.json` lists. Counts, coverage and limitations: `ml/data/raw/donki/meta.json`, `REFERENCES.md` and `docs/PROGRESS.md`. A1 is no longer blocked by data. Its label policy for model-only SEP records is decision D22 (section 26.4).
 
 Tests:
 
@@ -2573,20 +2604,22 @@ Build:
 
 1. Python environment for `ml/` (section 26.13): `.venv`, the four packages, `ml/requirements.txt` pinned with the versions actually installed.
 2. `ml/features.py`: parsing and features exactly as section 26.5.
-3. `ml/build_dataset.py`: section 26.4, writing `flares.csv` and `dataset_summary.json`.
-4. `ml/train_sep_risk.py`: splits (26.6), models and threshold (26.7), evaluation with bootstrap intervals and plots (26.8), export of the model file, the parity file and the model card (26.9), and the copy to `src/data/models/sep-risk-v1.json`. Command-line option `--seed`, default 42.
-5. `ml/tests/`: the Python tests in section 26.12.
-6. `ml/README.md`: how to reproduce, with the expected outputs.
+3. `ml/sep_instrument_classes.json` (section 26.4, decision D22). Claude Code drafts it from the inventory of SEP instrument names: `MODEL:` names are `model`, and every other name starts as `unknown`, with a proposed class and its basis. Divyanshu confirms each `observed` entry before the first training run.
+4. `ml/build_dataset.py`: section 26.4, writing `flares.csv` and `dataset_summary.json`, with the SEP record classes and the ambiguous exclusions by year and split. The raw files stay unchanged.
+5. `ml/train_sep_risk.py`: splits (26.6), models and threshold (26.7), evaluation with bootstrap intervals and plots (26.8), export of the model file, the parity file and the model card (26.9), and the copy to `src/data/models/sep-risk-v1.json`. Command-line option `--seed`, default 42.
+6. `ml/tests/`: the Python tests in section 26.12.
+7. `ml/README.md`: how to reproduce, with the expected outputs.
 
 Tests: `python -m unittest discover -s ml/tests` green; a second training run gives an identical model file apart from `createdAt`.
 
 Manual check (Divyanshu reads `ml/reports/sep-risk-v1.md`):
 
 1. The dataset section: date range, counts per split, positives, drop reasons.
-2. The metrics on the test years, with intervals, and the comparison with the class-only baseline and gradient boosting.
-3. The reliability table and the three plots open.
-4. The limitations section is present.
-5. The numbers in the app's model file and in the model card are the same (Claude Code shows a few side by side).
+2. The label and selection policy section: the instrument names with their classes, the SEP record classes by year and split, and the positives, negatives and ambiguous exclusions by year and split.
+3. The metrics on the test years, with intervals, and the comparison with the class-only baseline and gradient boosting.
+4. The reliability table and the three plots open.
+5. The limitations section is present.
+6. The numbers in the app's model file and in the model card are the same (Claude Code shows a few side by side).
 
 Exit test: the model file, the parity file and the model card are produced by one command; the Python tests are green; nothing in them was typed by hand.
 Docs: REFERENCES (DONKI, scikit-learn, numpy, pandas, matplotlib, `sep-ml-inceoglu-2018`, `sep-gsep-2023`); AI_USAGE (the trained model is part of the project; Claude Code wrote the pipeline); PROGRESS (pointing to the model card, without retyping its numbers).
@@ -2977,7 +3010,8 @@ Other requirements noted in that guide: everything in English, AI-generated imag
 | Model estimate | A probability computed by the trained ML model, always shown with that label |
 | Logistic regression | A model that turns a weighted sum of features into a probability between 0 and 1 |
 | Feature | One number computed from the raw data and given to the model, such as the flare class as a logarithm |
-| Label (ML) | The answer the model learns from: here, whether DONKI links the flare to a particle event |
+| Label (ML) | The answer the model learns from: here, whether DONKI links the flare to a particle event observed by an instrument (decision D22) |
+| Ambiguous flare (ML) | A flare whose DONKI links reach only model-generated or unknown SEP records. It is left out of training and testing, never counted as a negative, and its count is reported |
 | Chronological split | Training on older years and testing on newer ones, so the test imitates the future |
 | ROC AUC | How well the estimates rank positive cases above negative ones: 0.5 is chance, 1 is perfect |
 | PR AUC | Average precision: how precise the estimates stay as more positive cases are found; useful when positives are rare |

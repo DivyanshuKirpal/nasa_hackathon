@@ -20,6 +20,7 @@ The sources below are the evidence registry, `src/data/sources.json` (ARCHITECTU
 - NASA technical report 20170011337 on operations under communication time delay (confirm exact title). NASA NTRS, 2017. https://ntrs.nasa.gov/api/citations/20170011337/downloads/20170011337.pdf (`delay-nasa-timedelay-2017`)
 - Development of Medical Capabilities and Technologies (decadal topical paper). NASA NTRS, 2021. https://ntrs.nasa.gov/api/citations/20210023828/downloads/Decadal%20Topical%20-%20Development%20of%20Medical%20Capabilities%20and%20Technologies_New%20Graphic.docx.pdf (`autonomy-nasa-exmc-2021`)
 - Space Weather Database Of Notifications, Knowledge, Information (DONKI). NASA Community Coordinated Modeling Center (CCMC). https://ccmc.gsfc.nasa.gov/tools/DONKI (`donki`). The DONKI records used are listed under Data.
+- NASA CCMC announcement of the DONKI API address. NASA Community Coordinated Modeling Center. https://ccmc.gsfc.nasa.gov/news/major-updates/. It documents `https://ccmc.gsfc.nasa.gov/DONKI-API/get/`, as Divyanshu confirmed on 15 November 2026. Claude Code could not open the page from its network.
 - Create Health Monitoring Software for Astronauts on Space Missions, challenge page. NASA Space Apps Challenge 2026. https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/ (`spaceapps-challenge`)
 - Anthropometric Measurement Procedures at the Anthropometry and Biomechanics Facility. NASA NTRS, 2024. https://ntrs.nasa.gov/citations/20240002694 (`anthropometry-nasa-ntrs-2024`)
 - Winners of NASA HRP's Artemis II Data Methodology Challenge. NASA Human Research Program. https://www.nasa.gov/hrp/winners-of-nasa-hrps-artemis-ii-data-methodology-challenge/ (`hrp-artemis2-data-challenge`)
@@ -55,7 +56,7 @@ The sources below are the evidence registry, `src/data/sources.json` (ARCHITECTU
 ## Data
 
 - NASA DONKI (Space Weather Database Of Notifications, Knowledge, Information), NASA Community Coordinated Modeling Center (CCMC). Data credit: NASA CCMC, DONKI. Solar flare (FLR), coronal mass ejection (CME) and solar energetic particle (SEP) records.
-  - Address: `https://ccmc.gsfc.nasa.gov/DONKI-API/get/` (`FLR`, `CME` and `SEP`, with `startDate` and `endDate`; no API key).
+  - Address: `https://ccmc.gsfc.nasa.gov/DONKI-API/get/` (`FLR`, `CME` and `SEP`, with `startDate` and `endDate`; no API key). It is documented in NASA CCMC's announcement (see NASA above).
   - Retrieved: 14 November 2026, 17:27:07 to 17:57:49 UTC (22:57 to 23:27 IST), by `ml/fetch_donki.py` run by Divyanshu over a personal mobile hotspot, where this address answered. On the team's usual network the CCMC addresses had timed out. Every one-year request was refused (HTTP 400), and the downloader fetched each month instead (606 requests, all HTTP 200).
   - Coverage: requested 2010-01-01 to 2026-10-31, all 51 year files present. FLR: 3399 records, 2010-04-03 to 2026-10-26. CME: 10332 records, 2010-04-03 to 2026-10-31. SEP: 494 records, 2010-08-14 to 2026-09-05.
   - Stored in `ml/data/raw/donki/`, with every query in `meta.json`. Check the files offline with `py ml/fetch_donki.py --verify`.

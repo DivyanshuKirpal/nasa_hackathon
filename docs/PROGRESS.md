@@ -2,6 +2,39 @@
 
 One entry per milestone, newest first (ARCHITECTURE.md section 30.4). Targets are in section 31.1.
 
+## After M2: decisions for A1 (Sun 00:31; no milestone started)
+- M2 close recorded: commit `b020fd0` pushed to `main`. Deployment confirmed once from Vercel's own commit status on GitHub (state "success", "Deployment has completed", 00:11:07 IST). The public site then served the new `data/space-weather.json` (event `2023-08-08T01:00:00-SEP-001`), with the same asset files as the local build (`index-CEAMow3E.js`, `index-D7q4ypPC.css`).
+- Divyanshu accepted the M2 closure at `b020fd0` and its four additional changes: the real event in `solar-storm`, the retrieval-date fix, the clearer `--verify` wording and the documentation updates.
+- **Decided for A1 (decision D22, by Divyanshu):**
+  - Raw DONKI records stay unchanged.
+  - A1 inventories the actual SEP instrument names and gives each one a class, `observed`, `model` or `unknown`, in a reviewed table. A name does not count as a measurement just because it lacks the `MODEL:` prefix: Divyanshu confirms each `observed` name.
+  - Each SEP record is then observed-only, mixed, model-only or unknown.
+  - An eligible flare is positive only when a permitted association (direct, or through one linked CME) reaches an instrument-observed SEP record (observed-only or mixed). An extra model prediction does not disqualify it.
+  - A flare whose only SEP evidence is model-generated or unknown is excluded as ambiguous, never turned into a negative.
+  - A negative means "no qualifying recorded SEP association", not "no SEP occurred".
+  - The model card explains this selection policy and reports the record classes and the flare labels and exclusions by year and split.
+  - Where it is recorded in ARCHITECTURE.md:
+    - decision D22;
+    - section 26.4, rewritten;
+    - sections 26.1, 26.6, 26.8, 26.9, 26.10, 26.12 and 26.14, reconciled with it;
+    - section 24.6, for the `solar-flare-watch` choice;
+    - section 31.7, for the reviewed instrument table and a new manual check item;
+    - the glossary.
+- **Endpoint confirmed:**
+  - Divyanshu confirmed that NASA CCMC's official announcement (https://ccmc.gsfc.nasa.gov/news/major-updates/) documents `https://ccmc.gsfc.nasa.gov/DONKI-API/get/`.
+  - Claude Code's own fetch of the page was refused at the connection, so the confirmation rests on Divyanshu's check.
+  - Recorded in ARCHITECTURE.md section 25, REFERENCES.md and README.md.
+  - The third-party note's date and redirect details stay unconfirmed.
+- Unchanged: no data was downloaded again and no code changed. Every source stays `verified: false`, including `donki`, and every protocol stays `reviewed: false`.
+- **Manual checks still pending** (none confirmed yet):
+  - M2: open `public/seed/sleep-debt.json` and see `"simulated": true`, the fictional crew names and `expectedAlerts`.
+  - M2: open `ml/data/raw/donki/meta.json` and see `apiBase`, `requested`, `recordCounts` and `complete: true`.
+  - M3: a look by eye at Home and Check-in on the deployed site.
+  - M4: record the short screen capture of the decisive-moment flow.
+  - M4: a look by eye at the alert screen on the deployed site.
+  - M4: approve the re-check name "Blood sugar re-check (not fasting)" and the reworded `R-GLU-02` explanation.
+- Next: stop. A1, M5 and every other milestone wait for Divyanshu's approval.
+
 ## M2 close: DONKI data (download Sat 22:57 to 23:27, checked and closed Sun 00:10)
 - M4 close recorded: commit `291cb20` pushed to `main`. Deployment confirmed from Vercel's own commit status on GitHub (state "success", 21:30:30 IST), and the public site then served exactly the asset files of the local M4 build (`index-CEAMow3E.js`, `index-D7q4ypPC.css`).
 - Downloader fixed before the download (`ml/fetch_donki.py`; ARCHITECTURE.md section 25, "Changed on 14 November 2026"). A first run with Divyanshu's personal key logged only "HTTPError" and recorded zero events for types it never downloaded. Now:
@@ -24,7 +57,7 @@ One entry per milestone, newest first (ARCHITECTURE.md section 30.4). Targets ar
   - Divyanshu's `--verify` passed, and it passed again here offline. Counts match the files, IDs are unique, no record falls outside its file window, and no ID appears in two files.
 - Periods without records are kept exactly as downloaded. Each one was a successful answer with an empty list: 55 FLR months, 4 CME months and 117 SEP months, including all of 2018 and 2019 for SEP. They mean DONKI listed no record when the data was downloaded, not that no event occurred.
 - `--verify` wording: it now says this itself and lists the years without records. It says "year files 17 of 17" instead of "records in 17 of 17 years", which read as if every year had records.
-- **Open question for A1 (not decided; A1 not started).**
+- **Open question for A1 (not decided; A1 not started).** Decided on 15 November as decision D22: see "After M2" above.
   - 140 of the 494 SEP records come from models (instrument names starting "MODEL:"), not measurements.
   - One particle event often has several SEP records. On the morning of 2023-07-18, eight SEP records link to the same M5.0 flare: three instruments in several energy channels, plus model output.
   - Section 26.4 labels a flare positive when it links to any SEP record, which would count model-only records. Section 26.14 says the labels describe events recorded by instruments.
@@ -48,8 +81,8 @@ One entry per milestone, newest first (ARCHITECTURE.md section 30.4). Targets ar
 - Manual check for Divyanshu: open `ml/data/raw/donki/meta.json` and look for `apiBase`, `requested`, `recordCounts` and `complete: true`.
 - Known issues:
   - The JavaScript bundle size warning is unchanged.
-  - ARCHITECTURE.md section 25 still asks for the `DONKI-API` address to be confirmed on the official DONKI page.
-  - The A1 question above.
+  - ARCHITECTURE.md section 25 still asks for the `DONKI-API` address to be confirmed on the official DONKI page. (Confirmed on 15 November: see "After M2" above.)
+  - The A1 question above. (Decided on 15 November.)
   - Blank lines inside the `AI_USAGE.md` table split it when rendered; they were removed.
 - Next: stop. A1 waits for Divyanshu's approval.
 
