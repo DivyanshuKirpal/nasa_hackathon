@@ -2,6 +2,57 @@
 
 One entry per milestone, newest first (ARCHITECTURE.md section 30.4). Targets are in section 31.1.
 
+## M2 close: DONKI data (download Sat 22:57 to 23:27, checked and closed Sun 00:10)
+- M4 close recorded: commit `291cb20` pushed to `main`. Deployment confirmed from Vercel's own commit status on GitHub (state "success", 21:30:30 IST), and the public site then served exactly the asset files of the local M4 build (`index-CEAMow3E.js`, `index-D7q4ypPC.css`).
+- Downloader fixed before the download (`ml/fetch_donki.py`; ARCHITECTURE.md section 25, "Changed on 14 November 2026"). A first run with Divyanshu's personal key logged only "HTTPError" and recorded zero events for types it never downloaded. Now:
+  - Every failure shows its HTTP status and the API's own error, filtered so no key, no request address with its query and no raw body appears.
+  - Redirects are reported, not followed.
+  - An address counts as working only if it answers with SEP records.
+  - Retries are limited.
+  - A type without files has the count `null`.
+  - `--diagnose` and `--verify` are new.
+  - Tests: 46 offline tests, including a local test server. Six deliberate bugs were each caught.
+- Download, run by Divyanshu on 14 November from 17:27:07 to 17:57:49 UTC (22:57 to 23:27 IST):
+  - Over a personal mobile hotspot, `https://ccmc.gsfc.nasa.gov/DONKI-API/get/` (`ccmc-donki-api`) answered without a key. On the team's usual network the CCMC addresses had timed out (Windows error 10060).
+  - Requested 2010-01-01 to 2026-10-31, the last full month.
+  - All 51 one-year requests were refused with HTTP 400. The body was not JSON, so no reason was given. The month-by-month fallback then fetched all 606 months, each answered on the first attempt with HTTP 200 and a JSON list.
+  - `meta.json`: `complete: true`, no missing files, `usesPersonalKey: false`, no problems in the last run.
+- Counts, copied from `meta.json`:
+  - FLR: 3399 records, 2010-04-03T09:04Z to 2026-10-26T18:17Z.
+  - CME: 10332 records, 2010-04-03T09:54Z to 2026-10-31T05:00Z.
+  - SEP: 494 records, 2010-08-14T12:30Z to 2026-09-05T16:30Z.
+  - Divyanshu's `--verify` passed, and it passed again here offline. Counts match the files, IDs are unique, no record falls outside its file window, and no ID appears in two files.
+- Periods without records are kept exactly as downloaded. Each one was a successful answer with an empty list: 55 FLR months, 4 CME months and 117 SEP months, including all of 2018 and 2019 for SEP. They mean DONKI listed no record when the data was downloaded, not that no event occurred.
+- `--verify` wording: it now says this itself and lists the years without records. It says "year files 17 of 17" instead of "records in 17 of 17 years", which read as if every year had records.
+- **Open question for A1 (not decided; A1 not started).**
+  - 140 of the 494 SEP records come from models (instrument names starting "MODEL:"), not measurements.
+  - One particle event often has several SEP records. On the morning of 2023-07-18, eight SEP records link to the same M5.0 flare: three instruments in several energy channels, plus model output.
+  - Section 26.4 labels a flare positive when it links to any SEP record, which would count model-only records. Section 26.14 says the labels describe events recorded by instruments.
+  - Divyanshu should decide before A1 whether model-only SEP records count.
+- Real event in `solar-storm` (M2 build item 5): SEP `2023-08-08T01:00:00-SEP-001`, measured by GOES-P SEISS >10 MeV, starting at 01:00 UTC.
+  - DONKI links it to flare `2023-08-07T20:30:00-FLR-001` (X1.5, peak 20:46 UTC the day before) and to CME `2023-08-07T20:48:00-CME-001`.
+  - A script chose it by the rule in `tools/simulator/scenarios.py`: the earliest SEP record of the model's test years (2023 on) that GOES measured, that starts before 09:00 UTC, and that is linked to an X-class flare that peaked the previous UTC day. It was the only record that met all of these.
+  - Regenerated with seed 42. Only `basedOn` in `public/seed/solar-storm.json` and `public/data/space-weather.json` changed; readings and expected alerts are unchanged, and two runs were byte-identical. The app does not show `basedOn` yet.
+- Fixed: `public/data/space-weather.json` would have shown `retrievedAt: null`, because the new `meta.json` keeps one retrieval time per file. The generator now takes the time of the file that holds the event (`2026-11-14T17:56:14Z`), and stops if it is missing.
+- Credential check: scanned `meta.json`, all 51 data files (decompressed), the downloader, its tests and `ARCHITECTURE.md`. Nothing found:
+  - no key, no `api_key` value, no request header;
+  - no token-like string except a public article ID already in `ARCHITECTURE.md`;
+  - query strings in `meta.json` hold only `startDate` and `endDate`; those inside DONKI `note` fields are links to public solar data viewers;
+  - the key in the tests is a labeled fake.
+- Tests:
+  - `npm run check` green: 283 tests in 21 files, including the golden tests for every scenario. `npm run build` green.
+  - Python: 46 downloader tests and 24 simulator tests pass. The 4 new simulator tests cover an event with its file's retrieval time, a missing retrieval time, a missing event, and `solar-storm`'s event being measured, not modelled, and starting before 09:00 UTC.
+- M2 exit test passed: the golden tests are green for `baseline-healthy`, `sleep-debt` and `solar-storm`, and the DONKI raw files and `meta.json` are committed with this entry.
+- Unchanged: every source stays `verified: false`, and every protocol stays `reviewed: false`.
+- Blocker for A1: resolved. A1 has not started.
+- Manual check for Divyanshu: open `ml/data/raw/donki/meta.json` and look for `apiBase`, `requested`, `recordCounts` and `complete: true`.
+- Known issues:
+  - The JavaScript bundle size warning is unchanged.
+  - ARCHITECTURE.md section 25 still asks for the `DONKI-API` address to be confirmed on the official DONKI page.
+  - The A1 question above.
+  - Blank lines inside the `AI_USAGE.md` table split it when rendered; they were removed.
+- Next: stop. A1 waits for Divyanshu's approval.
+
 ## M4 Alerts, triage and environments (started Sat 21:02, closed Sat 21:30)
 - Deployments before this milestone, confirmed from Vercel's own commit status on GitHub ("success", "Deployment has completed"): M2 `5e38dc5` and M3 `9f8a297`. At 21:00 the public site also served exactly the asset files of the local M3 build.
 - Fixed first, before re-check entry was switched on: a blood sugar re-check would have been labeled "Fasting blood sugar, latest re-check". Indicators may now carry `recheckLabel`; blood sugar's is "Blood sugar re-check (not fasting)". The `R-GLU-02` explanation now says its latest reading is either the routine fasting measurement or an urgent re-check. The 70 mg/dL cut-off and its source are unchanged.
@@ -22,13 +73,13 @@ One entry per milestone, newest first (ARCHITECTURE.md section 30.4). Targets ar
 - Manual check for Divyanshu: a quick look by eye at Home and Check-in on the deployed site (the automated checks cannot judge appearance).
 - Next: M4 (approved).
 
-## M2 Seed data and DONKI cache (started Sat 20:04, closed Sat 20:20: seed part done, DONKI part NOT met)
+## M2 Seed data and DONKI cache (started Sat 20:04, closed Sat 20:20: seed part done, DONKI part NOT met; DONKI part completed Sun 00:10, see "M2 close" above)
 - M1 close recorded: commit 09f9cee pushed to `main`. Deployment confirmed at 20:05 from Vercel's own commit status on GitHub: state "success", "Deployment has completed" (the same record exists for M0's 556edb5). This is a commit-to-deployment record, not an inference from identical files.
 - Built: `tools/simulator/` (`model.py`, `scenarios.py`, `generate.py`; standard library, seed 42, three fictional crew members), six scenarios in `public/seed/` (`baseline-healthy`, `sleep-debt`, `solar-storm`, `fever`, `low-glucose`, `early-mission`) with `index.json`, `public/data/space-weather.json`, Zod schemas for the scenario, index and space weather files, and `ml/fetch_donki.py` (standard library; resumable; key only from the `NASA_API_KEY` environment variable, never printed or written to `meta.json`).
 - Engine: readings may carry `purpose: "recheck"`. Urgent re-checks count for "latest" rules but never enter a baseline, streak, average or the overdue list, and never replace the day's routine reading (needed before any re-check entry exists).
 - Tests: `npm run check` green, 209 tests in 15 files, including golden tests (every scenario gives exactly its expected alerts at 09:00 on its mission day, for every crew member) and the re-check rules. Python: 20 simulator tests and 9 downloader tests pass. Determinism: three runs with seed 42 gave byte-identical files.
 - **DONKI: not retrieved.** Investigated 20:04 to 20:08, inside the 20-minute limit. Every CCMC host refused or timed out, from the team's network and from an outside fetch service; `api.nasa.gov` refused the shared `DEMO_KEY` (retry after about 9 hours). The hand-entered fallback was not possible: the DONKI website is on the same hosts, and no event is typed from memory. So `solar-storm` uses fictional timing (`basedOn: null`), `space-weather.json` lists no event, and no `ml/data/raw/donki/` exists. The M2 exit test's DONKI half ("raw files and meta.json committed") is NOT passed.
-- **Blocker for A1:** no training data. Needs a personal api.nasa.gov key set privately as `NASA_API_KEY`, or the CCMC servers answering again, then `py ml/fetch_donki.py --start 2010-01-01`.
+- **Blocker for A1:** no training data. Needs a personal api.nasa.gov key set privately as `NASA_API_KEY`, or the CCMC servers answering again, then `py ml/fetch_donki.py --start 2010-01-01`. (Resolved on 15 November: see "M2 close" above.)
 - Tooling: tests now have their own `tsconfig.test.json` (Node types for reading generated files); app code is still checked without Node types.
 - Manual check for Divyanshu: open `public/seed/sleep-debt.json` and see `"simulated": true`, the fictional crew names and `expectedAlerts`.
 - Next: M3 (approved).

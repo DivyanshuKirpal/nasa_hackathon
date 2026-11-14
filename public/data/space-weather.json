@@ -1,7 +1,17 @@
 {
   "schemaVersion": 1,
   "source": "NASA CCMC DONKI",
-  "retrievedAt": null,
-  "note": "No real DONKI event is recorded yet. No DONKI address answered when the scenarios were generated, so every scenario uses fictional timing.",
-  "events": []
+  "retrievedAt": "2026-11-14T17:56:14Z",
+  "note": "Real events from the NASA CCMC DONKI catalog, used for the timing of scenarios.",
+  "events": [
+    {
+      "donkiId": "2023-08-08T01:00:00-SEP-001",
+      "type": "SEP",
+      "eventTime": "2023-08-08T01:00Z",
+      "link": "https://ccmc.gsfc.nasa.gov/DONKI/view/SEP/26416/-1",
+      "usedIn": [
+        "solar-storm"
+      ]
+    }
+  ]
 }

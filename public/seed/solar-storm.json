@@ -3401,7 +3401,7 @@
     {"day": 120, "cabin_co2": 2.2, "radiation_dose": 0.5, "solar_event": true}
   ],
   "spaceWeather": [],
-  "basedOn": null,
+  "basedOn": "Timing from NASA DONKI solar particle event 2023-08-08T01:00:00-SEP-001 (2023-08-08T01:00Z)",
   "expectedAlerts": [
     {"crewId": "c1", "ruleId": "R-RAD-01"},
     {"crewId": "c2", "ruleId": "R-RAD-01"},

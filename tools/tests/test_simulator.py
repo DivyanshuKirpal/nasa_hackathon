@@ -154,22 +154,65 @@ class ScenarioTests(unittest.TestCase):
 
 
 class DonkiLookupTests(unittest.TestCase):
+    RECORD = {'sepID': 'TEST-SEP-001', 'eventTime': '2000-01-01T00:00Z', 'link': 'https://example.org/'}
+
+    @staticmethod
+    def write_donki(folder, records, retrieved_at='2000-02-01T00:00:00Z'):
+        sep_dir = Path(folder) / 'SEP'
+        sep_dir.mkdir()
+        with gzip.open(sep_dir / '2000.json.gz', 'wt', encoding='utf-8') as handle:
+            json.dump(records, handle)
+        files = {'SEP/2000.json.gz': {'retrievedAt': retrieved_at}} if retrieved_at else {}
+        (Path(folder) / 'meta.json').write_text(json.dumps({'files': files}), encoding='utf-8')
+
+    @staticmethod
+    def storm(event_id='TEST-SEP-001'):
+        return scenarios.Scenario(
+            scenario_id='test-storm', title='Test', mission_day=10, environment_id='leo_station', donki_event_id=event_id
+        )
+
     def test_finds_a_cached_sep_record_by_id(self):
         with tempfile.TemporaryDirectory() as folder:
-            sep_dir = Path(folder) / 'SEP'
-            sep_dir.mkdir()
-            records = [{'sepID': 'TEST-SEP-001', 'eventTime': '2000-01-01T00:00Z', 'link': 'https://example.org/'}]
-            with gzip.open(sep_dir / '2000.json.gz', 'wt', encoding='utf-8') as handle:
-                json.dump(records, handle)
-            self.assertEqual(generate.find_donki_event('TEST-SEP-001', Path(folder)), records[0])
+            self.write_donki(folder, [self.RECORD])
+            self.assertEqual(generate.find_donki_event('TEST-SEP-001', Path(folder)), self.RECORD)
             self.assertIsNone(generate.find_donki_event('MISSING', Path(folder)))
 
     def test_space_weather_file_says_so_when_no_real_event_is_recorded(self):
         with tempfile.TemporaryDirectory() as folder:
-            document = generate.build_space_weather(Path(folder))
+            document = generate.build_space_weather(Path(folder), (scenarios.by_id('sleep-debt'),))
         self.assertEqual(document['events'], [])
         self.assertIsNone(document['retrievedAt'])
         self.assertIn('No real DONKI event', document['note'])
+
+    def test_space_weather_lists_a_real_event_with_the_retrieval_time_of_its_file(self):
+        with tempfile.TemporaryDirectory() as folder:
+            self.write_donki(folder, [self.RECORD])
+            document = generate.build_space_weather(Path(folder), (self.storm(),))
+        self.assertEqual(
+            document['events'],
+            [{'donkiId': 'TEST-SEP-001', 'type': 'SEP', 'eventTime': '2000-01-01T00:00Z', 'link': 'https://example.org/', 'usedIn': ['test-storm']}],
+        )
+        self.assertEqual(document['retrievedAt'], '2000-02-01T00:00:00Z')
+
+    def test_an_event_without_a_retrieval_time_stops_generation(self):
+        with tempfile.TemporaryDirectory() as folder:
+            self.write_donki(folder, [self.RECORD], retrieved_at=None)
+            with self.assertRaises(SystemExit):
+                generate.build_space_weather(Path(folder), (self.storm(),))
+
+    def test_an_event_missing_from_the_files_stops_generation(self):
+        with tempfile.TemporaryDirectory() as folder:
+            self.write_donki(folder, [self.RECORD])
+            with self.assertRaises(SystemExit):
+                generate.build_space_weather(Path(folder), (self.storm('MISSING'),))
+
+    def test_solar_storm_takes_its_timing_from_a_measured_sep_record_before_0900_utc(self):
+        scenario = scenarios.by_id('solar-storm')
+        record = generate.find_donki_event(scenario.donki_event_id)
+        self.assertIsNotNone(record, 'the event must be in the committed DONKI files')
+        self.assertLess(record['eventTime'][11:16], '09:00')
+        self.assertFalse(any(item['displayName'].startswith('MODEL:') for item in record['instruments']))
+        self.assertIn(scenario.donki_event_id, generate.based_on(scenario))
 
 
 if __name__ == '__main__':

@@ -69,9 +69,11 @@ SCENARIOS = (
         # Starts at the station: 0 s delay, reply estimate 5 min (section 14).
         environment_id='leo_station',
         solar_event_today=True,
-        # No real DONKI event yet: no DONKI address answered on 14 November 2026.
-        # Set this to a real SEP id once ml/data/raw/donki holds the records.
-        donki_event_id=None,
+        # Timing from a real particle event (section 24.6), picked by rule: the earliest
+        # SEP record of the model's test years (2023 on) that GOES measured, that starts
+        # before 09:00 UTC, and that DONKI links to an X-class flare peaking the day
+        # before (X1.5, peak 2023-08-07T20:46Z), so A2 can add that flare.
+        donki_event_id='2023-08-08T01:00:00-SEP-001',
         expected_alerts=(
             ('c1', 'R-RAD-01'),
             ('c2', 'R-RAD-01'),

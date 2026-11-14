@@ -73,14 +73,20 @@ def build_context(scenario: Scenario, rng: random.Random) -> list:
     ]
 
 
-def find_donki_event(event_id: str, donki_dir: Path = DONKI_DIR) -> dict | None:
-    """Looks a real SEP record up in the cached DONKI files, or returns None."""
+def locate_donki_event(event_id: str, donki_dir: Path = DONKI_DIR) -> tuple[dict, str] | None:
+    """A real SEP record in the cached DONKI files and its file name as meta.json lists it, or None."""
     for path in sorted((donki_dir / 'SEP').glob('*.json.gz')):
         with gzip.open(path, 'rt', encoding='utf-8') as handle:
             for record in json.load(handle):
                 if record.get('sepID') == event_id:
-                    return record
+                    return record, f'SEP/{path.name}'
     return None
+
+
+def find_donki_event(event_id: str, donki_dir: Path = DONKI_DIR) -> dict | None:
+    """Looks a real SEP record up in the cached DONKI files, or returns None."""
+    found = locate_donki_event(event_id, donki_dir)
+    return found[0] if found else None
 
 
 def based_on(scenario: Scenario, donki_dir: Path = DONKI_DIR) -> str | None:
@@ -156,15 +162,23 @@ def build_index() -> dict:
     }
 
 
-def build_space_weather(donki_dir: Path = DONKI_DIR) -> dict:
-    """The real DONKI events the scenarios use, with where they came from."""
-    events = []
-    for scenario in scenarios.SCENARIOS:
+def build_space_weather(donki_dir: Path = DONKI_DIR, scenario_list: tuple = scenarios.SCENARIOS) -> dict:
+    """The real DONKI events the scenarios use, with where they came from and when they were retrieved."""
+    meta_path = donki_dir / 'meta.json'
+    files = json.loads(meta_path.read_text(encoding='utf-8')).get('files', {}) if meta_path.exists() else {}
+    events, retrieved = [], []
+    for scenario in scenario_list:
         if scenario.donki_event_id is None:
             continue
-        record = find_donki_event(scenario.donki_event_id, donki_dir)
-        if record is None:
+        found = locate_donki_event(scenario.donki_event_id, donki_dir)
+        if found is None:
             raise SystemExit(f'DONKI event {scenario.donki_event_id} is not in {donki_dir}.')
+        record, file_name = found
+        # meta.json records a retrieval time per downloaded file; without it the date is unknown.
+        retrieved_at = files.get(file_name, {}).get('retrievedAt')
+        if not retrieved_at:
+            raise SystemExit(f'{meta_path} has no retrieval time for {file_name}.')
+        retrieved.append(retrieved_at)
         events.append({
             'donkiId': record['sepID'],
             'type': 'SEP',
@@ -172,21 +186,14 @@ def build_space_weather(donki_dir: Path = DONKI_DIR) -> dict:
             'link': record['link'],
             'usedIn': [scenario.scenario_id],
         })
-    meta_path = donki_dir / 'meta.json'
-    retrieved_at = None
-    if meta_path.exists():
-        retrieved_at = json.loads(meta_path.read_text(encoding='utf-8')).get('retrievedAt')
     if events:
         note = 'Real events from the NASA CCMC DONKI catalog, used for the timing of scenarios.'
     else:
-        note = (
-            'No real DONKI event is recorded yet. No DONKI address answered when the '
-            'scenarios were generated, so every scenario uses fictional timing.'
-        )
+        note = 'No real DONKI event is recorded: every scenario uses fictional timing.'
     return {
         'schemaVersion': 1,
         'source': 'NASA CCMC DONKI',
-        'retrievedAt': retrieved_at,
+        'retrievedAt': max(retrieved) if retrieved else None,
         'note': note,
         'events': events,
     }
