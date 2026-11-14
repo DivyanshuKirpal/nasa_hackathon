@@ -1,5 +1,7 @@
 {
   "schemaVersion": 1,
+  "groundHandlingMin": 5,
+  "groundHandlingNote": "Prototype assumption: the ground needs about 5 minutes to answer. Not a measured value.",
   "environments": [
     {
       "id": "leo_station",

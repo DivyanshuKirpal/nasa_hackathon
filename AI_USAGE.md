@@ -14,6 +14,8 @@ The Space Apps rules ask teams to acknowledge AI-generated code, data, images an
 
 | 14 Nov 2026 | Claude Code (model Claude Fable 5.2) | M2: the seed simulator and its tests, the DONKI downloader, the scenario schemas and golden tests. The scenario files are simulated data produced by this AI-written generator (fictional crew and values, labeled "simulated") | `tools/simulator/`, `tools/tests/`, `ml/fetch_donki.py`, `ml/tests/`, `public/seed/`, `public/data/space-weather.json`, `src/engine/`, `src/data/__tests__/` |
 
+| 14 Nov 2026 | Claude Code (models Claude Fable 5.2, then Claude Opus 5.5) | M3: the store, mission clock, seed loader, selectors, Home with the body map, the daily check-in, their tests; browser checks of the running app in headless Chrome (keyboard only, 390 px) and the fixes they found | `src/store/`, `src/clock/`, `src/components/`, `src/features/home/`, `src/features/checkin/`, `src/lib/`, `src/test/` |
+
 ## AI inside the product
 
 Planned, not built yet. Each model gets a line here and a model card when it is built (ARCHITECTURE.md section 26):

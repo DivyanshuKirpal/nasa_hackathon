@@ -17,11 +17,19 @@ import sourcesJson from './sources.json'
 // Every data file is validated when the app loads (CLAUDE.md code rules):
 // a schema error or a broken cross-reference stops the app with a clear
 // message instead of producing wrong alerts.
+const environmentsFile = environmentsFileSchema.parse(environmentsJson)
+
+/** Link defaults; the ground handling time is a prototype assumption (section 13.2). */
+export const linkDefaults = {
+  groundHandlingMin: environmentsFile.groundHandlingMin,
+  groundHandlingNote: environmentsFile.groundHandlingNote,
+}
+
 export const healthData: HealthData = {
   indicators: indicatorsFileSchema.parse(indicatorsJson).indicators,
   regions: regionsFileSchema.parse(regionsJson).regions,
   sources: sourcesFileSchema.parse(sourcesJson).sources,
-  environments: environmentsFileSchema.parse(environmentsJson).environments,
+  environments: environmentsFile.environments,
   rules: rulesFileSchema.parse(rulesJson).rules,
   protocols: protocolsFileSchema.parse(protocolsJson).protocols,
 }

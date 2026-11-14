@@ -291,6 +291,9 @@ export const sourcesFileSchema = z.strictObject({
 })
 export const environmentsFileSchema = z.strictObject({
   schemaVersion: z.literal(1),
+  // Minutes the ground needs to answer: a prototype assumption (section 13.2).
+  groundHandlingMin: z.number().nonnegative(),
+  groundHandlingNote: z.string().min(1),
   environments: z.array(environmentSchema).min(1),
 })
 export const rulesFileSchema = z.strictObject({
@@ -444,4 +447,20 @@ export const spaceWeatherFileSchema = z.strictObject({
       usedIn: z.array(slugSchema),
     }),
   ),
+})
+
+// Outbox message (section 15). Simulated replies were cut, so a message stops
+// at "delivered"; nothing is really sent anywhere.
+export const groundMessageSchema = z.strictObject({
+  id: z.string().min(1),
+  crewId: z.string().min(1),
+  alertKey: z.string().min(1).nullable(),
+  insightKey: z.string().min(1).nullable(),
+  kind: z.enum(['report', 'consult']),
+  title: z.string().min(1),
+  body: z.string(),
+  sentAtMs: missionMsSchema,
+  arrivesAtMs: missionMsSchema.nullable(),
+  replyDueAtMs: missionMsSchema.nullable(),
+  status: z.enum(['queued', 'in_transit', 'delivered']),
 })

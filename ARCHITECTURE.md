@@ -1186,6 +1186,8 @@ Purpose: answer "how am I doing today?" in five seconds.
 - "Second opinions" card under the alerts: notable insights from the personal pattern and Earth hospital models, or a readiness line (section 26.17).
 - Empty state for a new mission: "Start your first check-in" with a button.
 
+As built in M3: the region detail route arrives in M5, so until then choosing an area on the body map or in the status list opens its readings in place (latest value, "Your normal: …" or "Learning your normal (n of 7)"). Environment shows today's simulated habitat feed values with a "Simulated habitat feed" tag; Skin says that Good means only "no active alert" and does not show that the skin is healthy. Each status row carries missing data next to its status ("Missing: …"). The Today card counts 8 steps (the reaction test step counts from M7), names the steps still to do today, lists overdue measurements (an in-app test that is not available yet says so) and says when today's habitat sample is missing.
+
 ### 19.2 Check-in `#/check-in`
 
 Purpose: collect today's readings quickly.
@@ -1313,6 +1315,14 @@ Rules:
 - Actions validate input. A reading outside the indicator's input range is rejected.
 - `loadScenario` replaces `crew`, `readings`, `symptoms`, `context` and `spaceWeather`, sets the environment from the file's `environmentId` (with its fixed delay, or 180 s on a Mars environment; section 14), sets `nowMs` to 09:00 on the scenario's mission day (`(missionDay - 1) × 86_400_000 + 32_400_000`), clears `alertState`, `outbox` and `soreness`, and anchors the suit replay at that `nowMs`.
 - If persisted state fails schema validation on load, discard it and load the default scenario. Never crash on bad storage.
+
+As built in M3 (14 November 2026):
+
+- `src/store/persistence.ts` holds `persistedStateSchema`; the persist `merge` step keeps stored state only if it passes, otherwise the empty state stays and `useBootstrapScenario` fetches the default scenario (`sleep-debt`). The screen shows "Loading the simulated scenario…" meanwhile, with a retry if the fetch fails.
+- `noSymptomDays` is a record by crew id. `prefs` is empty until B1.
+- `addReading(indicator, value, purpose)` refuses out-of-range values with a message and never corrects them. `purpose: "recheck"` marks an urgent re-check (section 10). Re-checks are entered only from an alert (M4), never through the daily check-in, where a new value for a step replaces today's routine value.
+- The ground handling time comes from `environments.json` (`groundHandlingMin: 5`, with a note that it is a prototype assumption), so it is data, not code.
+- Tests have their own `tsconfig.test.json` (Node types, to read generated files); app code is type-checked without Node types.
 
 ---
 
