@@ -388,29 +388,6 @@ describe('context', () => {
     const ctx = makeContext(TODAY, { context: [sample(40, { cabin_co2: 9 })] })
     expect(evaluateCondition(condition, ctx).met).toBe(false)
   })
-
-  it('sep_risk stays inactive until A2, even with a model threshold loaded', () => {
-    const condition: Condition = {
-      type: 'context',
-      feed: 'sep_risk',
-      windowDays: 1,
-      test: { kind: 'modelThreshold', op: 'gte', model: 'sep-risk' },
-    }
-    // Fixture threshold for testing the mechanism only; not a model value.
-    const withModel = makeContext(TODAY, {
-      sepRiskThreshold: 0.5,
-      context: [sample(40)],
-    })
-    const withoutModel = makeContext(TODAY, { context: [sample(40)] })
-    expect(evaluateCondition(condition, withModel)).toEqual({
-      met: false,
-      evidence: [],
-    })
-    expect(evaluateCondition(condition, withoutModel)).toEqual({
-      met: false,
-      evidence: [],
-    })
-  })
 })
 
 describe('all and any', () => {

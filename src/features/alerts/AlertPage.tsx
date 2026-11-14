@@ -1,6 +1,7 @@
-import { useParams } from 'react-router'
+import { Link, useParams } from 'react-router'
 import { Card } from '../../components/Card.tsx'
 import { StatusBadge } from '../../components/StatusBadge.tsx'
+import { Tag } from '../../components/Tag.tsx'
 import type { Alert, Evaluation } from '../../engine/index.ts'
 import { contributingAlerts } from '../../lib/alerts.ts'
 import {
@@ -9,6 +10,7 @@ import {
   regionLabel,
   ruleById,
 } from '../../lib/labels.ts'
+import { SEP_RISK_CARD_PATH } from '../../lib/modelScore.ts'
 import { useAppStore } from '../../store/index.ts'
 import { selectActiveCrew, selectEvaluation } from '../../store/selectors.ts'
 import { AlertActions } from './AlertActions.tsx'
@@ -40,6 +42,23 @@ function AlsoContributing({
             {other.evidence.map((item) => (
               <span key={item.label} className="block text-slate-700">
                 {item.label}: {item.value}
+                {/* A model score keeps its tag and its limits here too. */}
+                {item.model && (
+                  <>
+                    {' '}
+                    <Tag>Model estimate</Tag>{' '}
+                    <span className="block">
+                      An experimental score with frequent false alarms, not a
+                      validated probability.{' '}
+                      <Link
+                        to={SEP_RISK_CARD_PATH}
+                        className="underline underline-offset-4"
+                      >
+                        How this model was made
+                      </Link>
+                    </span>
+                  </>
+                )}
               </span>
             ))}
           </li>
@@ -83,7 +102,7 @@ export function AlertPage() {
       <WhatChanged alert={alert} evaluation={evaluation} />
       <WhyItMatters rule={rule} />
       <WhatToDo alert={alert} rule={rule} protocol={protocol} />
-      <EvidenceSection rule={rule} protocol={protocol} />
+      <EvidenceSection alert={alert} rule={rule} protocol={protocol} />
       <AlsoContributing alert={alert} evaluation={evaluation} />
       <AlertActions alert={alert} />
     </article>

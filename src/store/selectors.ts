@@ -1,4 +1,4 @@
-import { healthData } from '../data/index.ts'
+import { healthData, sepRiskModel } from '../data/index.ts'
 import {
   evaluate,
   missionDayOf,
@@ -26,8 +26,7 @@ export function selectEvaluationInput(state: AppState): EvaluationInput {
     indicators: healthData.indicators,
     rules: healthData.rules,
     spaceWeather: state.spaceWeather,
-    // The trained model file arrives in milestone A2; until then the feed is off.
-    models: { sepRisk: null },
+    models: { sepRisk: sepRiskModel },
   }
 }
 

@@ -9,11 +9,13 @@ import { MS_PER_DAY } from '../time.ts'
 import type {
   Baseline,
   ContextSample,
+  FlareObservation,
   IndicatorDef,
   IndicatorId,
   LinkState,
   Reading,
   Rule,
+  SepRiskModel,
   SymptomReport,
 } from '../types.ts'
 
@@ -149,6 +151,10 @@ export function makeContext(
     context?: readonly ContextSample[]
     sepRiskThreshold?: number | null
     indicators?: readonly IndicatorDef[]
+    /** Defaults to 09:00 on `today`. */
+    nowMs?: number
+    spaceWeather?: readonly FlareObservation[]
+    sepRiskModel?: SepRiskModel | null
   } = {},
 ): ConditionContext {
   const defs = input.indicators ?? ALL_FIXTURE_INDICATORS
@@ -178,7 +184,63 @@ export function makeContext(
     baselines,
     symptoms: input.symptoms ?? [],
     context: input.context ?? [],
-    modelThresholds: { 'sep-risk': input.sepRiskThreshold ?? null },
+    modelThresholds: {
+      'sep-risk':
+        input.sepRiskThreshold ?? input.sepRiskModel?.threshold ?? null,
+    },
+    nowMs: input.nowMs ?? nineAm(today),
+    spaceWeather: input.spaceWeather ?? [],
+    sepRiskModel: input.sepRiskModel ?? null,
+  }
+}
+
+/**
+ * A tiny model for tests: two features with round numbers, so the expected
+ * output can be worked out by hand. Not the trained model.
+ */
+export const FIXTURE_MODEL: SepRiskModel = {
+  modelId: 'sep-risk',
+  version: 'fixture',
+  features: [
+    {
+      name: 'log10_peak_flux',
+      group: 'Flare class',
+      mean: -5,
+      scale: 1,
+      coef: 2,
+      impute: null,
+    },
+    {
+      name: 'has_cme',
+      group: 'CME',
+      mean: 0,
+      scale: 1,
+      coef: 1,
+      impute: null,
+    },
+  ],
+  intercept: -1,
+  threshold: 0.5,
+}
+
+/** A flare whose peak is `hoursBeforeNow` before `nowMs` (negative: after it). */
+export function flare(
+  nowMs: number,
+  hoursBeforeNow: number,
+  fields: Partial<FlareObservation> = {},
+): FlareObservation {
+  const peakMs = nowMs - hoursBeforeNow * HOUR_MS
+  return {
+    donkiId: `fixture-flare-${hoursBeforeNow}`,
+    link: 'https://example.org/flare',
+    day: Math.floor(peakMs / MS_PER_DAY) + 1,
+    peakMs,
+    classType: 'M1.0',
+    sourceLocation: 'S10W30',
+    riseMin: 10,
+    durationMin: 30,
+    cme: null,
+    ...fields,
   }
 }
 

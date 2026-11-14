@@ -382,7 +382,8 @@ export const sepRiskFeatureSchema = z.strictObject({
   impute: z.number().nullable(),
 })
 
-// Only the fields inference needs; the model card fields are added in A2.
+// The fields inference needs. The engine takes this shape, so a test can
+// build a small model; the whole file is checked by sepRiskModelFileSchema.
 export const sepRiskModelSchema = z.object({
   modelId: z.literal('sep-risk'),
   version: z.string().min(1),
@@ -390,6 +391,176 @@ export const sepRiskModelSchema = z.object({
   intercept: z.number(),
   threshold: z.number().gt(0).lt(1),
 })
+
+/** The features of sep-risk v1, in the order of ml/features.py (section 26.5). */
+export const SEP_RISK_FEATURE_NAMES = [
+  'log10_peak_flux',
+  'lon_sin',
+  'lon_cos',
+  'log1p_rise_min',
+  'log1p_duration_min',
+  'has_cme',
+  'log1p_cme_speed',
+  'cme_half_angle_deg',
+] as const
+
+/** The feature that takes the model file's `impute` value when a flare has no end time. */
+export const SEP_RISK_DURATION_FEATURE = 'log1p_duration_min'
+
+const countSchema = z.number().int().nonnegative()
+const intervalSchema = z.tuple([z.number(), z.number()])
+// A score is null when its denominator is zero (for example precision with nothing flagged).
+const scoreSchema = z.number().nullable()
+
+const sepRiskSplitSchema = z.object({
+  years: z.string().min(1),
+  n: countSchema,
+  positives: countSchema,
+  excludedAmbiguous: countSchema,
+})
+
+const sepRiskScoresSchema = z.object({
+  rocAuc: z.number(),
+  prAuc: z.number(),
+  brier: z.number().nonnegative(),
+  brierSkill: scoreSchema,
+  brierSkillVsOwnBaseRate: scoreSchema,
+  tss: scoreSchema,
+  hss: scoreSchema,
+  precision: scoreSchema,
+  recall: scoreSchema,
+  falseAlarmRatio: scoreSchema,
+  confusion: z.strictObject({
+    tp: countSchema,
+    fp: countSchema,
+    tn: countSchema,
+    fn: countSchema,
+  }),
+})
+
+const sepRiskComparisonSchema = z.object({
+  threshold: z.number(),
+  validation: z.object({
+    rocAuc: z.number(),
+    tss: scoreSchema,
+    brierSkill: scoreSchema,
+  }),
+  test: z.object({
+    rocAuc: z.number(),
+    rocAucCi95: intervalSchema,
+    prAuc: z.number(),
+    tss: scoreSchema,
+    tssCi95: intervalSchema,
+    brierSkill: scoreSchema,
+    brierSkillVsOwnBaseRate: scoreSchema,
+  }),
+  shippedMinusThis: z.object({
+    rocAuc: z.number(),
+    rocAucCi95: intervalSchema,
+    tss: z.number(),
+    tssCi95: intervalSchema,
+  }),
+})
+
+/**
+ * src/data/models/sep-risk-v1.json, written by ml/train_sep_risk.py
+ * (section 26.9). Checked when the app loads: the features must be exactly
+ * the eight that sepRisk.ts computes, in the model file's order, and only
+ * the duration feature may carry a value for a missing end time.
+ */
+export const sepRiskModelFileSchema = sepRiskModelSchema
+  .extend({
+    schemaVersion: z.literal(1),
+    kind: z.literal('logistic-regression'),
+    createdAt: z.string().min(1),
+    label: z.string().min(1),
+    data: z.object({
+      source: z.string().min(1),
+      sourceId: z.string().min(1),
+      apiBase: z.url(),
+      retrievedFrom: z.string().min(1),
+      retrievedAt: z.string().min(1),
+      firstFlare: z.string().min(1),
+      lastFlare: z.string().min(1),
+      filters: z.array(z.string().min(1)).min(1),
+      dropped: z.record(z.string(), countSchema),
+      sepRecordClasses: z.strictObject({
+        observedOnly: countSchema,
+        mixed: countSchema,
+        modelOnly: countSchema,
+        unknown: countSchema,
+      }),
+      splits: z.strictObject({
+        train: sepRiskSplitSchema,
+        validation: sepRiskSplitSchema,
+        test: sepRiskSplitSchema,
+      }),
+    }),
+    hyperparameters: z.object({
+      C: z.number().positive(),
+      penalty: z.literal('l2'),
+      classWeight: z.null(),
+    }),
+    thresholdRule: z.string().min(1),
+    metrics: z.object({
+      validation: sepRiskScoresSchema,
+      test: sepRiskScoresSchema.extend({
+        rocAucCi95: intervalSchema,
+        tssCi95: intervalSchema,
+      }),
+      testFlaggedAtThreshold: z.object({
+        flagged: countSchema,
+        of: countSchema,
+      }),
+      bootstrap: z.object({
+        resamples: countSchema,
+        used: countSchema,
+        seed: z.number().int(),
+        method: z.string().min(1),
+      }),
+      reliability: z
+        .array(
+          z.object({
+            binFrom: z.number(),
+            binTo: z.number(),
+            n: countSchema,
+            meanPredicted: z.number().nullable(),
+            observed: z.number().nullable(),
+          }),
+        )
+        .min(1),
+    }),
+    comparisons: z.object({
+      climatology: z.object({
+        trainingBaseRate: z.number().gt(0).lt(1),
+        test: z.object({ brier: z.number().nonnegative() }),
+      }),
+      classOnly: sepRiskComparisonSchema,
+      gradientBoosting: sepRiskComparisonSchema,
+    }),
+    limitations: z.array(z.string().min(1)).min(1),
+    sourceIds: z.array(z.string().min(1)).min(1),
+  })
+  .refine(
+    (model) =>
+      model.features.length === SEP_RISK_FEATURE_NAMES.length &&
+      model.features.every(
+        (feature, index) => feature.name === SEP_RISK_FEATURE_NAMES[index],
+      ),
+    { message: 'features must be the eight sep-risk features, in order' },
+  )
+  .refine(
+    (model) =>
+      model.features.every(
+        (feature) =>
+          (feature.impute !== null) ===
+          (feature.name === SEP_RISK_DURATION_FEATURE),
+      ),
+    {
+      message:
+        'only the duration feature carries a value for a missing end time',
+    },
+  )
 
 // Scenario files generated by tools/simulator (section 24.1).
 
@@ -432,6 +603,8 @@ export const scenarioIndexSchema = z.strictObject({
         title: z.string().min(1),
         environmentId: environmentIdSchema,
         missionDay: missionDaySchema,
+        /** The scenario file's own note on the real events it replays, or null. */
+        basedOn: z.string().min(1).nullable(),
       }),
     )
     .min(1),

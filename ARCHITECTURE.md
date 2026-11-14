@@ -766,7 +766,7 @@ Semantics:
 - `streak`: at least `minCount` of the daily values in the last `windowDays` pass the test.
 - `average`: the mean over `windowDays` passes the test, provided at least `minReadings` exist.
 - `symptom`: reported within `withinDays`.
-- `context`: for `cabin_co2`, the mean of the daily values over `windowDays` (use 1 for "today"); for `radiation_cumulative`, the running total; for `solar_event`, true is 1 and the test is `{ kind: "absolute", op: "gte", value: 1 }`. Baseline comparisons are not valid for context feeds. For `sep_risk`, the value is the highest model probability among flares whose peak lies in the last `windowDays × 24` hours up to `nowMs` (a time window, not mission days); with no flare or no model there is no value and the condition is false (section 26.10).
+- `context`: for `cabin_co2`, the mean of the daily values over `windowDays` (use 1 for "today"); for `radiation_cumulative`, the running total; for `solar_event`, true is 1 and the test is `{ kind: "absolute", op: "gte", value: 1 }`. Baseline comparisons are not valid for context feeds. For `sep_risk`, the value is the highest model output (0 to 1) among flares whose peak lies in the last `windowDays × 24` hours up to `nowMs` (a time window, not mission days; a flare exactly 24 hours old no longer counts, and a flare after `nowMs` has not happened yet); with no flare or no model there is no value and the condition is false (section 26.10).
 - `all` / `any`: logical and / or.
 
 Each evaluator returns `{ met: boolean; evidence: EvidenceItem[] }` so the alert can show what changed.
@@ -826,6 +826,7 @@ Alerts are **derived**, never stored. What is stored is the crew member's intera
 - `timeToActMin` is a positive number.
 - Rule IDs are unique and match `R-[A-Z0-9]+-[0-9]{2}`.
 - A `modelThreshold` comparison appears only in a `context` condition on the `sep_risk` feed.
+- A condition on the `sep_risk` feed uses only a `modelThreshold` comparison, and its rule is watch-level with `needsGround: false` (added in A2). The evidence ladder (decision D19) is therefore checked when the app loads: a model output cannot raise an act alert or change a route, even through a typo in `rules.json`.
 
 ---
 
@@ -852,7 +853,7 @@ All triggers below are draft design values for review. "Basis" says where the th
 | `R-CO2-02` | head | 3-day CO2 average 2.8 mmHg or higher and headache reported in the last day | watch | 6 hours | no | `co2-nasa-ochmo` | peer-reviewed |
 | `R-RAD-01` | whole_body | Solar particle event in progress | act | 30 min | no | `radiation-nasa-ochmo`, `donki` | illustrative |
 | `R-RAD-02` | whole_body | Cumulative dose at or above 480 mSv (80% of the 600 mSv career limit) | watch | 30 days | yes | `radiation-nasa-ochmo` | illustrative |
-| `R-RAD-03` | whole_body | Model estimate `sep_risk` at or above the model's threshold within the last day (comparison `modelThreshold`, no number in `rules.json`; sections 11.1, 26.7 and 26.10) | watch | 2 hours | no | `donki`, `radiation-nasa-ochmo`, `sep-ml-inceoglu-2018` | illustrative |
+| `R-RAD-03` | whole_body | Model output `sep_risk` at or above the model's threshold within the last 24 hours (comparison `modelThreshold`, no number in `rules.json`; sections 11.1, 26.7 and 26.10). Shown to the crew as an experimental model score, never as a percent chance | watch | 2 hours | no | `donki`, `radiation-nasa-ochmo`, `sep-ml-inceoglu-2018` | illustrative |
 
 Missed measurements are handled as overdue prompts (section 9), not as a rule.
 
@@ -862,7 +863,7 @@ Superseding:
 - `R-TEMP-02` supersedes `R-TEMP-01`.
 - `R-BP-02` supersedes `R-BP-01`.
 - `R-GLU-02` does not supersede `R-GLU-01` (different problems).
-- `R-RAD-01` supersedes `R-RAD-03` (an event in progress replaces the outlook). Added to `rules.json` in A2, when `R-RAD-03` exists; the cross-reference check rejects a supersedes entry for a rule that does not exist.
+- `R-RAD-01` supersedes `R-RAD-03` (an event in progress replaces the outlook). In `rules.json` since A2; the superseded outlook is listed under "Also contributing" on the `R-RAD-01` alert, with its tag.
 
 Notes for the health adviser:
 
@@ -870,7 +871,7 @@ Notes for the health adviser:
 - Time-to-act values are draft design values for the prototype. They are not clinically validated, and the app must not present them as validated.
 - The 2.8 mmHg figure in `R-CO2-02` is the low end of the range where headaches have been reported on the station (`co2-nasa-ochmo`).
 - `R-RAD-01` time-to-act is a placeholder; real shelter timing depends on the event.
-- `R-RAD-03` reads its threshold from the trained model file through the `modelThreshold` comparison (section 11.1). `rules.json` holds no number for it, and a test checks that evaluation uses the model file's value. Its time to act is a placeholder. It is built in milestone A2.
+- `R-RAD-03` reads its threshold from the trained model file through the `modelThreshold` comparison (section 11.1). `rules.json` holds no number for it, and a test checks that evaluation uses the model file's value at full precision. Its time to act is a placeholder. Built in milestone A2 with the title "Solar flare outlook: possible particle event".
 
 ---
 
@@ -937,9 +938,9 @@ As built in M4 (14 November 2026): the banner is the first section of the alert 
 | `R-TEMP-02` high temperature | 60 min | consult_ground | consult_ground | consult_ground | consult_ground |
 | `R-VIS-01` vision change | 7 days | consult_ground | consult_ground | consult_ground | consult_ground |
 | `R-SLEEP-01` sleep debt | 2 days | self_care | self_care | self_care | self_care |
-| `R-RAD-03` possible particle event (model estimate) | 2 hours | self_care | self_care | self_care | self_care |
+| `R-RAD-03` solar flare outlook (experimental model score) | 2 hours | self_care | self_care | self_care | self_care |
 
-The demo should show `R-RAD-01` or `R-GLU-02` flipping from `consult_ground` to `act_on_board` as the delay slider moves toward Mars at its farthest. These rows are golden tests (section 27). The `R-RAD-03` row shows that a model estimate never changes the route on its own: it is a watch alert without a ground need.
+The demo should show `R-RAD-01` or `R-GLU-02` flipping from `consult_ground` to `act_on_board` as the delay slider moves toward Mars at its farthest. These rows are golden tests (section 27). The `R-RAD-03` row shows that a model output never changes the route on its own: it is a watch alert without a ground need, and it stays `self_care` with the link down too.
 
 The four columns stay distinct in tests and in the demo (decided on 14 November 2026): the station is a fixed one-way delay of 0 s (reply estimate 5 min), the Moon a fixed 1.3 s (5 min), Mars near is 180 s on the slider (11 min) and Mars far is 1320 s (49 min).
 
@@ -1234,7 +1235,7 @@ Purpose: act on one alert. Fixed order of sections:
 5. **Evidence**: source links and a basis tag (NASA standard, Peer-reviewed research, Common clinical cut-off, or Illustrative threshold).
 6. If superseding other rules: "Also contributing" with those headlines.
 
-For an alert whose evidence uses a model feed (`sep_risk`), "What changed" shows the estimate and its top three factors, and "Evidence" adds the tag "Model estimate" and the link "How this model was made" to the model card screen (section 26.10).
+For an alert whose evidence uses a model feed (`sep_risk`), "What changed" shows the experimental model score with the "Model estimate" tag, its top three factors, the real flare it is for (tagged "Historical flare") and the box "About this score" (section 26.10). "Evidence" adds the tag "Model estimate" and the link "How this model was made" to the model card screen. As built in A2: Home lists such an alert with the "Model estimate" tag, and Home says "Historical solar event" when the loaded scenario replays real DONKI flares.
 
 Actions: "Acknowledge", and "Send to ground" when the route is `self_care`.
 
@@ -1275,7 +1276,7 @@ Both bodies side by side at a shared camera position and scale, each with its fi
 
 ### 19.11 Model cards `#/model/:modelId` (P0 for `sep-risk`, P1 for the others)
 
-One screen per model, read only from its model file: what it estimates or notices, its data, how it works, how well it did and on what (held-out years, simulated data, or a second hospital system), its limits and its sources (sections 26.10 and 26.17). A2 builds `#/model/sep-risk`; A3 generalizes the route. Linked from alerts and insights.
+One screen per model, read only from its model file: what it estimates or notices, its data, how it works, how well it did and on what (held-out years, simulated data, or a second hospital system), its limits and its sources (sections 26.10 and 26.17). A2 built `#/model/sep-risk` (the route is `model/:modelId`; any other ID says there is no card); A3 generalizes it. Linked from alerts and insights.
 
 ---
 
@@ -1293,7 +1294,7 @@ One screen per model, read only from its model file: what it estimates or notice
 - **Copy.** Plain words, short sentences, sentence case, no jargon without explanation. Use "possible", "check", "consult". Never "diagnosis", "you have", or "normal" without "for you".
 - **Simulated data.** A persistent small tag "Simulated data" in the header, and "Simulated reply" on ground replies.
 - **Footer.** "Prototype for the NASA Space Apps Challenge. Not a medical device."
-- **Model estimates.** Always tagged "Model estimate", shown as a whole percent between 1% and 99% with the model version, and worded as an "estimated chance". Never a bare number and never color alone.
+- **Model estimates.** Always tagged "Model estimate". The `sep-risk` output is shown as an "Experimental model score", a whole number from 1 to 99 "out of 100", with the model version, the alert level and the box "About this score" next to it. It is never shown as a percent or a chance, because the model's output is not calibrated (changed on 15 November 2026, section 26.10). Never a bare number and never color alone.
 - **Insights.** A neutral card with an icon and the word "Insight", the "Model estimate" tag and the model version. Never status tokens, never on the body map, no percentage for the second-opinion models (section 26.17).
 - **Body view.** 2D first: the 3D body is off by default, and every 3D action has a button or form equivalent. No drag-only interaction. Tags: "Placeholder model" while the placeholder is used, "AI-assisted model" when the manifest says so, "Simulated skin temperature" on sensor cards, "Crew-reported soreness" on soreness entries. Sensor cards use neutral styling, never status tokens, because they are not health statuses. No auto-rotation; camera moves are instant under `prefers-reduced-motion`.
 
@@ -1800,8 +1801,8 @@ For each crew member and indicator, a daily value is `personal mean + adaptation
 |---|---|---|---|
 | `baseline-healthy` | Nothing unusual | none | M2 |
 | `sleep-debt` | Five short nights | `R-SLEEP-01` | M2 |
-| `solar-storm` | A real large flare yesterday, then a solar particle event starts today. Starts at the space station (0 s delay, reply estimate 5 min) | `R-RAD-01` (it supersedes `R-RAD-03`) | M2; flare added in A2 |
-| `solar-flare-watch` | A real large flare from the model's test years peaked this morning; no particle event yet | `R-RAD-03` | A2 |
+| `solar-storm` | A real large flare yesterday at 15:00 (`2023-08-07T20:30:00-FLR-001`, X1.5), then a solar particle event starts today. Starts at the space station (0 s delay, reply estimate 5 min) | `R-RAD-01` (it supersedes `R-RAD-03`) | M2; flare added in A2 |
+| `solar-flare-watch` | A real large flare from the model's test years peaked this morning at 07:30 (`2023-08-05T21:45:00-FLR-001`, X1.6); no particle event yet. Mission day 150 in the Mars transit vehicle, so the delay slider is there to show that the route does not move | `R-RAD-03` for every crew member | A2 |
 | `fever` | Temperature climbs over the last two days, with resting heart rate rising alongside | `R-TEMP-02` (the `earth-hospital` insight is deferred with A4) | M2 if time, else M7 |
 | `low-glucose` | One low fasting reading today | `R-GLU-02` | M2 if time, else M7 |
 | `early-mission` | Mission day 4, baselines not ready | none (UI shows "Learning your normal") | M2 if time, else A3 |
@@ -1851,8 +1852,8 @@ On some systems the command is `python3` or `py`. After regenerating, run the te
 
 From A2 on, the generator reads `ml/data/processed/flares.csv` (section 26.4) with the standard `csv` module and copies real flares into scenarios as `FlareObservation` records:
 
-- Only flares from the model's test years are used, so the demo never shows the model a flare it was trained on.
-- Each scenario names its flare by DONKI ID in `scenarios.py`. For `solar-flare-watch`, Claude Code picks a test-year flare that is a positive under decision D22 (DONKI links it to an instrument-observed particle event) and that the model scores at or above its threshold; the golden test proves the choice.
+- Only flares from the model's test years are used, so the demo never shows the model a flare it was trained or tuned on. The generator refuses any other flare, and a flare that is not in `flares.csv`.
+- Each scenario names its flare by DONKI ID in `scenarios.py`. For `solar-flare-watch`, Claude Code picks a test-year flare that is a positive under decision D22 (DONKI links it to an instrument-observed particle event) and that the model scores at or above its threshold; the golden test proves the choice. As built in A2 the rule is: the earliest X-class flare that meets these conditions and is not the `solar-storm` flare, which gives `2023-08-05T21:45:00-FLR-001`; a simulator test re-derives it. The demo therefore shows a hit by construction. It says nothing about how often the model is right; the model card does, and the screen shows the false-alarm count next to the score.
 - The flare's peak is placed on the scenario's mission timeline: `solar-flare-watch` at 07:30 on the mission day, `solar-storm` at 15:00 the day before. Both fall inside the 24-hour window of `R-RAD-03` at 09:00 (section 26.10). Real dates stay in `basedOn` and in `public/data/space-weather.json`, which lists every real event used, with its DONKI ID, link and the retrieval date.
 
 ---
@@ -1903,7 +1904,7 @@ The rules of section 12 stay in charge: they alone set Good, Watch and Act, and 
 
 ### 26.1 What the model does, and why this one
 
-- **Task.** For a solar flare, together with its linked coronal mass ejection (CME) if there is one, estimate the probability that DONKI analysts linked it to a solar energetic particle (SEP) event observed by an instrument (decision D22). For the crew this reads: "estimated chance this flare is followed by a solar particle event".
+- **Task.** For a solar flare, together with its linked coronal mass ejection (CME) if there is one, estimate the probability that DONKI analysts linked it to a solar energetic particle (SEP) event observed by an instrument (decision D22). The crew does not see a chance: the app shows the output as an experimental model score from 0 to 100, with its limits (section 26.10; changed on 15 November 2026 after the A1 results).
 - **Why it matters.** A solar particle event is a radiation storm, and space radiation is one of NASA's five hazards of human spaceflight (`hrp-hazards`). The app already alerts when an event is in progress (`R-RAD-01`, act) and on cumulative dose (`R-RAD-02`). An estimate before the event gives the crew time to prepare, which answers the brief's question "What actions can be taken to prevent a critical health condition?". Far from Earth a warning from the ground arrives late: the one-way delay to Mars reaches about 22 minutes (`delay-nasa-m2m-2023`), and Mars missions need crew medical autonomy (`autonomy-nasa-exmc-2021`). An estimate computed on board supports that autonomy, which is the same idea as triage by communication delay.
 - **Why this data.** DONKI holds real flares, CMEs and SEP events with analyst-curated links between them, which gives a real supervised label. Published work has trained machine-learning classifiers on DONKI's flare, CME and SEP associations (`sep-ml-inceoglu-2018`), and SEP studies use flare magnitude, location and rise time and CME speed and width as predictors, comparing logistic regression with tree models (`sep-gsep-2023`). Our model follows that line at hackathon scale.
 
@@ -2081,12 +2082,15 @@ A retrain that changes any coefficient becomes `v2` with new files; the app read
 ### 26.10 In the app
 
 - **Inference.** `src/engine/models/sepRisk.ts` exports `flareFeatures(model, obs)`, `sepRiskProbability(model, obs)` and `topFactors(model, obs, n)`. Standardize with the stored mean and scale, compute `logit = intercept + Σ coef × z`, then `p = 1 / (1 + e^(−logit))`. A factor's contribution is `coef × z`, summed per display group; factors are sorted by absolute contribution. Pure functions, no I/O; the model parameters arrive through `EvaluationInput.models.sepRisk`.
-- **Context feed `sep_risk`.** The highest probability among the flares in `EvaluationInput.spaceWeather` whose peak lies in the last `windowDays × 24` hours up to `nowMs`. This feed uses a time window, unlike the daily context feeds. No flare in the window, or no model, means no value, and the condition is false.
+- **Context feed `sep_risk`.** The highest model output among the flares in `EvaluationInput.spaceWeather` whose peak lies in the last `windowDays × 24` hours up to `nowMs` (`highestSepRisk`). A flare the app cannot read (class, location or a negative time) is skipped, never scored. This feed uses a time window, unlike the daily context feeds. No flare in the window, or no model, means no value, and the condition is false.
 - **Rule `R-RAD-03`** (section 12): watch, region `whole_body`, `sep_risk` at or above the model threshold within 1 day, protocol `P-RAD-PREPARE`. `R-RAD-01` supersedes it, so an event in progress replaces the outlook.
-- **Evidence item.** Label "Solar flare risk (model estimate)"; value such as "62% estimated chance of a solar particle event"; reference such as "Flare X2.2 at S17W33, peak on day 141 at 15:00. Model sep-risk v1." Probabilities are shown as whole percents clamped to 1% to 99%. The top three factors follow in words, for example "Flare class X2.2 raises the estimate", "Source location S17W33 raises the estimate", "No linked CME lowers the estimate".
-- **Alert detail.** "What changed" shows the estimate and its factors. "Evidence" adds the tag "Model estimate" and the link "How this model was made" to the model card screen.
-- **Model card screen `#/model/sep-risk`.** Reads the model file and shows, in plain words: what it estimates; the data (source, dates, counts per split, filters, flares excluded as ambiguous); how it works (features in words, the threshold rule); how well it did on the held-out test years (metrics with intervals, the comparisons, the reliability table, each metric with a one-line meaning); its limits; and the sources. No number on this screen is typed by hand. It also states that DONKI is experimental research information and that official U.S. space weather forecasts come from NOAA's Space Weather Prediction Center (`donki`).
-- **Wording.** "Estimate", "estimated chance", "possible". Never "will", never "predicts that", never a value without the word "estimate" nearby.
+- **Presentation: an experimental score, not a chance (decided by Divyanshu on 15 November 2026).** On the test years the model's output was not calibrated (the lowest outputs were too high) and most flagged flares were false alarms (section 26.14 and the model card). The app therefore never shows the output as a percent or as a chance. It shows an "Experimental model score": the output times 100, as a whole number kept between 1 and 99 (`sepRiskScore`). This is a display change only. The internal 0 to 1 output and the threshold are unchanged, and every comparison uses the unrounded output against the model file's threshold at full precision.
+- **Evidence item.** Label "Experimental model score"; value such as "37 out of 100"; reference such as "Flare X1.6 at N11W74, peak on day 150 at 07:30. Alert level: at or above 18 out of 100. Model estimate from sep-risk v1." The item also carries `model` (`ModelEvidence`: model ID and version, the unrounded output and threshold, the factors, and the DONKI ID and link of the flare), which the screens use for the tag, the factors and the notes. The top three factors follow in words, for example "Flare class X1.6 raises the score", "No linked CME lowers the score". "Raises" and "lowers" are relative to an average flare of the training years, and the screen says so.
+- **About this score.** Shown next to every score (`ModelScoreNote`), with numbers read from the model file: the score reflects how often flares like this one were linked to a recorded solar particle event in NASA's DONKI catalog; false alarms are frequent (how many of the flagged test-year flares had no such record); it is not a validated probability of an event, and it does not measure anyone's radiation exposure.
+- **Historical and simulated.** A score is always for a real DONKI flare replayed on the mission timeline. The alert tags it "Historical flare" with its DONKI ID and link, and says that the crew and their health readings are simulated. Home shows "Historical solar event" for such a scenario, and the presenter tools mark those scenarios and show their `basedOn` note.
+- **Alert detail.** "What changed" shows the score with the "Model estimate" tag, its factors, the historical flare and "About this score". "Evidence" adds the tag "Model estimate", says that the alert comes from the model and not from a measurement of the crew, and links "How this model was made" to the model card screen. A superseded outlook under "Also contributing" keeps its tag, one line on its limits and the link.
+- **Model card screen `#/model/sep-risk`.** Reads the model file and shows, in plain words: what the score is and is not, and what the model may do in the app; the data (source, dates, counts per split, filters, flares excluded as ambiguous, the label policy); how it works (features in words with their coefficients, the threshold rule and value); how well it did on the held-out test years (flagged, caught and false-alarm counts, metrics with intervals, each with a one-line meaning); the two comparisons; a section "Why it is a score, not a percent chance" with the reliability table and both Brier skill scores; its limits; and the sources. A comparison whose 95% difference interval includes zero is called "inconclusive", with the sentence that this is not evidence that the two models perform equally; today that is the gradient boosting benchmark, for ROC AUC and for TSS. The wording follows the intervals in the file, so a retrain changes it without a code change. No number on this screen is typed by hand. It also states that DONKI is experimental research information and that official U.S. space weather forecasts come from NOAA's Space Weather Prediction Center (`donki`).
+- **Wording.** "Experimental model score", "model estimate", "possible", "outlook". Never "chance", "probability of an event" or a percent for the score; never "will", never "predicts that"; never a score without the "Model estimate" tag and "About this score" nearby.
 
 ### 26.11 Types
 
@@ -2151,13 +2155,16 @@ Python, `python -m unittest discover -s ml/tests`:
 
 TypeScript, Vitest:
 
-- Parity: for every row of the parity file, each feature matches within 1e-12 and the probability within 1e-9.
+- Parity: for every row of the parity file (all 50), each feature matches within 1e-12 and the output within 1e-9. The test years hold no flare without a usable end time, so the parity file cannot cover that path; a separate test checks that such a flare takes exactly the model file's `impute` value, as `ml/features.py` does.
+- The model file in the app is byte-identical to `ml/artifacts/sep-risk-v1.json`, and its threshold and parameters are read at full precision.
 - `R-RAD-03` uses the `modelThreshold` comparison (no number in `rules.json`), and evaluation applies the model file's `threshold`: a flare scored just below it gives no alert, one at or above it gives the alert.
 - `topFactors`: sorted by absolute contribution; the intercept plus all contributions equals the logit.
 - The `sep_risk` window: a flare 23 hours before `nowMs` counts, one 25 hours before does not, one after `nowMs` does not.
 - No model, or no flares: no `R-RAD-03` and no error.
 - Golden scenarios: `solar-flare-watch` gives exactly `R-RAD-03`; `solar-storm` gives `R-RAD-01`, with `R-RAD-03` superseded.
-- The model file parses with its Zod schema.
+- The model file parses with its Zod schema, which refuses features in another order, a missing feature, a duration feature without a value for a missing end time, and a threshold of 0 or 1.
+- A rule on the model feed is refused unless it is watch-level, needs no ground and uses `modelThreshold`; with and without the model, every other alert, status and route is identical.
+- Screens: the score is "out of 100" with its tag and limits and never a percent; the route stays "You can handle this yourself" at every delay; the model card's numbers follow the model file, and a comparison is "inconclusive" exactly when its interval includes zero.
 
 ### 26.13 Reproduce
 
@@ -2191,7 +2198,7 @@ On a fresh machine, `pip install -r ml/requirements.txt` replaces the install li
 ### 26.15 Honesty rules
 
 - Every number about the model, in the app, the README, the slides or the pitch, comes from the model file or the model card. Copy it; never retype or round it differently in different places.
-- Say what the model is: a logistic regression on eight features from NASA DONKI flare and CME records, evaluated on held-out years. Do not call it "AI that predicts radiation" without that context.
+- Say what the model is: a logistic regression on eight features from NASA DONKI flare and CME records, evaluated on held-out years. Do not call it "AI that predicts radiation" without that context. Say what its score is: an experimental score about recorded DONKI associations, with frequent false alarms; not a validated probability and not a measure of anyone's radiation exposure. Call the gradient boosting comparison inconclusive, never "as good as".
 - The model never raises an act-level alert and never changes a route by itself (decision D9).
 - If the API or the training fails and no model file exists, the app runs without `R-RAD-03`, and the submission says the model was not completed. Nobody invents a model file.
 - The same holds for the second-opinion models. Say what each one is: a personal pattern check on each crew member's own readings, evaluated only on simulated data; and a logistic regression on five baseline-change features from Earth ICU patients, tested on a second hospital system and never on astronauts. Never call them "AI that detects illness". If either is not completed, the app runs without its insight and the submission says so.
@@ -2660,21 +2667,22 @@ Build:
 3. `R-RAD-03` in `rules.json` with a `modelThreshold` comparison that reads the threshold from the model file (no number typed in `rules.json`), protocol `P-RAD-PREPARE` (section 18), and `R-RAD-01` superseding `R-RAD-03`.
 4. Scenarios (section 24.6): `solar-flare-watch` with a real flare from the test years, and the preceding flare in `solar-storm`; update `public/data/space-weather.json`.
 5. The store loads `spaceWeather` with the scenario; the selector passes the model in.
-6. Alert detail: the "Model estimate" tag, the estimate and its factors, the "How this model was made" link.
+6. Alert detail: the "Model estimate" tag, the experimental model score and its factors, "About this score", the "How this model was made" link.
 7. The model card screen `#/model/sep-risk` (section 19.11), reading only the model file.
-8. The demo panel shows the scenario's `basedOn` note.
+8. The demo panel shows the scenario's `basedOn` note (carried in `public/seed/index.json`), tagged "Historical solar event".
 
 Tests: all TypeScript tests in section 26.12, including parity, the threshold reference, the window and the two golden scenarios.
 
 Manual check:
 
-1. Load `solar-flare-watch`: a watch alert "Possible solar particle event ahead" with the "Model estimate" tag, a percentage and three factors in words.
-2. Open "How this model was made": the model card screen shows the same numbers as `ml/reports/sep-risk-v1.md`.
+1. Load `solar-flare-watch`: a watch alert "Solar flare outlook: possible particle event" with the "Model estimate" tag, an experimental model score out of 100 (never a percent), three factors in words and "About this score".
+2. Open "How this model was made": the model card screen shows the same numbers as `ml/reports/sep-risk-v1.md`, calls the gradient boosting comparison inconclusive, and explains why the output is shown as a score.
 3. Move the delay slider: the route stays "You can handle this yourself", because this is a watch alert without a ground need (section 13.5).
 4. Load `solar-storm`: the act alert `R-RAD-01`, with the outlook listed under "Also contributing".
 5. Keyboard only, and at 390 px.
 
 Exit test: the parity test is green; `solar-flare-watch` shows `R-RAD-03` with its model estimate; the model card screen reads the file.
+Status after A2 (15 November 2026): built and pushed. Changed from the plan above, by Divyanshu's decision of 15 November: the model output is shown as an experimental model score out of 100 with its limits, never as a percent chance (section 26.10). The frozen A1 model, its threshold and its parity file were not touched. The A1 model card `ml/reports/sep-risk-v1.md` still says "estimated chance" and "whole percent" in two sentences, because it is written by the training script and A2 did not re-run it; the app's model card screen is the current wording. The manual checks above were run by Claude Code in headless Chrome, not yet by a person.
 After the push: tag `p0-complete`.
 Docs: `docs/demo-script.md` gets the forecast step before the decisive moment.
 Commit: "A2: Run SEP risk model in the app with the R-RAD-03 outlook".
@@ -3030,7 +3038,8 @@ Other requirements noted in that guide: everything in English, AI-generated imag
 | CCMC | NASA's Community Coordinated Modeling Center, which runs DONKI |
 | Flare class | The GOES X-ray class of a solar flare: a letter (A, B, C, M, X, each step ten times the flux of the one before) and a number, such as X2.2 |
 | CME | Coronal mass ejection: a large cloud of solar material thrown into space |
-| Model estimate | A probability computed by the trained ML model, always shown with that label |
+| Model estimate | An output computed by a trained ML model, always shown with that label |
+| Experimental model score | How the app shows the `sep-risk` output: a whole number from 1 to 99 "out of 100". Not a calibrated chance and not a measure of radiation exposure |
 | Logistic regression | A model that turns a weighted sum of features into a probability between 0 and 1 |
 | Feature | One number computed from the raw data and given to the model, such as the flare class as a logarithm |
 | Label (ML) | The answer the model learns from: here, whether DONKI links the flare to a particle event observed by an instrument (decision D22) |
@@ -3044,7 +3053,7 @@ Other requirements noted in that guide: everything in English, AI-generated imag
 | HSS | Heidke skill score: correct forecasts beyond what chance agreement would give |
 | False alarm ratio | The share of flagged cases that turned out to be non-events |
 | Reliability | Whether cases given an estimate of, say, 30% turn out positive about 30% of the time |
-| Threshold | The probability at or above which `R-RAD-03` raises an alert; chosen on the validation years |
+| Threshold | The model output (0 to 1) at or above which `R-RAD-03` raises an alert; chosen on the validation years and read from the model file. The app also calls it the alert level |
 | Parity test | A test that the app's TypeScript gives the same numbers as the Python that was evaluated |
 | Model card | A plain-language page about a model: data, method, results, limits |
 | Body view | The Body screen: soreness reports, suit sensor cards and the optional 3D body |

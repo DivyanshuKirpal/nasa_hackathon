@@ -6,7 +6,6 @@ import { MS_PER_DAY, missionDayOf } from '../engine/index.ts'
 // mission time stands still at the moment a scenario sets.
 
 const HOUR_MS = 3_600_000
-const MINUTE_MS = 60_000
 
 export const missionDay = missionDayOf
 
@@ -15,10 +14,4 @@ export function scenarioStartMs(day: number): number {
   return (day - 1) * MS_PER_DAY + 9 * HOUR_MS
 }
 
-/** "09:00" for a mission time. */
-export function formatTimeOfDay(ms: number): string {
-  const intoDay = ms % MS_PER_DAY
-  const hours = Math.floor(intoDay / HOUR_MS)
-  const minutes = Math.floor((intoDay % HOUR_MS) / MINUTE_MS)
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
-}
+export { formatTimeOfDay } from '../engine/index.ts'

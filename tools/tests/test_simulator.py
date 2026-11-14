@@ -1,7 +1,9 @@
 """Tests for the seed simulator. Run: python -m unittest discover -s tools/tests"""
 
+import csv
 import gzip
 import json
+import math
 import random
 import sys
 import tempfile
@@ -213,6 +215,131 @@ class DonkiLookupTests(unittest.TestCase):
         self.assertLess(record['eventTime'][11:16], '09:00')
         self.assertFalse(any(item['displayName'].startswith('MODEL:') for item in record['instruments']))
         self.assertIn(scenario.donki_event_id, generate.based_on(scenario))
+
+
+class RealFlareTests(unittest.TestCase):
+    """Scenario flares come from ml/data/processed/flares.csv, never from typed values (section 24.6)."""
+
+    STORM_FLARE = '2023-08-07T20:30:00-FLR-001'
+
+    @classmethod
+    def setUpClass(cls):
+        with generate.FLARES_CSV.open(encoding='utf-8', newline='') as handle:
+            cls.rows = {row['flrID']: row for row in csv.DictReader(handle)}
+
+    def test_finds_a_test_year_flare(self):
+        row = generate.find_flare(self.STORM_FLARE)
+        self.assertEqual((row['split'], row['classType']), ('test', self.rows[self.STORM_FLARE]['classType']))
+
+    def test_refuses_a_flare_the_model_was_trained_or_tuned_on(self):
+        for split in ('train', 'validation'):
+            flare_id = next(row['flrID'] for row in self.rows.values() if row['split'] == split)
+            with self.assertRaises(SystemExit):
+                generate.find_flare(flare_id)
+
+    def test_refuses_a_flare_that_is_not_in_the_file(self):
+        with self.assertRaises(SystemExit):
+            generate.find_flare('2099-01-01T00:00:00-FLR-001')
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaises(SystemExit):
+                generate.find_flare(self.STORM_FLARE, Path(folder) / 'missing.csv')
+
+    def test_flares_are_placed_on_the_mission_timeline_with_their_real_values(self):
+        watch = scenarios.by_id('solar-flare-watch')
+        (flare,) = generate.flare_observations(watch)
+        row = self.rows[flare['donkiId']]
+        self.assertEqual(flare['day'], watch.mission_day)
+        self.assertEqual(flare['peakMs'], (watch.mission_day - 1) * model.MS_PER_DAY + (7 * 60 + 30) * 60_000)
+        self.assertEqual(flare['classType'], row['classType'])
+        self.assertEqual(flare['sourceLocation'], row['sourceLocation'])
+        self.assertEqual(flare['link'], row['link'])
+        self.assertEqual(float(flare['riseMin']), float(row['riseMin']))
+        self.assertEqual(float(flare['durationMin']), float(row['durationMin']))
+        self.assertEqual(float(flare['cme']['speedKms']), float(row['cmeSpeedKms']))
+        self.assertEqual(float(flare['cme']['halfAngleDeg']), float(row['cmeHalfAngleDeg']))
+
+        storm = scenarios.by_id('solar-storm')
+        (before,) = generate.flare_observations(storm)
+        self.assertEqual(before['donkiId'], self.STORM_FLARE)
+        self.assertEqual(before['day'], storm.mission_day - 1)
+        self.assertEqual(before['peakMs'], (storm.mission_day - 2) * model.MS_PER_DAY + 15 * 3_600_000)
+        # Inside the 24 hours before 09:00 on the mission day (section 26.10).
+        nine = (storm.mission_day - 1) * model.MS_PER_DAY + 9 * 3_600_000
+        self.assertTrue(nine - 24 * 3_600_000 < before['peakMs'] <= nine)
+
+    def test_a_scenario_without_flares_has_none(self):
+        self.assertEqual(generate.flare_observations(scenarios.by_id('sleep-debt')), [])
+        self.assertIsNone(generate.based_on(scenarios.by_id('sleep-debt')))
+
+    def test_the_note_names_every_real_event_and_says_the_crew_is_simulated(self):
+        for scenario_id in ('solar-storm', 'solar-flare-watch'):
+            scenario = scenarios.by_id(scenario_id)
+            note = generate.based_on(scenario)
+            for flare_id, _days_before, _clock in scenario.flares:
+                self.assertIn(flare_id, note)
+            self.assertTrue(note.endswith('The crew and their health readings are simulated.'))
+        self.assertIn('2023-08-08T01:00:00-SEP-001', generate.based_on(scenarios.by_id('solar-storm')))
+
+    def test_the_index_carries_each_scenario_note(self):
+        for entry in generate.build_index()['scenarios']:
+            self.assertEqual(entry['basedOn'], generate.based_on(scenarios.by_id(entry['scenarioId'])))
+
+    def test_the_space_weather_file_lists_every_real_event_once(self):
+        document = generate.build_space_weather()
+        listed = {event['donkiId']: event for event in document['events']}
+        self.assertEqual(len(listed), len(document['events']))
+        for scenario in scenarios.SCENARIOS:
+            for flare_id, _days_before, _clock in scenario.flares:
+                self.assertEqual(listed[flare_id]['type'], 'FLR')
+                self.assertIn(scenario.scenario_id, listed[flare_id]['usedIn'])
+                self.assertEqual(listed[flare_id]['link'], self.rows[flare_id]['link'])
+        self.assertEqual(listed['2023-08-08T01:00:00-SEP-001']['usedIn'], ['solar-storm'])
+        meta = json.loads((generate.DONKI_DIR / 'meta.json').read_text(encoding='utf-8'))
+        self.assertEqual(
+            document['retrievedAt'],
+            max(meta['files'][name]['retrievedAt'] for name in ('SEP/2023.json.gz', 'FLR/2023.json.gz')),
+        )
+        self.assertIn('simulated', document['note'])
+
+    def test_the_flare_watch_flare_follows_its_selection_rule(self):
+        """The earliest X-class positive of the test years that the frozen model scores at or
+        above its threshold, other than the solar-storm flare (scenarios.py)."""
+        sys.path.insert(0, str(model.REPO_ROOT / 'ml'))
+        import features  # noqa: E402  (standard library only)
+
+        trained = json.loads(
+            (model.REPO_ROOT / 'src' / 'data' / 'models' / 'sep-risk-v1.json').read_text(encoding='utf-8')
+        )
+        impute = next(item['impute'] for item in trained['features'] if item['impute'] is not None)
+
+        def output(row):
+            seen = {
+                'classType': row['classType'],
+                'sourceLocation': row['sourceLocation'],
+                'riseMin': float(row['riseMin']),
+                'durationMin': float(row['durationMin']) if row['durationMin'] else None,
+                'cme': {
+                    'speedKms': float(row['cmeSpeedKms']),
+                    'halfAngleDeg': float(row['cmeHalfAngleDeg']),
+                } if row['cmeId'] else None,
+            }
+            logit = trained['intercept']
+            for value, item in zip(features.flare_features(seen, impute), trained['features']):
+                logit += item['coef'] * (value - item['mean']) / item['scale']
+            return 1 / (1 + math.exp(-logit))
+
+        candidates = [
+            row for row in self.rows.values()
+            if row['split'] == 'test' and row['labelStatus'] == 'positive' and row['classType'].startswith('X')
+            and row['flrID'] != self.STORM_FLARE and output(row) >= trained['threshold']
+        ]
+        earliest = min(candidates, key=lambda row: row['peakTime'])
+        ((chosen, _days_before, _clock),) = scenarios.by_id('solar-flare-watch').flares
+        self.assertEqual(chosen, earliest['flrID'])
+        # The solar-storm flare is a test-year positive too; R-RAD-01 supersedes its outlook.
+        storm = self.rows[self.STORM_FLARE]
+        self.assertEqual((storm['split'], storm['labelStatus']), ('test', 'positive'))
+        self.assertGreaterEqual(output(storm), trained['threshold'])
 
 
 if __name__ == '__main__':

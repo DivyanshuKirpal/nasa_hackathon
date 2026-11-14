@@ -2,6 +2,72 @@
 
 One entry per milestone, newest first (ARCHITECTURE.md section 30.4). Targets are in section 31.1.
 
+## A2 ML model 1 in the app (first code Sun 01:58, checked and committed Sun 02:41, pushed right after; manual checks pending)
+- A1 close recorded: commit `4304f07` pushed to `main`. Deployment confirmed from Vercel's own commit status on GitHub (state "success", "Deployment has completed", 01:30 IST). Two earlier status queries were refused by GitHub's anonymous rate limit; one query after the reset succeeded. The public site served the same asset files as before (`index-CEAMow3E.js`, `index-D7q4ypPC.css`), as expected, because A1 changed no app code.
+- A1 kept frozen:
+  - No file in `ml/` or `src/data/models/` changed. Nothing was re-trained, re-calibrated or re-downloaded, and nothing was chosen from the test years.
+  - The 123 `ml` tests confirm that the committed A1 files still equal a fresh build. The app's model file is byte-identical to `ml/artifacts/sep-risk-v1.json`.
+- Built:
+  - `src/engine/models/sepRisk.ts`: the eight features, the output, the factors and the 24-hour window, mirroring `ml/features.py` step by step. A flare the app cannot read is skipped, never scored.
+  - `sepRiskModelFileSchema` checks the model file when the app loads. It needs the eight features in order, a value for a missing end time on the duration feature only, a threshold strictly between 0 and 1, and the metrics and limitations.
+  - The `sep_risk` feed and the rule `R-RAD-03`, "Solar flare outlook: possible particle event": watch, whole body, 2 hours, no ground need, basis illustrative. Its threshold comes from the model file through `modelThreshold`, at full precision. It uses the draft protocol `P-RAD-PREPARE` from ARCHITECTURE.md section 18, and `R-RAD-01` supersedes it.
+  - The data check now refuses a rule on the model feed that is not watch-level, needs the ground, or types its own number. The evidence ladder (decision D19) is therefore enforced when the app loads.
+  - The model card screen `#/model/sep-risk` and its link "How this model was made" from the alert. Every number on it is read from the model file.
+  - Scenarios replay real DONKI flares from the model's test years only. The generator refuses any other flare.
+    - `solar-flare-watch` (new): mission day 150 in the Mars transit vehicle, flare `2023-08-05T21:45:00-FLR-001` at 07:30. It expects `R-RAD-03` for all three crew members.
+    - `solar-storm` now has the flare `2023-08-07T20:30:00-FLR-001` that DONKI links to its particle event, at 15:00 the day before.
+  - `basedOn` notes are in the scenario files and `index.json`, and `space-weather.json` lists all three real events. Home shows "Historical solar event" for those scenarios, the presenter tools show their notes, and the alert list shows the "Model estimate" tag.
+- Presentation, as decided by Divyanshu on 15 November:
+  - The output is shown as "Experimental model score: N out of 100" (a whole number from 1 to 99), never as a percent or a chance. It carries the "Model estimate" tag, the alert level, the model version and the three factors in words.
+  - The flare it is for is tagged "Historical flare", with its DONKI link.
+  - The box "About this score" sits next to it: the score concerns recorded DONKI associations, false alarms are frequent (the count is read from the model file), and it is not a validated probability or a measure of anyone's radiation exposure.
+  - The internal 0 to 1 output and the threshold are unchanged; every comparison uses the unrounded output.
+  - The model card screen calls the gradient boosting comparison inconclusive, and says this is not evidence that the two models perform equally. A section explains why the output is a score, not a percent chance.
+- How the `solar-flare-watch` flare was chosen: by rule, the earliest X-class flare of the test years that is a positive under D22, that the model flags, and that is not the `solar-storm` flare. A simulator test re-derives it. The demo therefore shows a hit by construction; the false-alarm count next to the score says how often the model is right.
+- Tests:
+  - `npm run check` green: 454 tests in 26 files (283 before A2).
+  - New: inference and parsing; the window (23 hours counts, 25 hours and after now do not, exactly 24 hours does not); the feed and its evidence; the threshold from the file (just below gives no alert, at it gives the alert); watch-only and "handle this yourself" at every delay and with the link down; superseding; every other alert, status and route identical with and without the model; the model file schema and its full precision; screens; the model card; the presenter tools; golden scenarios; "Send to ground" only by choice, with a message that names the score and no percent.
+  - Parity with Python: all 50 rows of `ml/artifacts/sep-risk-v1-parity.json`, each feature within 1e-12 and the output within 1e-9. The test years hold no flare without a usable end time, so the frozen parity file has no such row; a separate test checks that path against the model file's own value, as `ml/features.py` does.
+  - Python: 33 simulator tests (9 new) and 123 `ml` tests pass. Two regenerations gave byte-identical seed files.
+  - 19 deliberate bugs were planted one at a time, and all 19 were caught. Every file was restored to its original bytes (hash-checked). Three of them (the outlook made an act alert, the outlook needing the ground, a typed number in place of `modelThreshold`) stop the app at load: the data check refuses `rules.json`.
+- Browser checks: headless Chrome 157 through the DevTools Protocol (the Chrome extension was not connected), fresh profile, local dev server. 53 of 53 passed:
+  - the presenter tools mark exactly the two scenarios with real events;
+  - `solar-flare-watch` loads by keyboard, with a Watch alert and its tag on Home and Environment at Watch;
+  - the alert shows the score, three factors, the historical flare and "About this score", never a percent;
+  - the route stays "You can handle this yourself" across the whole slider and every environment, and nothing is queued for Earth;
+  - the model card numbers equal the model file, and the gradient boosting comparison reads "inconclusive";
+  - `solar-storm` keeps its act alert and its Mars-far flip, and lists the outlook under "Also contributing";
+  - at 390 px: no sideways scrolling, tap targets at least 44 px and text at least 16 px on four screens;
+  - 68 keyboard stops, all with a focus ring; no console errors.
+- Docs:
+  - ARCHITECTURE.md sections 11.2, 11.6, 12, 13.5, 19.4, 19.11, 20, 24.3, 24.6, 26.1, 26.10, 26.12, 26.15, 31.8 and the glossary.
+  - CLAUDE.md ML rule 4 and the extension summary, for the score presentation.
+  - README, REFERENCES, AI_USAGE and `docs/demo-script.md` (the outlook step before the decisive moment).
+- Unchanged: every source stays `verified: false`, and every protocol stays `reviewed: false`, including the new `P-RAD-PREPARE`.
+- Not done on purpose: ARCHITECTURE.md says to tag `p0-complete` after the A2 push. Not tagged, because the human checks of M2, M3, M4, A1 and A2 are still pending. Divyanshu can tag it once he has confirmed them.
+- Known issues:
+  - The A1 model card `ml/reports/sep-risk-v1.md` still calls the output an "estimated chance" in two sentences. It is written by the training script, which A2 did not re-run, to keep A1 frozen. The README says so, and the app's model card screen has the current wording.
+  - The JavaScript bundle grew to 550 kB (169 kB gzipped), over Vite's 500 kB warning. Loading the model card screen lazily is a later "Fix:" if wanted.
+  - A browser that stored `solar-storm` before A2 has no flare for it. Loading the scenario again from the presenter tools shows the outlook under "Also contributing".
+  - The model card screen is long on a phone, but it works at 390 px.
+  - This commit's deployment is recorded in the next entry.
+- **Manual checks pending** (none confirmed yet):
+  - A2 (ARCHITECTURE.md section 31.8), on the deployed site: pending.
+    1. Load `solar-flare-watch`: a Watch alert with the "Model estimate" tag, a score out of 100, three factors and "About this score".
+    2. Open "How this model was made": the numbers match `ml/reports/sep-risk-v1.md`.
+    3. Move the delay slider: the route stays "You can handle this yourself".
+    4. Load `solar-storm`: the act alert `R-RAD-01`, with the outlook under "Also contributing".
+    5. Keyboard only, and at 390 px.
+  - A1: read `ml/reports/sep-risk-v1.md` (the six points of section 31.7), and open two or three of its instrument documentation links: pending.
+  - Pending — Divyanshu will complete before M5:
+    - M2: open `public/seed/sleep-debt.json` and see `"simulated": true`, the fictional crew names and `expectedAlerts`.
+    - M2: open `ml/data/raw/donki/meta.json` and see `apiBase`, `requested`, `recordCounts` and `complete: true`.
+    - M3: a look by eye at Home and Check-in on the deployed site.
+    - M4: record the short screen capture of the demo flow (now with the outlook step first).
+    - M4: a look by eye at the alert screen on the deployed site.
+    - M4: approve the re-check name "Blood sugar re-check (not fasting)" and the reworded `R-GLU-02` explanation.
+- Next: stop. A3, M5 and every other milestone wait for Divyanshu's approval.
+
 ## A1 ML model 1: dataset, training and model card (started Sun about 00:55, closed Sun 01:35)
 - Documentation checkpoint recorded: commits `07e98de` and `d7b9c90` pushed to `main`. Deployment of `d7b9c90` confirmed once from Vercel's own commit status on GitHub (state "success", "Deployment has completed", 00:48 IST). The public site then served the same asset files as the local build (`index-CEAMow3E.js`, `index-D7q4ypPC.css`).
 - Built, all offline in `ml/`:

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { SECONDARY_BUTTON } from '../../components/buttonStyles.ts'
+import { Tag } from '../../components/Tag.tsx'
 import type { ScenarioIndex } from '../../engine/index.ts'
 import { environmentDef } from '../../lib/labels.ts'
 import { useAppStore } from '../../store/index.ts'
@@ -61,7 +62,9 @@ export function ScenarioPicker({ onLoaded }: { onLoaded: () => void }) {
     <div>
       <h3 className="text-lg font-semibold">Load a scenario</h3>
       <p className="mt-1 text-slate-700">
-        All scenarios are simulated, with fictional crew members.
+        The crew members and their health readings are simulated in every
+        scenario. A scenario marked &ldquo;Historical solar event&rdquo; also
+        replays real records from NASA&rsquo;s DONKI catalog.
       </p>
       <ul className="mt-3 space-y-3">
         {state.index.scenarios.map((scenario) => (
@@ -75,6 +78,12 @@ export function ScenarioPicker({ onLoaded }: { onLoaded: () => void }) {
               {environmentDef(scenario.environmentId).label}
               {scenario.scenarioId === currentId && ' · Loaded now'}
             </p>
+            {scenario.basedOn && (
+              <p className="mt-1">
+                <Tag>Historical solar event</Tag>{' '}
+                <span className="break-words">{scenario.basedOn}</span>
+              </p>
+            )}
             <button
               type="button"
               className={`mt-2 ${SECONDARY_BUTTON}`}

@@ -25,7 +25,16 @@ import type {
 
 export * from './types.ts'
 export { replyEtaMinutes, triage } from './triage.ts'
-export { MS_PER_DAY, missionDayOf } from './time.ts'
+export { MS_PER_DAY, formatTimeOfDay, missionDayOf } from './time.ts'
+export {
+  flareFeatures,
+  highestSepRisk,
+  sepRiskProbability,
+  sepRiskScore,
+  topFactors,
+  type FlareInput,
+  type SepRiskFactor,
+} from './models/sepRisk.ts'
 export {
   BASELINE_WINDOWS,
   isRecheck,
@@ -73,6 +82,9 @@ export function evaluate(input: EvaluationInput): Evaluation {
     symptoms,
     context,
     modelThresholds: { 'sep-risk': input.models.sepRisk?.threshold ?? null },
+    nowMs: input.nowMs,
+    spaceWeather: input.spaceWeather,
+    sepRiskModel: input.models.sepRisk,
   }
 
   const alerts = evaluateRules(input.rules, ctx, input.link, input.crewId)

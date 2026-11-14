@@ -143,8 +143,31 @@
         "whySpace": "NASA's standard requires protecting crews from a design-reference solar particle event to below an effective dose of 250 mSv (millisieverts, a unit of dose). That figure is a design requirement: it does not trigger this alert, and it is not a dose considered harmless."
       },
       "protocolId": "P-RAD-SHELTER",
-      "supersedes": [],
+      "supersedes": ["R-RAD-03"],
       "sourceIds": ["radiation-nasa-ochmo", "donki"],
+      "basis": "illustrative"
+    },
+    {
+      "id": "R-RAD-03",
+      "title": "Solar flare outlook: possible particle event",
+      "region": "whole_body",
+      "severity": "watch",
+      "when": {
+        "type": "context",
+        "feed": "sep_risk",
+        "windowDays": 1,
+        "test": { "kind": "modelThreshold", "op": "gte", "model": "sep-risk" }
+      },
+      "timeToActMin": 120,
+      "needsGround": false,
+      "privateToCrew": false,
+      "explain": {
+        "what": "An experimental model scored a solar flare from the last 24 hours at or above its alert level. The score reflects how often similar flares were linked to a recorded solar particle event in NASA's DONKI catalog. False alarms are frequent, so this is a prompt to get ready, not a sign that an event has started.",
+        "whySpace": "A solar particle event is a burst of high-energy particles from the Sun that raises radiation dose. Getting ready early leaves more time to reach shelter if an event begins. The score says nothing about your own radiation exposure."
+      },
+      "protocolId": "P-RAD-PREPARE",
+      "supersedes": [],
+      "sourceIds": ["donki", "radiation-nasa-ochmo", "sep-ml-inceoglu-2018"],
       "basis": "illustrative"
     }
   ]

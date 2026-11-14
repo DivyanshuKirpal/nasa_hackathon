@@ -57,11 +57,8 @@ const R_VIS_01 = {
   timeToActMin: 7 * 24 * 60,
   needsGround: true,
 } as const
-const R_RAD_03 = {
-  severity: 'watch',
-  timeToActMin: 2 * 60,
-  needsGround: false,
-} as const
+// The model outlook: in rules.json since milestone A2.
+const R_RAD_03 = ruleFromData('R-RAD-03')
 
 const ROWS: {
   label: string
@@ -114,7 +111,7 @@ const ROWS: {
     routes: ['self_care', 'self_care', 'self_care', 'self_care'],
   },
   {
-    label: 'R-RAD-03 possible particle event, model estimate (2 hours, inline)',
+    label: 'R-RAD-03 possible particle event, model outlook (2 hours)',
     rule: R_RAD_03,
     routes: ['self_care', 'self_care', 'self_care', 'self_care'],
   },

@@ -2,13 +2,13 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { MS_PER_DAY, evaluate } from '../../engine/index.ts'
-import type { ScenarioFile } from '../../engine/index.ts'
+import type { ScenarioFile, SepRiskModel } from '../../engine/index.ts'
 import {
   scenarioFileSchema,
   scenarioIndexSchema,
   spaceWeatherFileSchema,
 } from '../../engine/schemas.ts'
-import { healthData } from '../index.ts'
+import { healthData, sepRiskModel } from '../index.ts'
 
 // Golden scenario tests (ARCHITECTURE.md section 27): every generated file in
 // public/seed must trigger exactly its expectedAlerts at 09:00 on its mission
@@ -29,31 +29,43 @@ function load(name: string): ScenarioFile {
   return scenarioFileSchema.parse(readJson(join(SEED_DIR, name)))
 }
 
-/** Non-superseded alerts for every crew member, as "crew:rule", sorted. */
-function activeAlerts(scenario: ScenarioFile): string[] {
+/** One crew member at 09:00 on the scenario's mission day, as the app evaluates it. */
+function evaluateAt(
+  scenario: ScenarioFile,
+  crewId: string,
+  model: SepRiskModel | null = sepRiskModel,
+) {
   const environment = healthData.environments.find(
     (env) => env.id === scenario.environmentId,
   )
   if (!environment)
     throw new Error(`unknown environment ${scenario.environmentId}`)
+  return evaluate({
+    nowMs: (scenario.missionDay - 1) * MS_PER_DAY + NINE_AM_MS,
+    crewId,
+    readings: scenario.readings,
+    symptoms: scenario.symptoms,
+    context: scenario.context,
+    link: {
+      oneWayDelaySec: environment.oneWayDelaySecMin,
+      linkUp: true,
+      groundHandlingMin: 5,
+    },
+    indicators: healthData.indicators,
+    rules: healthData.rules,
+    spaceWeather: scenario.spaceWeather,
+    models: { sepRisk: model },
+  })
+}
+
+/** Non-superseded alerts for every crew member, as "crew:rule", sorted. */
+function activeAlerts(
+  scenario: ScenarioFile,
+  model: SepRiskModel | null = sepRiskModel,
+): string[] {
   return scenario.crew
     .flatMap((member) =>
-      evaluate({
-        nowMs: (scenario.missionDay - 1) * MS_PER_DAY + NINE_AM_MS,
-        crewId: member.id,
-        readings: scenario.readings,
-        symptoms: scenario.symptoms,
-        context: scenario.context,
-        link: {
-          oneWayDelaySec: environment.oneWayDelaySecMin,
-          linkUp: true,
-          groundHandlingMin: 5,
-        },
-        indicators: healthData.indicators,
-        rules: healthData.rules,
-        spaceWeather: scenario.spaceWeather,
-        models: { sepRisk: null },
-      })
+      evaluateAt(scenario, member.id, model)
         .alerts.filter((alert) => alert.supersededBy === null)
         .map((alert) => `${alert.crewId}:${alert.ruleId}`),
     )
@@ -89,6 +101,64 @@ describe('generated scenario files', () => {
       .map((alert) => `${alert.crewId}:${alert.ruleId}`)
       .sort()
     expect(activeAlerts(scenario)).toEqual(expected)
+  })
+
+  it('solar-flare-watch gives exactly the model outlook R-RAD-03, as a watch alert', () => {
+    const scenario = load('solar-flare-watch.json')
+    expect(activeAlerts(scenario)).toEqual([
+      'c1:R-RAD-03',
+      'c2:R-RAD-03',
+      'c3:R-RAD-03',
+    ])
+    const [alert] = evaluateAt(scenario, 'c1').alerts
+    expect(alert?.severity).toBe('watch')
+    expect(alert?.route).toBe('self_care')
+    expect(alert?.evidence[0]?.model?.flare.donkiId).toBe(
+      scenario.spaceWeather[0]?.donkiId,
+    )
+  })
+
+  it('solar-storm gives R-RAD-01, with the model outlook R-RAD-03 superseded', () => {
+    const alerts = evaluateAt(load('solar-storm.json'), 'c1').alerts
+    expect(
+      alerts.map((alert) => [alert.ruleId, alert.supersededBy]).sort(),
+    ).toEqual([
+      ['R-RAD-01', null],
+      ['R-RAD-03', 'R-RAD-01'],
+    ])
+  })
+
+  it('without the model file no scenario shows R-RAD-03, and nothing else changes', () => {
+    for (const name of scenarioFiles) {
+      const scenario = load(name)
+      const withModel = activeAlerts(scenario)
+      const without = activeAlerts(scenario, null)
+      expect(without).toEqual(
+        withModel.filter((alert) => !alert.endsWith(':R-RAD-03')),
+      )
+    }
+    expect(activeAlerts(load('solar-flare-watch.json'), null)).toEqual([])
+  })
+
+  it('scenario flares are real DONKI records, each named in the scenario note', () => {
+    for (const name of scenarioFiles) {
+      const scenario = load(name)
+      for (const flare of scenario.spaceWeather) {
+        expect(flare.donkiId).toMatch(
+          /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}-FLR-\d{3}$/,
+        )
+        expect(flare.link).toMatch(/^https:\/\/ccmc\.gsfc\.nasa\.gov\/DONKI\//)
+        expect(scenario.basedOn).toContain(flare.donkiId)
+        expect(flare.peakMs).toBeLessThanOrEqual(
+          (scenario.missionDay - 1) * MS_PER_DAY + NINE_AM_MS,
+        )
+      }
+      if (scenario.basedOn !== null) {
+        expect(scenario.basedOn).toContain(
+          'The crew and their health readings are simulated.',
+        )
+      }
+    }
   })
 
   it('every reading is within its indicator input range', () => {
@@ -133,6 +203,7 @@ describe('scenario index and space weather file', () => {
         title: scenario.title,
         environmentId: scenario.environmentId,
         missionDay: scenario.missionDay,
+        basedOn: scenario.basedOn,
       })
     }
   })
@@ -150,11 +221,28 @@ describe('scenario index and space weather file', () => {
       .filter((scenario) => scenario.basedOn !== null)
       .map((scenario) => scenario.scenarioId)
       .sort()
-    expect(file.events.flatMap((event) => event.usedIn).sort()).toEqual(
-      withRealEvent,
+    expect(
+      [...new Set(file.events.flatMap((event) => event.usedIn))].sort(),
+    ).toEqual(withRealEvent)
+    // Every flare a scenario replays is listed, with the scenario that uses it.
+    for (const scenario of scenarioFiles.map(load)) {
+      for (const flare of scenario.spaceWeather) {
+        const listed = file.events.find(
+          (event) => event.donkiId === flare.donkiId,
+        )
+        expect(listed?.type).toBe('FLR')
+        expect(listed?.link).toBe(flare.link)
+        expect(listed?.usedIn).toContain(scenario.scenarioId)
+      }
+    }
+    expect(new Set(file.events.map((event) => event.donkiId)).size).toBe(
+      file.events.length,
     )
     if (file.events.length === 0) {
       expect(file.note).toContain('No real DONKI event')
+    } else {
+      expect(file.retrievedAt).not.toBeNull()
+      expect(file.note).toContain('simulated')
     }
   })
 })

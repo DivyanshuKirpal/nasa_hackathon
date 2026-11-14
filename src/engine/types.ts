@@ -30,6 +30,8 @@ export type LinkState = z.infer<typeof schemas.linkStateSchema>
 export type FlareObservation = z.infer<typeof schemas.flareObservationSchema>
 export type SepRiskFeature = z.infer<typeof schemas.sepRiskFeatureSchema>
 export type SepRiskModel = z.infer<typeof schemas.sepRiskModelSchema>
+/** The whole model file, for the model card screen. Inference needs only SepRiskModel. */
+export type SepRiskModelFile = z.infer<typeof schemas.sepRiskModelFileSchema>
 export type ScenarioFile = z.infer<typeof schemas.scenarioFileSchema>
 export type ScenarioIndex = z.infer<typeof schemas.scenarioIndexSchema>
 export type GroundMessage = z.infer<typeof schemas.groundMessageSchema>
@@ -54,10 +56,28 @@ export type Baseline =
       toDay: MissionDay
     }
 
+/**
+ * Set on an evidence item whose value is a model output (section 26.10). The
+ * screens use it to add the "Model estimate" tag, the factors, the limits of
+ * the score and the link to the model card.
+ */
+export interface ModelEvidence {
+  modelId: 'sep-risk'
+  version: string
+  /** The model's own output and threshold, 0 to 1, unrounded. */
+  output: number
+  threshold: number
+  /** The largest contributions to the score, in words. */
+  factors: string[]
+  /** The real DONKI flare the score is for. */
+  flare: { donkiId: string; link: string }
+}
+
 export interface EvidenceItem {
   label: string
   value: string
   reference: string
+  model?: ModelEvidence
 }
 
 export interface Alert {
@@ -82,10 +102,10 @@ export interface EvaluationInput {
   link: LinkState
   indicators: readonly IndicatorDef[]
   rules: readonly Rule[]
-  /** Real DONKI flares placed in the scenario; used by the sep_risk feed from A2. */
+  /** Real DONKI flares placed in the scenario; read by the sep_risk feed. */
   spaceWeather: readonly FlareObservation[]
   models: {
-    /** null turns the sep_risk feed off (section 26.9). */
+    /** null turns the sep_risk feed off: no model, no outlook (section 26.15). */
     sepRisk: SepRiskModel | null
   }
 }

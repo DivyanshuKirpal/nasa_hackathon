@@ -12,6 +12,7 @@ gives byte-identical files. Never edit the generated files by hand.
 from __future__ import annotations
 
 import argparse
+import csv
 import gzip
 import json
 import random
@@ -25,6 +26,8 @@ from scenarios import Scenario
 SEED_DIR = model.REPO_ROOT / 'public' / 'seed'
 DATA_DIR = model.REPO_ROOT / 'public' / 'data'
 DONKI_DIR = model.REPO_ROOT / 'ml' / 'data' / 'raw' / 'donki'
+# The labelled flares written by ml/build_dataset.py (section 26.4).
+FLARES_CSV = model.REPO_ROOT / 'ml' / 'data' / 'processed' / 'flares.csv'
 
 
 def build_readings(scenario: Scenario, rng: random.Random, indicators: dict) -> list:
@@ -89,16 +92,69 @@ def find_donki_event(event_id: str, donki_dir: Path = DONKI_DIR) -> dict | None:
     return found[0] if found else None
 
 
-def based_on(scenario: Scenario, donki_dir: Path = DONKI_DIR) -> str | None:
-    if scenario.donki_event_id is None:
-        return None
-    record = find_donki_event(scenario.donki_event_id, donki_dir)
-    if record is None:
-        raise SystemExit(
-            f'{scenario.scenario_id}: DONKI event {scenario.donki_event_id} is not in {donki_dir}. '
-            'Run ml/fetch_donki.py first; never type an event in by hand here.'
+def find_flare(flare_id: str, flares_csv: Path = FLARES_CSV) -> dict:
+    """One labelled flare from flares.csv. Only flares of the model's test years may be used."""
+    if not flares_csv.exists():
+        raise SystemExit(f'{flares_csv} is missing. Run ml/build_dataset.py first.')
+    with flares_csv.open(encoding='utf-8', newline='') as handle:
+        for row in csv.DictReader(handle):
+            if row['flrID'] == flare_id:
+                if row['split'] != 'test':
+                    # The demo must never show the model a flare it was trained or tuned on.
+                    raise SystemExit(f"Flare {flare_id} is in the {row['split']} years; scenarios use test-year flares only.")
+                return row
+    raise SystemExit(f'Flare {flare_id} is not in {flares_csv}; never type a flare in by hand here.')
+
+
+def _number(text: str) -> int | float:
+    value = float(text)
+    return int(value) if value.is_integer() else value
+
+
+def flare_observations(scenario: Scenario, flares_csv: Path = FLARES_CSV) -> list:
+    """The scenario's real flares as FlareObservation records (section 26.11)."""
+    observations = []
+    for flare_id, days_before, clock in scenario.flares:
+        row = find_flare(flare_id, flares_csv)
+        hours, minutes = (int(part) for part in clock.split(':'))
+        day = scenario.mission_day - days_before
+        observations.append({
+            'donkiId': row['flrID'],
+            'link': row['link'],
+            'day': day,
+            'peakMs': (day - 1) * model.MS_PER_DAY + (hours * 60 + minutes) * 60_000,
+            'classType': row['classType'],
+            'sourceLocation': row['sourceLocation'],
+            'riseMin': _number(row['riseMin']),
+            'durationMin': _number(row['durationMin']) if row['durationMin'] else None,
+            'cme': {
+                'speedKms': _number(row['cmeSpeedKms']),
+                'halfAngleDeg': _number(row['cmeHalfAngleDeg']),
+            } if row['cmeId'] else None,
+        })
+    return observations
+
+
+def based_on(scenario: Scenario, donki_dir: Path = DONKI_DIR, flares_csv: Path = FLARES_CSV) -> str | None:
+    """Which real DONKI events the scenario replays, in words, or None when everything is fictional."""
+    sentences = []
+    if scenario.donki_event_id is not None:
+        record = find_donki_event(scenario.donki_event_id, donki_dir)
+        if record is None:
+            raise SystemExit(
+                f'{scenario.scenario_id}: DONKI event {scenario.donki_event_id} is not in {donki_dir}. '
+                'Run ml/fetch_donki.py first; never type an event in by hand here.'
+            )
+        sentences.append(f"Timing from NASA DONKI solar particle event {record['sepID']} ({record['eventTime']}).")
+    for flare_id, _days_before, _clock in scenario.flares:
+        row = find_flare(flare_id, flares_csv)
+        sentences.append(
+            f"Real solar flare from NASA DONKI: {row['flrID']}, class {row['classType']}, peak {row['peakTime']}, "
+            'replayed on the mission timeline.'
         )
-    return f"Timing from NASA DONKI solar particle event {record['sepID']} ({record['eventTime']})"
+    if not sentences:
+        return None
+    return ' '.join(sentences + ['The crew and their health readings are simulated.'])
 
 
 def build_scenario(scenario: Scenario, seed: int, indicators: dict) -> dict:
@@ -117,7 +173,7 @@ def build_scenario(scenario: Scenario, seed: int, indicators: dict) -> dict:
         'readings': build_readings(scenario, rng, indicators),
         'symptoms': [],
         'context': build_context(scenario, rng),
-        'spaceWeather': [],
+        'spaceWeather': flare_observations(scenario),
         'basedOn': based_on(scenario),
         'expectedAlerts': [
             {'crewId': crew_id, 'ruleId': rule_id} for crew_id, rule_id in scenario.expected_alerts
@@ -156,38 +212,50 @@ def build_index() -> dict:
                 'title': scenario.title,
                 'environmentId': scenario.environment_id,
                 'missionDay': scenario.mission_day,
+                'basedOn': based_on(scenario),
             }
             for scenario in scenarios.SCENARIOS
         ],
     }
 
 
-def build_space_weather(donki_dir: Path = DONKI_DIR, scenario_list: tuple = scenarios.SCENARIOS) -> dict:
+def build_space_weather(
+    donki_dir: Path = DONKI_DIR, scenario_list: tuple = scenarios.SCENARIOS, flares_csv: Path = FLARES_CSV
+) -> dict:
     """The real DONKI events the scenarios use, with where they came from and when they were retrieved."""
     meta_path = donki_dir / 'meta.json'
     files = json.loads(meta_path.read_text(encoding='utf-8')).get('files', {}) if meta_path.exists() else {}
-    events, retrieved = [], []
-    for scenario in scenario_list:
-        if scenario.donki_event_id is None:
-            continue
-        found = locate_donki_event(scenario.donki_event_id, donki_dir)
-        if found is None:
-            raise SystemExit(f'DONKI event {scenario.donki_event_id} is not in {donki_dir}.')
-        record, file_name = found
+    events: dict[str, dict] = {}
+    retrieved = []
+
+    def add(event_id: str, kind: str, event_time: str, link: str, file_name: str, scenario_id: str) -> None:
         # meta.json records a retrieval time per downloaded file; without it the date is unknown.
         retrieved_at = files.get(file_name, {}).get('retrievedAt')
         if not retrieved_at:
             raise SystemExit(f'{meta_path} has no retrieval time for {file_name}.')
         retrieved.append(retrieved_at)
-        events.append({
-            'donkiId': record['sepID'],
-            'type': 'SEP',
-            'eventTime': record['eventTime'],
-            'link': record['link'],
-            'usedIn': [scenario.scenario_id],
-        })
+        event = events.setdefault(
+            event_id, {'donkiId': event_id, 'type': kind, 'eventTime': event_time, 'link': link, 'usedIn': []}
+        )
+        if scenario_id not in event['usedIn']:
+            event['usedIn'].append(scenario_id)
+
+    for scenario in scenario_list:
+        if scenario.donki_event_id is not None:
+            found = locate_donki_event(scenario.donki_event_id, donki_dir)
+            if found is None:
+                raise SystemExit(f'DONKI event {scenario.donki_event_id} is not in {donki_dir}.')
+            record, file_name = found
+            add(record['sepID'], 'SEP', record['eventTime'], record['link'], file_name, scenario.scenario_id)
+        for flare_id, _days_before, _clock in scenario.flares:
+            row = find_flare(flare_id, flares_csv)
+            # The downloader files a flare by the year of its begin time, which starts its id.
+            add(row['flrID'], 'FLR', row['peakTime'], row['link'], f"FLR/{row['flrID'][:4]}.json.gz", scenario.scenario_id)
     if events:
-        note = 'Real events from the NASA CCMC DONKI catalog, used for the timing of scenarios.'
+        note = (
+            'Real events from the NASA CCMC DONKI catalog, replayed in scenarios. '
+            'The crew and their health readings in every scenario are simulated.'
+        )
     else:
         note = 'No real DONKI event is recorded: every scenario uses fictional timing.'
     return {
@@ -195,7 +263,7 @@ def build_space_weather(donki_dir: Path = DONKI_DIR, scenario_list: tuple = scen
         'source': 'NASA CCMC DONKI',
         'retrievedAt': max(retrieved) if retrieved else None,
         'note': note,
-        'events': events,
+        'events': list(events.values()),
     }
 
 

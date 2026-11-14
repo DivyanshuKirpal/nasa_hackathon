@@ -1,6 +1,7 @@
 import { usesBaseline } from './comparison.ts'
 import { INDICATOR_IDS, REGION_IDS } from './schemas.ts'
 import type {
+  Comparison,
   Condition,
   Environment,
   IndicatorDef,
@@ -37,6 +38,32 @@ function conditionsOf(condition: Condition): Condition[] {
   return [condition]
 }
 
+/**
+ * The evidence ladder (decision D19) as a data check: a rule that reads the
+ * model feed may only raise a watch alert that does not need the ground, so a
+ * model output can never raise an act alert or change a route. Its limit must
+ * come from the model file, never from a number typed in rules.json.
+ */
+function modelFeedProblems(rule: Rule, test: Comparison): string[] {
+  const problems: string[] = []
+  if (test.kind !== 'modelThreshold') {
+    problems.push(
+      `${rule.id}: a condition on the sep_risk feed must use a modelThreshold comparison, so no model number is typed in rules.json`,
+    )
+  }
+  if (rule.severity !== 'watch') {
+    problems.push(
+      `${rule.id}: a rule that reads the sep_risk model feed must be watch-level`,
+    )
+  }
+  if (rule.needsGround) {
+    problems.push(
+      `${rule.id}: a rule that reads the sep_risk model feed must not need the ground, so the model never changes a route`,
+    )
+  }
+  return problems
+}
+
 /** Problems in one rule's `when` tree (sections 11.2 and 11.6). */
 function conditionProblems(
   rule: Rule,
@@ -64,6 +91,9 @@ function conditionProblems(
         problems.push(
           `${rule.id}: baseline comparisons are not valid for context feeds`,
         )
+      }
+      if (condition.feed === 'sep_risk') {
+        problems.push(...modelFeedProblems(rule, test))
       }
       continue
     }

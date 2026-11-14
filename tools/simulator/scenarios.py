@@ -29,6 +29,9 @@ class Scenario:
     solar_event_today: bool = False
     # DONKI id of the real event this scenario takes its timing from, or None.
     donki_event_id: str | None = None
+    # Real DONKI flares replayed on the mission timeline (section 24.6):
+    # (DONKI flare id, days before the mission day, 'HH:MM' of the flare peak).
+    flares: tuple = ()
     expected_alerts: tuple = ()
 
 
@@ -74,10 +77,31 @@ SCENARIOS = (
         # before 09:00 UTC, and that DONKI links to an X-class flare peaking the day
         # before (X1.5, peak 2023-08-07T20:46Z), so A2 can add that flare.
         donki_event_id='2023-08-08T01:00:00-SEP-001',
+        # The X1.5 flare that DONKI links to that particle event, at 15:00 the day
+        # before. Its model outlook (R-RAD-03) is superseded by R-RAD-01.
+        flares=(('2023-08-07T20:30:00-FLR-001', 1, '15:00'),),
         expected_alerts=(
             ('c1', 'R-RAD-01'),
             ('c2', 'R-RAD-01'),
             ('c3', 'R-RAD-01'),
+        ),
+    ),
+    Scenario(
+        scenario_id='solar-flare-watch',
+        title='A large solar flare this morning: the model outlook',
+        mission_day=150,
+        # A Mars environment, so the delay slider can show that the route of a
+        # model outlook never changes (section 13.5).
+        environment_id='mars_transit',
+        # Picked by rule (section 24.6): the earliest X-class flare of the model's
+        # test years that is a positive under decision D22, that the model scores
+        # at or above its threshold, and that is not the solar-storm flare. The
+        # demo therefore shows a hit by construction; the golden test proves the alert.
+        flares=(('2023-08-05T21:45:00-FLR-001', 0, '07:30'),),
+        expected_alerts=(
+            ('c1', 'R-RAD-03'),
+            ('c2', 'R-RAD-03'),
+            ('c3', 'R-RAD-03'),
         ),
     ),
     Scenario(

@@ -103,6 +103,23 @@
       "escalateIf": "Anyone reports nausea or feels unwell during or after the event.",
       "reviewed": false,
       "sourceIds": ["radiation-nasa-ochmo"]
+    },
+    {
+      "id": "P-RAD-PREPARE",
+      "title": "Solar flare: get ready for a possible particle event",
+      "note": "Draft guidance, not reviewed. The six-hour re-check is illustrative. These steps prepare for an event that may not happen; they do not mean an event has started.",
+      "steps": [
+        { "text": "Tell the rest of the crew about the outlook." },
+        { "text": "Check where your shelter area is and how you get there." },
+        {
+          "text": "Plan to pause outside work and trips away from shelter until the outlook clears."
+        },
+        { "text": "Keep the radiation alerts in view." }
+      ],
+      "recheckAfterHours": 6,
+      "escalateIf": "A solar particle event begins, or a new large flare follows.",
+      "reviewed": false,
+      "sourceIds": ["radiation-nasa-ochmo"]
     }
   ]
 }

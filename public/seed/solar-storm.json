@@ -3400,8 +3400,10 @@
     {"day": 119, "cabin_co2": 2.1, "radiation_dose": 0.5, "solar_event": false},
     {"day": 120, "cabin_co2": 2.2, "radiation_dose": 0.5, "solar_event": true}
   ],
-  "spaceWeather": [],
-  "basedOn": "Timing from NASA DONKI solar particle event 2023-08-08T01:00:00-SEP-001 (2023-08-08T01:00Z)",
+  "spaceWeather": [
+    {"donkiId": "2023-08-07T20:30:00-FLR-001", "link": "https://ccmc.gsfc.nasa.gov/DONKI/view/FLR/26403/-1", "day": 119, "peakMs": 10249200000, "classType": "X1.5", "sourceLocation": "N11W90", "riseMin": 16, "durationMin": 48, "cme": {"speedKms": 1429, "halfAngleDeg": 45}}
+  ],
+  "basedOn": "Timing from NASA DONKI solar particle event 2023-08-08T01:00:00-SEP-001 (2023-08-08T01:00Z). Real solar flare from NASA DONKI: 2023-08-07T20:30:00-FLR-001, class X1.5, peak 2023-08-07T20:46Z, replayed on the mission timeline. The crew and their health readings are simulated.",
   "expectedAlerts": [
     {"crewId": "c1", "ruleId": "R-RAD-01"},
     {"crewId": "c2", "ruleId": "R-RAD-01"},

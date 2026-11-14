@@ -11,7 +11,9 @@ import {
   recheckName,
   withUnit,
 } from './format.ts'
+import { highestSepRisk, sepRiskScore, topFactors } from './models/sepRisk.ts'
 import { mean } from './stats.ts'
+import { formatTimeOfDay, missionDayOf } from './time.ts'
 import type {
   Baseline,
   Comparison,
@@ -19,9 +21,12 @@ import type {
   ContextFeedId,
   ContextSample,
   EvidenceItem,
+  FlareObservation,
   IndicatorDef,
   IndicatorId,
   MissionDay,
+  MissionMs,
+  SepRiskModel,
   SymptomReport,
 } from './types.ts'
 
@@ -37,6 +42,12 @@ export interface ConditionContext {
   symptoms: readonly SymptomReport[]
   context: readonly ContextSample[]
   modelThresholds: ModelThresholds
+  /** The sep_risk feed works on mission time, not on mission days (section 26.10). */
+  nowMs: MissionMs
+  /** Real DONKI flares placed in the scenario. */
+  spaceWeather: readonly FlareObservation[]
+  /** null means the model is not loaded: the sep_risk feed has no value. */
+  sepRiskModel: SepRiskModel | null
 }
 
 export interface ConditionResult {
@@ -219,8 +230,11 @@ const FEED_DISPLAY: Record<ContextFeedId, { label: string; unit: string }> = {
   cabin_co2: { label: 'Cabin CO2', unit: 'mmHg' },
   radiation_cumulative: { label: 'Radiation dose, mission total', unit: 'mSv' },
   solar_event: { label: 'Solar particle event', unit: '' },
-  sep_risk: { label: 'Solar flare risk (model estimate)', unit: '' },
+  sep_risk: { label: 'Experimental model score', unit: '' },
 }
+
+/** How many factors an alert shows with a model score (section 26.10). */
+const FACTOR_COUNT = 3
 
 /** The feed's value over the window, or null when there is none (section 11.2). */
 function feedValue(
@@ -246,8 +260,7 @@ function feedValue(
       if (recent.length === 0) return null
       return recent.some((sample) => sample.solar_event) ? 1 : 0
     case 'sep_risk':
-      // Inactive until milestone A2: the value needs the trained model and the
-      // scenario's real DONKI flares (section 26.10). No value means not met.
+      // A model feed on mission time: evaluateSepRisk handles it.
       return null
   }
 }
@@ -283,10 +296,60 @@ function contextEvidence(
   }
 }
 
+/**
+ * The model feed (section 26.10): the highest model output among the flares
+ * of the last `windowDays × 24` hours, compared with the model file's own
+ * threshold at full precision. The crew sees it as an experimental score from
+ * 0 to 100 with the model version, never as a probability. No model, or no
+ * flare in the window, means no value and the condition is not met.
+ */
+function evaluateSepRisk(
+  condition: ConditionOf<'context'>,
+  ctx: ConditionContext,
+): ConditionResult {
+  const model = ctx.sepRiskModel
+  const target = targetFor(condition.test, null, ctx.modelThresholds)
+  if (!model || target === null) return NOT_MET
+  const top = highestSepRisk(
+    model,
+    ctx.spaceWeather,
+    ctx.nowMs,
+    condition.windowDays,
+  )
+  if (!top) return NOT_MET
+  if (!compareTo(top.output, condition.test.op, target)) return NOT_MET
+  const { flare } = top
+  return {
+    met: true,
+    evidence: [
+      {
+        label: FEED_DISPLAY.sep_risk.label,
+        value: `${sepRiskScore(top.output)} out of 100`,
+        reference:
+          `Flare ${flare.classType} at ${flare.sourceLocation}, peak on day ` +
+          `${missionDayOf(flare.peakMs)} at ${formatTimeOfDay(flare.peakMs)}. ` +
+          `Alert level: ${describeCheck(condition.test.op, String(sepRiskScore(target)))} out of 100. ` +
+          `Model estimate from ${model.modelId} ${model.version}.`,
+        model: {
+          modelId: model.modelId,
+          version: model.version,
+          output: top.output,
+          threshold: target,
+          factors: topFactors(model, flare, FACTOR_COUNT).map(
+            (factor) => factor.text,
+          ),
+          flare: { donkiId: flare.donkiId, link: flare.link },
+        },
+      },
+    ],
+  }
+}
+
 function evaluateContext(
   condition: ConditionOf<'context'>,
   ctx: ConditionContext,
 ): ConditionResult {
+  if (condition.feed === 'sep_risk') return evaluateSepRisk(condition, ctx)
   // Context feeds have no personal baseline, so baseline comparisons never pass.
   const target = targetFor(condition.test, null, ctx.modelThresholds)
   if (target === null) return NOT_MET

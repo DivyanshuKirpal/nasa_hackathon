@@ -7,6 +7,7 @@ import type { RegionId } from '../../engine/index.ts'
 import { useAppStore } from '../../store/index.ts'
 import { selectEvaluation } from '../../store/selectors.ts'
 import { AlertList } from './AlertList.tsx'
+import { HistoricalNote } from './HistoricalNote.tsx'
 import { StatusList } from './StatusList.tsx'
 import { TodayCard } from './TodayCard.tsx'
 
@@ -28,6 +29,7 @@ export function HomePage() {
         <h1 className="text-2xl font-semibold">How you are doing today</h1>
         <StatusBadge status={evaluation.overall} />
       </div>
+      <HistoricalNote />
 
       {!hasReadings && (
         <Card title="Welcome">

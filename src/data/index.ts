@@ -4,11 +4,13 @@ import {
   protocolsFileSchema,
   regionsFileSchema,
   rulesFileSchema,
+  sepRiskModelFileSchema,
   sourcesFileSchema,
 } from '../engine/schemas.ts'
 import { findDataProblems, type HealthData } from '../engine/validateData.ts'
 import environmentsJson from './environments.json'
 import indicatorsJson from './indicators.json'
+import sepRiskModelJson from './models/sep-risk-v1.json'
 import protocolsJson from './protocols.json'
 import regionsJson from './regions.json'
 import rulesJson from './rules.json'
@@ -37,4 +39,20 @@ export const healthData: HealthData = {
 const problems = findDataProblems(healthData)
 if (problems.length > 0) {
   throw new Error(`Health data files are inconsistent:\n${problems.join('\n')}`)
+}
+
+/**
+ * The trained sep-risk model (section 26.9), written by ml/train_sep_risk.py
+ * and never edited by hand. A file that does not match its schema stops the
+ * app, like the other data files: a model must not half-load.
+ */
+export const sepRiskModel = sepRiskModelFileSchema.parse(sepRiskModelJson)
+
+const unknownModelSources = sepRiskModel.sourceIds.filter(
+  (id) => !healthData.sources.some((source) => source.id === id),
+)
+if (unknownModelSources.length > 0) {
+  throw new Error(
+    `The sep-risk model file names unknown sources: ${unknownModelSources.join(', ')}`,
+  )
 }

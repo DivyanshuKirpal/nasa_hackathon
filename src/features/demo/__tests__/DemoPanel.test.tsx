@@ -100,4 +100,61 @@ describe('presenter tools', () => {
       screen.getByRole('link', { name: 'Solar particle event in progress' }),
     ).toBeInTheDocument()
   })
+
+  it('marks the scenarios that replay real DONKI events, and only those', async () => {
+    const user = userEvent.setup()
+    loadScenario('sleep-debt')
+    renderApp('/')
+
+    await user.click(screen.getByRole('button', { name: 'Presenter tools' }))
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Presenter tools',
+    })
+    await within(dialog).findByText('A solar particle event starts today')
+    expect(dialog).toHaveTextContent(
+      'The crew members and their health readings are simulated in every scenario.',
+    )
+    const items = within(dialog).getAllByRole('listitem')
+    const marked = items
+      .filter((item) => within(item).queryByText('Historical solar event'))
+      .map((item) => item.querySelector('p')?.textContent)
+    expect(marked).toEqual([
+      'A solar particle event starts today',
+      'A large solar flare this morning: the model outlook',
+    ])
+    const storm = items.find((item) =>
+      item.textContent?.includes('A solar particle event starts today'),
+    )
+    expect(storm).toHaveTextContent(
+      'Timing from NASA DONKI solar particle event 2023-08-08T01:00:00-SEP-001',
+    )
+    expect(storm).toHaveTextContent(
+      'The crew and their health readings are simulated.',
+    )
+  })
+
+  it('loads the model outlook scenario and shows its watch alert on Home', async () => {
+    const user = userEvent.setup()
+    loadScenario('sleep-debt')
+    renderApp('/')
+
+    await user.click(screen.getByRole('button', { name: 'Presenter tools' }))
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Presenter tools',
+    })
+    await user.click(
+      await within(dialog).findByRole('button', {
+        name: 'Load scenario: A large solar flare this morning: the model outlook',
+      }),
+    )
+
+    await waitFor(() => expect(panel()).not.toBeInTheDocument())
+    expect(useAppStore.getState().mission.scenarioId).toBe('solar-flare-watch')
+    expect(
+      screen.getByRole('link', {
+        name: 'Solar flare outlook: possible particle event',
+      }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Historical solar event')).toBeInTheDocument()
+  })
 })

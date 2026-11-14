@@ -43,7 +43,7 @@ describe('content of the M1 data', () => {
     expect(healthData.regions).toHaveLength(7)
   })
 
-  it('has exactly the six P0 rules, each with a protocol', () => {
+  it('has exactly the six P0 rules and the model outlook, each with a protocol', () => {
     expect(healthData.rules.map((rule) => rule.id)).toEqual([
       'R-SLEEP-01',
       'R-TEMP-01',
@@ -51,10 +51,12 @@ describe('content of the M1 data', () => {
       'R-GLU-02',
       'R-CO2-01',
       'R-RAD-01',
+      'R-RAD-03',
     ])
     expect(healthData.protocols.map((protocol) => protocol.id).sort()).toEqual([
       'P-CO2-AIR',
       'P-GLU-LOW',
+      'P-RAD-PREPARE',
       'P-RAD-SHELTER',
       'P-SLEEP-HYGIENE',
       'P-TEMP-ACT',
@@ -75,6 +77,7 @@ describe('content of the M1 data', () => {
       'R-GLU-02': 'clinical-general',
       'R-CO2-01': 'nasa-standard',
       'R-RAD-01': 'illustrative',
+      'R-RAD-03': 'illustrative',
     })
   })
 
@@ -125,8 +128,42 @@ describe('content of the M1 data', () => {
     expect(elsewhere).toEqual([])
   })
 
-  it('has no rule that reads a model threshold yet (R-RAD-03 comes in A2)', () => {
-    expect(JSON.stringify(rulesJson)).not.toContain('modelThreshold')
+  it('only R-RAD-03 reads the model, and its condition holds no number of its own', () => {
+    const readers = healthData.rules.filter((rule) =>
+      JSON.stringify(rule.when).includes('sep_risk'),
+    )
+    expect(readers.map((rule) => rule.id)).toEqual(['R-RAD-03'])
+    // The threshold comes from the model file through modelThreshold
+    // (section 11.1): the only number here is the window in days.
+    expect(readers[0]?.when).toEqual({
+      type: 'context',
+      feed: 'sep_risk',
+      windowDays: 1,
+      test: { kind: 'modelThreshold', op: 'gte', model: 'sep-risk' },
+    })
+    expect(JSON.stringify(rulesJson).match(/modelThreshold/g)).toHaveLength(1)
+  })
+
+  it('keeps the model outlook at watch level, without the ground, under the event alert', () => {
+    const outlook = healthData.rules.find((rule) => rule.id === 'R-RAD-03')
+    const event = healthData.rules.find((rule) => rule.id === 'R-RAD-01')
+    expect(outlook?.severity).toBe('watch')
+    expect(outlook?.needsGround).toBe(false)
+    expect(outlook?.protocolId).toBe('P-RAD-PREPARE')
+    expect(outlook?.sourceIds).toEqual([
+      'donki',
+      'radiation-nasa-ochmo',
+      'sep-ml-inceoglu-2018',
+    ])
+    expect(event?.supersedes).toEqual(['R-RAD-03'])
+    // Wording (CLAUDE.md): a score, never a chance, a percent or "will".
+    const words = [
+      outlook?.title,
+      outlook?.explain.what,
+      outlook?.explain.whySpace,
+    ].join(' ')
+    expect(words).not.toMatch(/%|chance|probab|\bwill\b|predicts/i)
+    expect(words).toMatch(/possible/i)
   })
 
   it('keeps every source unverified and every protocol a draft until a person reviews them', () => {

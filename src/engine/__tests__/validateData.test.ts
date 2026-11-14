@@ -190,6 +190,50 @@ describe('findDataProblems', () => {
     ])
   })
 
+  it('keeps a rule on the model feed at watch level, without the ground, and without a typed number', () => {
+    const modelTest = {
+      kind: 'modelThreshold',
+      op: 'gte',
+      model: 'sep-risk',
+    } as const
+    const onFeed = (test: Condition & { type: 'context' }) => test
+    const act = testRule({
+      id: 'R-RISK-04',
+      severity: 'act',
+      when: onFeed({
+        type: 'context',
+        feed: 'sep_risk',
+        windowDays: 1,
+        test: modelTest,
+      }),
+    })
+    const needsGround = testRule({
+      id: 'R-RISK-05',
+      needsGround: true,
+      when: {
+        type: 'all',
+        of: [
+          SLEEP_LOW,
+          { type: 'context', feed: 'sep_risk', windowDays: 1, test: modelTest },
+        ],
+      },
+    })
+    const typedNumber = testRule({
+      id: 'R-RISK-06',
+      when: {
+        type: 'context',
+        feed: 'sep_risk',
+        windowDays: 1,
+        test: { kind: 'absolute', op: 'gte', value: 0.5 },
+      },
+    })
+    expect(findDataProblems(data([act, needsGround, typedNumber]))).toEqual([
+      'R-RISK-04: a rule that reads the sep_risk model feed must be watch-level',
+      'R-RISK-05: a rule that reads the sep_risk model feed must not need the ground, so the model never changes a route',
+      'R-RISK-06: a condition on the sep_risk feed must use a modelThreshold comparison, so no model number is typed in rules.json',
+    ])
+  })
+
   it('rejects baseline comparisons on context feeds', () => {
     const rule = testRule({
       id: 'R-CTX-01',

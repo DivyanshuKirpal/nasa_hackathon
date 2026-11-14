@@ -1,6 +1,8 @@
 import { Card } from '../../components/Card.tsx'
+import { Tag } from '../../components/Tag.tsx'
 import type { Alert, Evaluation } from '../../engine/index.ts'
 import { missingDataText } from '../../lib/alerts.ts'
+import { ModelEvidenceDetails } from './ModelEvidenceDetails.tsx'
 
 /** Section 2 of the alert screen: the evidence, and what is missing. */
 export function WhatChanged({
@@ -18,7 +20,15 @@ export function WhatChanged({
           <li key={`${item.label}:${item.value}`}>
             <span className="font-semibold">{item.label}:</span>{' '}
             <span className="text-xl font-semibold">{item.value}</span>
+            {/* A model output never appears without its tag (CLAUDE.md). */}
+            {item.model && (
+              <>
+                {' '}
+                <Tag>Model estimate</Tag>
+              </>
+            )}
             <span className="block text-slate-700">{item.reference}</span>
+            {item.model && <ModelEvidenceDetails model={item.model} />}
           </li>
         ))}
       </ul>
