@@ -242,7 +242,8 @@ Install every npm package above in M0, so versions are pinned at scaffold time e
 ├── index.html
 ├── package.json
 ├── vite.config.ts
-├── tsconfig.json
+├── tsconfig.json                 References tsconfig.app.json (app code, no Node types),
+│                                 tsconfig.test.json (tests, may read files) and tsconfig.node.json
 ├── eslint.config.js              Includes the import boundaries listed below
 ├── .gitignore                    node_modules, dist, coverage, .env*, .venv, ml/data/raw/physionet/
 ├── .gitattributes                LF line endings for text files on every operating system
@@ -418,6 +419,7 @@ export interface Reading {
   day: MissionDay;
   atMs: MissionMs;
   origin: "seed" | "manual" | "in_app_test";
+  purpose?: "routine" | "recheck";   // absent means routine; a re-check never enters a baseline (section 10)
 }
 
 export interface SymptomReport {
@@ -713,7 +715,8 @@ Why rolling: in-flight normals drift slowly as the body adapts. A rolling window
 Edge cases:
 
 - Baseline not ready: baseline-relative conditions evaluate to false, absolute conditions still run, and the UI shows "Learning your normal (n of 7)" (or "n of 3" for weekly indicators).
-- More than one reading per day: use the last reading of the day for baseline and streak logic.
+- More than one reading per day: use the last routine reading of the day for baseline and streak logic.
+- Urgent re-checks (`purpose: "recheck"`, for example a blood sugar re-check 15 minutes after an alert, which is not a fasting value) never enter a baseline, a streak, an average or the overdue list, and never replace the day's routine reading. They do count for `latest` conditions, so a re-check can confirm or clear an alert.
 - The chart band is `center ± 2 × spread`.
 
 ---
@@ -1745,6 +1748,14 @@ Python 3, standard library only, in `tools/simulator/`. Output is committed to `
 
 The generator also writes `public/seed/index.json`, a list of `{ scenarioId, title, environmentId, missionDay }` that the demo panel reads. Scenario files never contain body view data.
 
+As built in M2 (14 November 2026):
+
+- `index.json` wraps the list: `{ schemaVersion, simulated, defaultScenarioId, scenarios: [...] }`.
+- Seed histories run to the day before `missionDay`, so the crew member still has today's check-in to do. A scenario adds readings for today only where its story needs them (`low-glucose`). The habitat context always includes today.
+- Each scenario has its own named random stream (`seed:scenarioId`), so adding a scenario never changes the others. Files are written with one reading per line and LF line endings, byte-identical on every run.
+- A reading may carry `purpose: "recheck"` (an urgent repeat measurement asked for by an action card). Absent means routine. Seed files contain routine readings only.
+- `public/data/space-weather.json` lists only real DONKI events and says so when there are none. The generator refuses to name a DONKI event that is not in `ml/data/raw/donki/`.
+
 ### 24.2 Model
 
 For each crew member and indicator, a daily value is `personal mean + adaptation drift(day) + noise + scenario effect`.
@@ -2439,7 +2450,7 @@ Build:
 4. `ml/fetch_donki.py` (standard library only, section 25): fetch FLR, CME and SEP records from 2010 to now into `ml/data/raw/donki/`, with `meta.json`. Time-box the address search to 20 minutes, then use the fallback in section 25 and tell Divyanshu immediately.
 5. `solar-storm` takes its timing from one real DONKI particle event; `basedOn` names it, and `public/data/space-weather.json` lists it. Its `environmentId` is `leo_station` (section 14).
 
-DONKI access check (read-only, during M0 on 14 November 2026): both CCMC addresses resolved but did not accept connections from the team's network, and `api.nasa.gov` answered 429 (rate limited) for `DEMO_KEY`. Before M2, Divyanshu chooses: try again or from another network, use a personal api.nasa.gov key kept out of git, or use the hand-entered fallback in section 25.
+DONKI status after M2 (14 November 2026, 20:04 to 20:08): **not retrieved; this part of M2 is not met.** Every CCMC host (`ccmc`, `kauai`, `webtools`, `iswa`) refused or timed out, from the team's network and from an outside fetch service alike, so the servers themselves were not answering. `api.nasa.gov` refused the shared `DEMO_KEY` (HTTP 429, retry after about 9 hours). The hand-entered fallback of section 25 was not possible either: the DONKI website is on the same hosts, and no event is ever typed from memory. Consequences: `solar-storm` uses fictional timing with `basedOn: null`; `public/data/space-weather.json` lists no event; `ml/data/raw/donki/` does not exist; **A1 is blocked** until the download succeeds. `ml/fetch_donki.py` is ready: it reads a personal key from the `NASA_API_KEY` environment variable (set privately in a terminal, never printed, never written to `meta.json`), is resumable, and records which address worked. When the data arrives, set `donki_event_id` for `solar-storm` in `tools/simulator/scenarios.py` to a real SEP record that starts before 09:00 UTC, and regenerate.
 
 Tests:
 
@@ -2899,7 +2910,7 @@ Other requirements noted in that guide: everything in English, AI-generated imag
 20. Record the PhysioNet license and its citation request before A4 (section 26.19). Deferred with A4.
 21. Decided on 14 November 2026: option B. The 3D viewer (B2, B3) stays and the Earth hospital model (A4) is deferred. Chirag is told through `docs/body-model-handoff.md`.
 22. Decide whether to add NASA RadLab dose data (real ISS dosimetry) for the radiation context; it is P2 for now.
-23. DONKI access, before M2: in the read-only check during M0 the CCMC addresses did not accept connections from the team's network and `api.nasa.gov` answered 429 for `DEMO_KEY`. Options: try again or from another network, a personal api.nasa.gov key kept out of git, or the hand-entered fallback (section 25).
+23. DONKI access: still open after M2 and a blocker for A1 (section 31.4). The CCMC servers did not answer from anywhere on 14 November, and `DEMO_KEY` was rate limited. Next step: Divyanshu gets a personal api.nasa.gov key, sets `NASA_API_KEY` privately in his terminal and runs `ml/fetch_donki.py`; or retry when the CCMC servers answer again.
 
 ---
 

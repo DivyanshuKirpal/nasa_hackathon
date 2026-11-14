@@ -26,6 +26,15 @@ npm run preview    # serve the production build
 
 Other scripts: `npm run test:watch`, `npm run format` (Prettier).
 
+Offline tools (Python 3, standard library; on Windows use `py` instead of `python`):
+
+```
+python tools/simulator/generate.py --all --seed 42    # regenerate public/seed/*.json
+python -m unittest discover -s tools/tests
+python -m unittest discover -s ml/tests
+python ml/fetch_donki.py --start 2010-01-01           # NASA DONKI download (see its header for the API key)
+```
+
 ## Documents
 
 - [ARCHITECTURE.md](ARCHITECTURE.md): the design, the milestones and the cut list

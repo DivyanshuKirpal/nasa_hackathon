@@ -2,10 +2,16 @@
 
 One entry per milestone, newest first (ARCHITECTURE.md section 30.4). Targets are in section 31.1.
 
-## M2 Seed data and DONKI cache (awaiting Divyanshu's approval)
-- Not started. Starts only after Divyanshu approves.
-- To record at the start of M2: the hash of the M1 commit and its deployment check.
-- Open before M2: how to reach DONKI (section 34, item 23); the CCMC servers and NTRS were unreachable from the team's network on 14 November.
+## M2 Seed data and DONKI cache (started Sat 20:04, closed Sat 20:20: seed part done, DONKI part NOT met)
+- M1 close recorded: commit 09f9cee pushed to `main`. Deployment confirmed at 20:05 from Vercel's own commit status on GitHub: state "success", "Deployment has completed" (the same record exists for M0's 556edb5). This is a commit-to-deployment record, not an inference from identical files.
+- Built: `tools/simulator/` (`model.py`, `scenarios.py`, `generate.py`; standard library, seed 42, three fictional crew members), six scenarios in `public/seed/` (`baseline-healthy`, `sleep-debt`, `solar-storm`, `fever`, `low-glucose`, `early-mission`) with `index.json`, `public/data/space-weather.json`, Zod schemas for the scenario, index and space weather files, and `ml/fetch_donki.py` (standard library; resumable; key only from the `NASA_API_KEY` environment variable, never printed or written to `meta.json`).
+- Engine: readings may carry `purpose: "recheck"`. Urgent re-checks count for "latest" rules but never enter a baseline, streak, average or the overdue list, and never replace the day's routine reading (needed before any re-check entry exists).
+- Tests: `npm run check` green, 209 tests in 15 files, including golden tests (every scenario gives exactly its expected alerts at 09:00 on its mission day, for every crew member) and the re-check rules. Python: 20 simulator tests and 9 downloader tests pass. Determinism: three runs with seed 42 gave byte-identical files.
+- **DONKI: not retrieved.** Investigated 20:04 to 20:08, inside the 20-minute limit. Every CCMC host refused or timed out, from the team's network and from an outside fetch service; `api.nasa.gov` refused the shared `DEMO_KEY` (retry after about 9 hours). The hand-entered fallback was not possible: the DONKI website is on the same hosts, and no event is typed from memory. So `solar-storm` uses fictional timing (`basedOn: null`), `space-weather.json` lists no event, and no `ml/data/raw/donki/` exists. The M2 exit test's DONKI half ("raw files and meta.json committed") is NOT passed.
+- **Blocker for A1:** no training data. Needs a personal api.nasa.gov key set privately as `NASA_API_KEY`, or the CCMC servers answering again, then `py ml/fetch_donki.py --start 2010-01-01`.
+- Tooling: tests now have their own `tsconfig.test.json` (Node types for reading generated files); app code is still checked without Node types.
+- Manual check for Divyanshu: open `public/seed/sleep-debt.json` and see `"simulated": true`, the fictional crew names and `expectedAlerts`.
+- Next: M3 (approved).
 
 ## M1 Engine core (started Sat 18:08, done Sat 19:23)
 - M0 close recorded: commit 556edb5 pushed to `main`; https://void-shifters.vercel.app/ served its build within about 30 seconds (HTTP 200, asset files identical to the local build of 556edb5, shell text present in the deployed bundle). Re-checked at 18:08: still serving that build.

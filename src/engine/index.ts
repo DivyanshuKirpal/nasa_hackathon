@@ -1,7 +1,9 @@
 import {
   computeBaseline,
   lastReadingPerDay,
+  latestReading,
   type DailyValue,
+  type LatestValue,
 } from './baseline.ts'
 import type { ConditionContext } from './conditions.ts'
 import { evaluateRules } from './rules.ts'
@@ -24,7 +26,12 @@ import type {
 export * from './types.ts'
 export { triage } from './triage.ts'
 export { MS_PER_DAY, missionDayOf } from './time.ts'
-export { BASELINE_WINDOWS } from './baseline.ts'
+export {
+  BASELINE_WINDOWS,
+  isRecheck,
+  lastReadingPerDay,
+  latestReading,
+} from './baseline.ts'
 export { CONTEXT_FEED_REGION, DAILY_CONTEXT_FEEDS } from './status.ts'
 export { findDataProblems, type HealthData } from './validateData.ts'
 
@@ -45,11 +52,14 @@ export function evaluate(input: EvaluationInput): Evaluation {
 
   const indicators = new Map<IndicatorId, IndicatorDef>()
   const dailyValues = new Map<IndicatorId, DailyValue[]>()
+  const latest = new Map<IndicatorId, LatestValue>()
   const baselines: Partial<Record<IndicatorId, Baseline>> = {}
   for (const def of input.indicators) {
     const values = lastReadingPerDay(readings, def.id)
     indicators.set(def.id, def)
     dailyValues.set(def.id, values)
+    const newest = latestReading(readings, def.id)
+    if (newest) latest.set(def.id, newest)
     baselines[def.id] = computeBaseline(values, def, today)
   }
 
@@ -57,6 +67,7 @@ export function evaluate(input: EvaluationInput): Evaluation {
     today,
     indicators,
     dailyValues,
+    latest,
     baselines,
     symptoms,
     context,

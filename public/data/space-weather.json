@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "source": "NASA CCMC DONKI",
+  "retrievedAt": null,
+  "note": "No real DONKI event is recorded yet. No DONKI address answered when the scenarios were generated, so every scenario uses fictional timing.",
+  "events": []
+}

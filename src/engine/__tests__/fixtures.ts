@@ -1,4 +1,9 @@
-import { lastReadingPerDay, computeBaseline } from '../baseline.ts'
+import {
+  computeBaseline,
+  lastReadingPerDay,
+  latestReading,
+  type LatestValue,
+} from '../baseline.ts'
 import type { ConditionContext } from '../conditions.ts'
 import { MS_PER_DAY } from '../time.ts'
 import type {
@@ -74,7 +79,7 @@ export function reading(
   indicatorId: IndicatorId,
   day: number,
   value: number,
-  options: { crewId?: string; hour?: number } = {},
+  options: { crewId?: string; hour?: number; recheck?: boolean } = {},
 ): Reading {
   return {
     crewId: options.crewId ?? 'c1',
@@ -83,6 +88,7 @@ export function reading(
     day,
     atMs: (day - 1) * MS_PER_DAY + (options.hour ?? 8) * HOUR_MS,
     origin: 'seed',
+    ...(options.recheck ? { purpose: 'recheck' as const } : {}),
   }
 }
 
@@ -152,8 +158,11 @@ export function makeContext(
       lastReadingPerDay(input.readings ?? [], def.id),
     ]),
   )
+  const latest = new Map<IndicatorId, LatestValue>()
   const baselines: Partial<Record<IndicatorId, Baseline>> = {}
   for (const def of defs) {
+    const newest = latestReading(input.readings ?? [], def.id)
+    if (newest) latest.set(def.id, newest)
     baselines[def.id] = computeBaseline(
       dailyValues.get(def.id) ?? [],
       def,
@@ -164,6 +173,7 @@ export function makeContext(
     today,
     indicators,
     dailyValues,
+    latest,
     baselines,
     symptoms: input.symptoms ?? [],
     context: input.context ?? [],

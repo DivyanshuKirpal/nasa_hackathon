@@ -12,6 +12,8 @@ The Space Apps rules ask teams to acknowledge AI-generated code, data, images an
 | 14 Nov 2026 | Claude Code (model Claude Opus 5.5) | M1: the health engine (schemas, baseline, conditions, rules, triage, status), its tests, and the data files. Copied from ARCHITECTURE.md: the indicators, regions, environments, sources and six P0 rules. Drafted by Claude Code, for team review: the `howToMeasure` texts, the `explain` texts of five rules and four protocols | `src/engine/`, `src/data/`, `eslint.config.js` |
 | 14 Nov 2026 | Claude Code (model Claude Opus 5.5) | Source check: fetched the primary papers behind questionable registry entries (Europe PMC, PubMed Central, a web fetch service) and quoted the supporting passages. Corrections are proposed for a person to confirm, not applied | `docs/source-review.md` |
 
+| 14 Nov 2026 | Claude Code (model Claude Fable 5.2) | M2: the seed simulator and its tests, the DONKI downloader, the scenario schemas and golden tests. The scenario files are simulated data produced by this AI-written generator (fictional crew and values, labeled "simulated") | `tools/simulator/`, `tools/tests/`, `ml/fetch_donki.py`, `ml/tests/`, `public/seed/`, `public/data/space-weather.json`, `src/engine/`, `src/data/__tests__/` |
+
 ## AI inside the product
 
 Planned, not built yet. Each model gets a line here and a model card when it is built (ARCHITECTURE.md section 26):

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "simulated": true,
+  "defaultScenarioId": "sleep-debt",
+  "scenarios": [
+    {
+      "scenarioId": "baseline-healthy",
+      "title": "An ordinary day: nothing unusual",
+      "environmentId": "lunar_surface",
+      "missionDay": 90
+    },
+    {
+      "scenarioId": "sleep-debt",
+      "title": "Sleep debt building over five nights",
+      "environmentId": "mars_transit",
+      "missionDay": 142
+    },
+    {
+      "scenarioId": "solar-storm",
+      "title": "A solar particle event starts today",
+      "environmentId": "leo_station",
+      "missionDay": 120
+    },
+    {
+      "scenarioId": "fever",
+      "title": "Temperature climbing over two days",
+      "environmentId": "mars_surface",
+      "missionDay": 100
+    },
+    {
+      "scenarioId": "low-glucose",
+      "title": "One low fasting blood sugar reading today",
+      "environmentId": "mars_transit",
+      "missionDay": 75
+    },
+    {
+      "scenarioId": "early-mission",
+      "title": "Mission day 4: still learning your normal",
+      "environmentId": "leo_station",
+      "missionDay": 4
+    }
+  ]
+}

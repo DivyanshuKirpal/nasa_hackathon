@@ -29,14 +29,51 @@ export interface DailyValue {
   value: number
 }
 
-/** With several readings on one day, the last one of the day counts (section 10). */
+export function isRecheck(reading: Reading): boolean {
+  return reading.purpose === 'recheck'
+}
+
+/** The newest reading of an indicator, urgent re-checks included. */
+export interface LatestValue extends DailyValue {
+  recheck: boolean
+}
+
+/**
+ * "Latest" for alert rules: the newest reading by time, routine or re-check,
+ * so a re-check can confirm or clear an alert. With equal times the reading
+ * entered later wins.
+ */
+export function latestReading(
+  readings: readonly Reading[],
+  indicator: IndicatorId,
+): LatestValue | null {
+  let newest: Reading | null = null
+  for (const reading of readings) {
+    if (reading.indicator !== indicator) continue
+    if (!newest || reading.atMs >= newest.atMs) newest = reading
+  }
+  if (!newest) return null
+  return {
+    day: newest.day,
+    atMs: newest.atMs,
+    value: newest.value,
+    recheck: isRecheck(newest),
+  }
+}
+
+/**
+ * One routine value per day: with several routine readings on one day, the
+ * last one counts (section 10). Urgent re-checks are left out, so they never
+ * enter a baseline, a streak or an average, and never replace the day's
+ * routine reading (a blood sugar re-check is not a fasting value).
+ */
 export function lastReadingPerDay(
   readings: readonly Reading[],
   indicator: IndicatorId,
 ): DailyValue[] {
   const byDay = new Map<MissionDay, DailyValue>()
   for (const reading of readings) {
-    if (reading.indicator !== indicator) continue
+    if (reading.indicator !== indicator || isRecheck(reading)) continue
     const current = byDay.get(reading.day)
     if (!current || reading.atMs >= current.atMs) {
       byDay.set(reading.day, {

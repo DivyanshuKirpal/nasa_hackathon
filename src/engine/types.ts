@@ -30,6 +30,8 @@ export type LinkState = z.infer<typeof schemas.linkStateSchema>
 export type FlareObservation = z.infer<typeof schemas.flareObservationSchema>
 export type SepRiskFeature = z.infer<typeof schemas.sepRiskFeatureSchema>
 export type SepRiskModel = z.infer<typeof schemas.sepRiskModelSchema>
+export type ScenarioFile = z.infer<typeof schemas.scenarioFileSchema>
+export type ScenarioIndex = z.infer<typeof schemas.scenarioIndexSchema>
 
 export type Status = 'good' | 'watch' | 'act' | 'no_data'
 export type Route = 'self_care' | 'consult_ground' | 'act_on_board'

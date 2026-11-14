@@ -1,4 +1,4 @@
-import type { DailyValue } from './baseline.ts'
+import type { DailyValue, LatestValue } from './baseline.ts'
 import {
   compareTo,
   describeCheck,
@@ -24,7 +24,10 @@ import type {
 export interface ConditionContext {
   today: MissionDay
   indicators: ReadonlyMap<IndicatorId, IndicatorDef>
+  /** Routine readings, one per day; urgent re-checks are not in here. */
   dailyValues: ReadonlyMap<IndicatorId, readonly DailyValue[]>
+  /** The newest reading of each indicator, urgent re-checks included. */
+  latest: ReadonlyMap<IndicatorId, LatestValue>
   baselines: Partial<Record<IndicatorId, Baseline>>
   symptoms: readonly SymptomReport[]
   context: readonly ContextSample[]
@@ -93,7 +96,7 @@ function evaluateLatest(
 ): ConditionResult {
   const inputs = indicatorInputs(condition.indicator, condition.test, ctx)
   if (!inputs) return NOT_MET
-  const latest = inputs.values.at(-1)
+  const latest = ctx.latest.get(condition.indicator)
   if (!latest) return NOT_MET
   if (
     condition.maxAgeDays !== undefined &&
@@ -106,7 +109,9 @@ function evaluateLatest(
     met: true,
     evidence: [
       {
-        label: `${inputs.def.label}, latest`,
+        label: latest.recheck
+          ? `${inputs.def.label}, latest re-check`
+          : `${inputs.def.label}, latest`,
         value: `${formatReading(latest.value, inputs.def)} on day ${latest.day}`,
         reference: reference(
           inputs.def,
