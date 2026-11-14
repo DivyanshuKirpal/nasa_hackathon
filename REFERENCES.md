@@ -2,23 +2,60 @@
 
 Every data source, paper, library, tool and asset used in the project, with its URL. NASA items come first. Versions and licences of libraries are read from each installed package's own `package.json`.
 
+The sources below are the evidence registry, `src/data/sources.json` (ARCHITECTURE.md section 17), listed as they stand. None is verified yet: `verified` stays false until a team member has checked the relevant claim. The M1 source check and its applied corrections are in `docs/source-review.md`.
+
 ## NASA
 
-To be added: the NASA sources from the evidence registry (milestone M1, ARCHITECTURE.md section 17) and the NASA DONKI space weather data, credited to NASA's Community Coordinated Modeling Center (CCMC) (milestone M2).
-
-- Challenge page: Create Health Monitoring Software for Astronauts on Space Missions, NASA Space Apps Challenge 2026. https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/
+- 5 Hazards of Human Spaceflight. NASA Human Research Program. https://www.nasa.gov/hrp/hazards (`hrp-hazards`)
+- Risks of Human Spaceflight. NASA Human Research Program. https://www.nasa.gov/hrp/risks (`hrp-risks`)
+- Radiation Protection technical brief (NASA-STD-3001). NASA OCHMO. https://www.nasa.gov/wp-content/uploads/2023/03/radiation-protection-technical-brief-ochmo.pdf (`radiation-nasa-ochmo`)
+- Carbon Dioxide technical brief OCHMO-TB-004. NASA OCHMO. https://www.nasa.gov/ochmo-tb-004-carbon-dioxide-2/ (`co2-nasa-ochmo`)
+- Impact of Sleep Shifting Strategies on the ISS. NASA NTRS, 2024. https://ntrs.nasa.gov/citations/20240002094 (`sleep-nasa-ntrs-2024`)
+- Astronaut exercise research on the station. NASA. https://www.nasa.gov/missions/station/iss-research/astronaut-exercise (`exercise-nasa`)
+- An Evidence-Based Approach To Exercise Prescriptions on ISS. NASA NTRS, 2009. https://ntrs.nasa.gov/api/citations/20090013286/downloads/20090013286.pdf (`exercise-nasa-ntrs-2009`)
+- SANS: 2023 Clinical Update. NASA NTRS, 2023. https://ntrs.nasa.gov/citations/20220014606 (`sans-nasa-2023`)
+- Ensuring Astronaut Health (Cardiovascular and Vision Laboratory). NASA. https://www.nasa.gov/?p=207552 (`fluid-shift-nasa`)
+- Human Health and Performance (Moon to Mars Architecture). NASA NTRS, 2023. https://ntrs.nasa.gov/api/citations/20230015521/downloads/Human%20Health%20and%20Performance.pdf (`delay-nasa-m2m-2023`)
+- Recommendation for a Medical System Concept of Operations for Gateway Missions (NASA HRP-48012). NASA Human Research Program, NTRS 20200001341, page 17. https://ntrs.nasa.gov/api/citations/20200001341/downloads/20200001341.pdf#page=17 (`gateway-medical-conops`; excerpt supplied during review, not yet checked directly)
+- NASA technical report 20170011337 on operations under communication time delay (confirm exact title). NASA NTRS, 2017. https://ntrs.nasa.gov/api/citations/20170011337/downloads/20170011337.pdf (`delay-nasa-timedelay-2017`)
+- Development of Medical Capabilities and Technologies (decadal topical paper). NASA NTRS, 2021. https://ntrs.nasa.gov/api/citations/20210023828/downloads/Decadal%20Topical%20-%20Development%20of%20Medical%20Capabilities%20and%20Technologies_New%20Graphic.docx.pdf (`autonomy-nasa-exmc-2021`)
+- Space Weather Database Of Notifications, Knowledge, Information (DONKI). NASA Community Coordinated Modeling Center (CCMC). https://ccmc.gsfc.nasa.gov/tools/DONKI (`donki`). DONKI data itself is fetched and credited in milestone M2.
+- Create Health Monitoring Software for Astronauts on Space Missions, challenge page. NASA Space Apps Challenge 2026. https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/ (`spaceapps-challenge`)
+- Anthropometric Measurement Procedures at the Anthropometry and Biomechanics Facility. NASA NTRS, 2024. https://ntrs.nasa.gov/citations/20240002694 (`anthropometry-nasa-ntrs-2024`)
+- Winners of NASA HRP's Artemis II Data Methodology Challenge. NASA Human Research Program. https://www.nasa.gov/hrp/winners-of-nasa-hrps-artemis-ii-data-methodology-challenge/ (`hrp-artemis2-data-challenge`)
+- Inspiration4 mission datasets on NASA OSDR (confirm the exact title). NASA Open Science Data Repository. https://www.nasa.gov/osdr-latest-news-i4-mission-datasets/ (`osdr-i4-nasa`)
+- Inspiration4 Mission: Commercial Astronaut Data Now Available on OSDR. NASA. https://www.nasa.gov/?p=729457 (`osdr-i4-access`)
+- Why We Do What We Do: Data Reuse, Open Access, and Privacy in Data Management at the Life Sciences Data Archive. NASA NTRS, 2024. https://ntrs.nasa.gov/citations/20240012051 (`lsda-privacy-ntrs-2024`)
+- Ongoing HRP Research in Space. NASA Human Research Program. https://www.nasa.gov/hrp/ongoing-hrp-research/ (`hrp-ongoing-research`)
 
 ## Other space agencies
 
-To be added in M1: the two Canadian Space Agency articles from the challenge's Resources tab (see `docs/challenge-resources.md`) and the CSA Bio-Monitor page.
+- Bio-Monitor: Keeping an eye on astronauts' vital signs. Canadian Space Agency. https://www.asc-csa.gc.ca/eng/sciences/bio-monitor.asp (`biomonitor-csa`)
+- Monitoring Radiation for Astronaut Health. Canadian Space Agency, 2026. https://www.asc-csa.gc.ca/eng/news/articles/2026/2026-02-26-monitoring-radiation-astronaut-health.asp (`csa-radiation-monitoring-2026`)
+- Why Do We Conduct Science Experiments in Space? Canadian Space Agency. https://www.asc-csa.gc.ca/eng/iss/science/why-do-we-conduct-science-experiments-in-space.asp (`csa-why-science`)
 
 ## Papers
 
-To be added in M1 with the evidence registry.
+- Barger LK, et al. Prevalence of sleep deficiency and use of hypnotic drugs in astronauts before, during, and after spaceflight: an observational study. The Lancet Neurology, 2014. https://pmc.ncbi.nlm.nih.gov/articles/PMC4188436/ (`sleep-barger-2014`)
+- Systematic review and meta-analysis of bone loss in space travelers. npj Microgravity, 2020. https://pmc.ncbi.nlm.nih.gov/articles/PMC7200725 (`bone-meta-2020`)
+- Increased core body temperature in astronauts during long-duration space missions. Scientific Reports, 2017. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5701078/ (`temp-stahn-2017`)
+- Norsk P, et al. Fluid shifts, vasodilatation and ambulatory blood pressure reduction during long duration spaceflight. The Journal of Physiology, 2015. https://pmc.ncbi.nlm.nih.gov/articles/PMC4324706/ (`bp-norsk-2015`)
+- Mathyk BA, et al. Spaceflight induces changes in gene expression profiles linked to insulin and estrogen. Communications Biology, 2024. https://doi.org/10.1038/s42003-023-05213-2 (`insulin-commsbio-2024`)
+- American Diabetes Association Professional Practice Committee. 6. Glycemic Goals and Hypoglycemia: Standards of Care in Diabetes—2025. Diabetes Care, 2025 (clinical practice guideline). https://pmc.ncbi.nlm.nih.gov/articles/PMC11635034/ (`hypoglycemia-ada-2025`)
+- Immune System Dysregulation and Herpesvirus Reactivation Persist During Long-Duration Spaceflight. (find journal). https://core.ac.uk/works/15261213 (`immune-herpes-iss`)
+- Latent virus reactivation in astronauts on the International Space Station. npj Microgravity, 2017. https://doaj.org/article/f32947e92776479e9e3b840364e87d36 (`immune-mehta-2017`)
+- Using Machine Learning Methods to Forecast If Solar Flares Will Be Associated with CMEs and SEPs. The Astrophysical Journal (arXiv version linked; confirm the journal reference), 2018. https://arxiv.org/abs/1806.07117 (`sep-ml-inceoglu-2018`)
+- Analysis of SEP events and their possible precursors based on the GSEP Catalog. The Astrophysical Journal Supplement Series (arXiv version linked; confirm), 2023. https://arxiv.org/abs/2306.11318 (`sep-gsep-2023`)
+- Early Prediction of Sepsis From Clinical Data: The PhysioNet/Computing in Cardiology Challenge 2019. Critical Care Medicine, 2020. https://pubmed.ncbi.nlm.nih.gov/31939789/ (`sepsis-ccm-2020`; for the Earth hospital model, deferred)
+
+## Other references
+
+- Deltoid, Musculoskeletal Atlas. University of Washington, Department of Radiology. https://rad.uw.edu/muscle-atlas/deltoid (`deltoid-uw-atlas`)
 
 ## Data
 
-To be added in M2 (NASA DONKI). No data is used yet.
+- No data is used yet. NASA DONKI is fetched in milestone M2.
+- PhysioNet/Computing in Cardiology Challenge 2019 dataset, version 1.0.0. https://physionet.org/content/challenge-2019/1.0.0/ (`physionet-sepsis-2019`). Listed in the registry for the Earth hospital model, which is deferred; not downloaded or used.
 
 ## Libraries
 

@@ -363,8 +363,8 @@ Install every npm package above in M0, so versions are pinned at scaffold time e
 
 Import rules:
 
-- `src/engine/**` imports nothing outside `src/engine/**` except Zod.
-- `src/bodyview/**` imports nothing outside `src/bodyview/**` except Zod.
+- `src/engine/**` imports nothing outside `src/engine/**` except Zod (its tests may also import Vitest).
+- `src/bodyview/**` imports nothing outside `src/bodyview/**` except Zod (its tests may also import Vitest).
 - `src/engine/**` and `src/bodyview/**` never import each other (decision D11).
 - `three` is imported only in `src/features/body/viewer/**`.
 - `src/store/**` may import `engine`, `bodyview`, `clock`, `link`, `lib` and `data`.
@@ -513,6 +513,7 @@ export interface EvidenceItem {
 export interface Protocol {
   id: string;                    // "P-SLEEP-HYGIENE"
   title: string;
+  note: string;                  // why it is a draft, which timings are illustrative; shown with the draft tag
   steps: { text: string; detail?: string }[];
   recheckAfterHours: number | null;
   escalateIf: string;            // plain words
@@ -575,6 +576,14 @@ export interface Evaluation {
 
 `evaluate(input: EvaluationInput): Evaluation` in `src/engine/index.ts` is the only function the rest of the app needs from the engine.
 
+As built in M1 (14 November 2026):
+
+- `Baseline` is a union: `{ ready: false; n; needed }` while learning (so the UI can say "Learning your normal (n of 7)"), or `{ ready: true; n; center; spread; fromDay; toDay }`, where `fromDay` and `toDay` are the window bounds.
+- `Evaluation.baselines` is keyed by the indicators passed in. `EvaluationInput.models` holds only `sepRisk` until A3 adds the second-opinion models, and `Evaluation` gains `insights` and `patternReadiness` in A3.
+- `Evaluation` also reports missing data, separately from the status: `missingFeeds` (the daily habitat feeds with no sample for today) and `regionGaps` (per region, its overdue indicators and missing feeds). An active alert never hides missing data (section 9).
+- Every data file has one shape, `{ "schemaVersion": 1, "<list>": [...] }`. `src/data/index.ts` parses each file with its schema and runs the cross-reference checks of section 11.6 at load, so a bad file stops the app with a clear message.
+- The engine gets the mission day from `missionDayOf(nowMs)` in `src/engine/time.ts`, the same formula as section 16, so it never imports the clock.
+
 ---
 
 ## 8. Indicator catalog
@@ -598,6 +607,8 @@ Stored in `src/data/indicators.json`. `inputMin` and `inputMax` only block typos
 
 Symptoms are a daily multi-select checklist (`SymptomId`), with "None today" as an explicit choice so that no answer and no symptoms are different things.
 
+Display units in `indicators.json` (M1): mood is "out of 5" and near-vision is "lines", so evidence reads "2 out of 5" and "8 lines". The input ranges are as in the table.
+
 ### 8.2 Habitat context (simulated feed, not typed in)
 
 | Feed | Meaning | Unit | Anchor |
@@ -609,19 +620,19 @@ Symptoms are a daily multi-select checklist (`SymptomId`), with "None today" as 
 
 ### 8.3 Why each core indicator matters in space
 
-Draft text for `whyInSpace`. Keep each to three sentences or fewer in the app.
+Text for `whyInSpace`. Keep each to three sentences or fewer in the app. Revised in M1 after the source check (`docs/source-review.md`, pending Divyanshu's confirmation): wording now says only what the cited source supports.
 
 | Indicator | Spaceflight effect | Source ID |
 |---|---|---|
-| Body temperature | Resting core temperature rises about 1 °C over roughly 2.5 months in orbit, so an Earth fever cut-off gives false alarms. | `temp-stahn-2017` |
-| Blood pressure | Ambulatory pressure is about 10 mmHg lower on long flights as fluid shifts headward and vessels relax. | `bp-norsk-2015` |
-| Heart rate | Heart rate stayed about the same in that study, so a sustained change from your own normal is worth attention. | `bp-norsk-2015` |
-| Blood sugar | Some studies report signs of insulin resistance in flight, but the evidence conflicts. Trend matters more than a single value. | `insulin-commsbio-2024` |
+| Body temperature | In one study, resting core temperature rose about 1 °C over roughly 2.5 months in orbit, so the app compares readings with your own in-flight normal as well as with a fixed upper limit. | `temp-stahn-2017` |
+| Blood pressure | In one study of eight astronauts on long flights, average 24-hour blood pressure was about 8 to 10 mmHg lower than before flight; the authors linked this to fluid shifting toward the head and blood vessels relaxing. | `bp-norsk-2015` |
+| Heart rate | In one study of eight astronauts on long flights, average 24-hour heart rate stayed about the same as before flight, so a lasting change from your own normal is worth checking. | `bp-norsk-2015` |
+| Blood sugar | Some studies report signs of insulin resistance in flight, but the data conflict. | `insulin-commsbio-2024` |
 | Sleep | Crews are scheduled 8.5 hours but average about 6. | `sleep-barger-2014`, `sleep-nasa-ntrs-2024` |
 | Mood | Isolation and confinement raise behavioral health risk on long missions. | `hrp-risks` |
 | Exercise | Bone density falls roughly 1 to 1.5% a month without countermeasures; crews are scheduled 2.5 hours of exercise six days a week. | `bone-meta-2020`, `exercise-nasa`, `exercise-nasa-ntrs-2009` |
 | Near vision | About two-thirds of long-duration crew show early signs of spaceflight associated neuro-ocular syndrome (SANS). | `sans-nasa-2023` |
-| Reaction time | Sleep loss slows reactions before people notice it. Our test is a simplified vigilance check, not a validated instrument. | `sleep-barger-2014` |
+| Reaction time | Long-term sleep loss lowers performance. Our test is a simplified check, not a validated instrument. | `sleep-barger-2014` |
 
 ### 8.4 In-app tests
 
@@ -654,6 +665,14 @@ Status language, used everywhere:
 | `no_data` | No data | gray | dash | Nothing recorded within the indicator's cadence |
 
 Roll-up: a region's status is the worst severity among its active, non-superseded alerts. If it has no alerts and every indicator in it is overdue, it is `no_data`. Overall status is the worst region status.
+
+As built in M1 (confirmed by Divyanshu on 14 November 2026):
+
+- "Worst" ranks act, then watch, then no data, then good, because missing data also needs the crew member's attention.
+- An indicator that was never recorded counts as overdue.
+- **Environment** needs today's habitat sample: the CO2, cumulative dose and solar event feeds come from it, and the rules read today's values. With no sample for today, those feeds are reported in `missingFeeds` and Environment shows No data (unless an alert is active), so missing feeds never look like normal readings. `sep_risk` is not required: it has a value only after a flare.
+- **Skin** has no required data, so it shows Good whenever no alert is active. Good there means only "no active alert". The absence of a rash report does not establish normal skin health, and the UI must not word it that way.
+- Missing data is kept next to an active alert: `regionGaps` lists each region's overdue indicators and missing feeds even when the region shows Watch or Act.
 
 Overdue prompts: an indicator is overdue when its newest reading is older than `cadenceDays + 1` days. Overdue items are not rules and never raise alerts. `evaluate()` returns them in `overdue`, and Home lists them in the "Today" card as routine prompts.
 
@@ -718,6 +737,8 @@ type Comparison =
 
 `modelThreshold` (decided on 14 November 2026) compares a value with the `threshold` field of the loaded model file, so no model number is ever typed into `rules.json`. It is valid only in a `context` condition on the `sep_risk` feed. With no model loaded the condition is false, as for a missing `sep_risk` value. M1 adds it to the types and schemas; A2 uses it in `R-RAD-03`.
 
+Every comparison reduces to `value op target`; a z-score test `z op k` uses the target `center + k × spread`, which is the same because the spread is always positive. Comparisons allow a tolerance of 1e-9, so a reading exactly at a threshold (such as 37.9 against a normal of 36.9 plus 1.0) is not lost to floating-point rounding.
+
 ### 11.2 Conditions
 
 ```ts
@@ -762,7 +783,7 @@ Each evaluator returns `{ met: boolean; evidence: EvidenceItem[] }` so the alert
   "privateToCrew": false,
   "explain": {
     "what": "You slept at least an hour less than your normal on four of the last five nights.",
-    "whySpace": "Crews in orbit average about six hours a night against eight and a half scheduled. Sleep loss slows reactions before you feel it."
+    "whySpace": "Crews in orbit average about six hours of sleep a night against eight and a half scheduled. Long-term sleep loss lowers performance."
   },
   "protocolId": "P-SLEEP-HYGIENE",
   "supersedes": [],
@@ -814,9 +835,9 @@ All triggers below are draft design values for review. "Basis" says where the th
 | `R-BP-02` | heart | Latest systolic 180 or higher, or 85 or lower | act | 30 min | yes | `bp-norsk-2015` | clinical-general |
 | `R-HR-01` | heart | Resting heart rate at or above baseline plus 20 on 3 of the last 4 days | watch | 2 days | no | `bp-norsk-2015` | illustrative |
 | `R-TEMP-01` | core | Latest temperature at or above baseline plus 1.0 °C | watch | 12 hours | no | `temp-stahn-2017` | illustrative |
-| `R-TEMP-02` | core | Latest temperature 39.0 °C or higher, or at or above baseline plus 2.0 °C | act | 60 min | yes | `temp-stahn-2017` | clinical-general |
+| `R-TEMP-02` | core | Latest temperature 39.0 °C or higher, or at or above baseline plus 2.0 °C | act | 60 min | yes | `temp-stahn-2017` | illustrative (changed in M1: the 2.0 °C branch is a draft value and the registry has no clinical source for 39.0 °C yet) |
 | `R-GLU-01` | core | 7-day average fasting glucose 100 mg/dL or higher | watch | 7 days | yes | `insulin-commsbio-2024` | clinical-general |
-| `R-GLU-02` | core | Latest glucose under 70 mg/dL | act | 15 min | no | `insulin-commsbio-2024` | clinical-general |
+| `R-GLU-02` | core | Latest glucose under 70 mg/dL | act | 15 min | no | `hypoglycemia-ada-2025` (the cut-off), `insulin-commsbio-2024` (background only) | clinical-general |
 | `R-EXE-01` | bones_muscle | 7-day average exercise under 60 minutes a day | watch | 7 days | no | `bone-meta-2020`, `exercise-nasa`, `exercise-nasa-ntrs-2009` | illustrative |
 | `R-IMM-01` | skin | Rash reported in the last 2 days, and either the `R-SLEEP-01` condition or 7-day mood average under 2.5 | watch | 2 days | yes | `immune-herpes-iss`, `immune-mehta-2017` | illustrative |
 | `R-CO2-01` | whole_body | Today's cabin CO2 over 3.0 mmHg | watch | 6 hours | no | `co2-nasa-ochmo` | nasa-standard |
@@ -833,11 +854,12 @@ Superseding:
 - `R-TEMP-02` supersedes `R-TEMP-01`.
 - `R-BP-02` supersedes `R-BP-01`.
 - `R-GLU-02` does not supersede `R-GLU-01` (different problems).
-- `R-RAD-01` supersedes `R-RAD-03` (an event in progress replaces the outlook).
+- `R-RAD-01` supersedes `R-RAD-03` (an event in progress replaces the outlook). Added to `rules.json` in A2, when `R-RAD-03` exists; the cross-reference check rejects a supersedes entry for a rule that does not exist.
 
 Notes for the health adviser:
 
-- `clinical-general` means a common terrestrial clinical cut-off used as a safety net. It is not specific to spaceflight and needs review.
+- `clinical-general` means a common terrestrial clinical cut-off used as a safety net. It is not specific to spaceflight and needs review. A rule gets this label only when the registry holds a clinical source for its cut-off; otherwise it is `illustrative`.
+- Time-to-act values are draft design values for the prototype. They are not clinically validated, and the app must not present them as validated.
 - The 2.8 mmHg figure in `R-CO2-02` is the low end of the range where headaches have been reported on the station (`co2-nasa-ochmo`).
 - `R-RAD-01` time-to-act is a placeholder; real shelter timing depends on the event.
 - `R-RAD-03` reads its threshold from the trained model file through the `modelThreshold` comparison (section 11.1). `rules.json` holds no number for it, and a test checks that evaluation uses the model file's value. Its time to act is a placeholder. It is built in milestone A2.
@@ -861,6 +883,8 @@ replyEtaMin  = linkUp ? roundTripMin + groundHandlingMin : null
 ```
 
 `null` means no reply can be expected until the link returns.
+
+Prototype assumptions, not measured guarantees: `groundHandlingMin = 5` (the time the ground needs to answer) and the station's one-way delay of 0 s. The reply estimate is shown as an estimate, never as a promise.
 
 ### 13.3 Route
 
@@ -890,6 +914,7 @@ export function triage(rule: Rule, link: LinkState): { route: Route; replyEtaMin
 Rules that hold in every route:
 
 - An `act` alert always shows its first steps immediately. The route decides who leads, never whether help is shown.
+- An `act` alert routed to `consult_ground` still starts on board: the banner says "Start the first steps now. The reply estimate is not a reason to wait." The reply estimate is never permission to postpone action.
 - When the link is down, `act` alerts are always `act_on_board`, and `consult_ground` messages wait in the outbox with the text "Will send when the link returns."
 
 ### 13.5 Worked examples (with `groundHandlingMin = 5`)
@@ -916,8 +941,8 @@ Stored in `src/data/environments.json`. The selector sits in the app header.
 
 | ID | Label | Gravity | One-way delay | Notes |
 |---|---|---|---|---|
-| `leo_station` | Space station, low Earth orbit | micro | 0 s (fixed) | Real-time contact with the ground. |
-| `lunar_surface` | Moon base | lunar (one-sixth g) | 1.3 s (fixed) | Short delay; conversation still workable. |
+| `leo_station` | Space station, low Earth orbit | micro | 0 s (fixed) | Prototype assumption: no communication delay (0 s). This is not a measured value. |
+| `lunar_surface` | Moon base | lunar (one-sixth g) | 1.3 s (fixed) | About 1.3 seconds each way: the approximate light-travel time, not the total communication latency. |
 | `mars_transit` | Mars transit vehicle | micro | 180 to 1320 s (slider) | Delay grows with distance. |
 | `mars_surface` | Mars base | Mars (three-eighths g) | 180 to 1320 s (slider) | Same delay range as transit. |
 | `mars_rover` | Mars rover, away from the base | Mars (three-eighths g) | 180 to 1320 s (slider) | Pressurized rover on a trip away from the base. Same delay range as the base. |
@@ -925,6 +950,8 @@ Stored in `src/data/environments.json`. The selector sits in the app header.
 Sources: Mars one-way delay up to about 22 minutes (`delay-nasa-m2m-2023`); light-time figures of about 182 s at closest and about 1338 s at farthest (`delay-nasa-timedelay-2017`); Mars gravity three-eighths of Earth's (`hrp-hazards`).
 
 Delay settings (decided on 14 November 2026): loading a scenario sets its environment from `environmentId`. The station uses its fixed 0 s and the Moon its fixed 1.3 s. A Mars environment starts the slider at 180 s (Mars near, reply estimate 11 min) until it is moved; 1320 s is Mars far (49 min). `solar-storm` starts at the station, so its first banner reads "Reply expected in about 5 min".
+
+The station's 0 s is a prototype assumption, not a measured value. The Moon's 1.3 s comes from `gateway-medical-conops` (NASA HRP-48012, page 17, section 4.2 "Communication": "an average one-way light-time delay of approximately 1.3 seconds"). It is the approximate light-travel time, not the total operational latency. Divyanshu supplied the excerpt during the M1 review because direct retrieval failed on the team's network; `verified` stays false pending the human check (`docs/source-review.md`).
 
 What an environment changes in v1:
 
@@ -1004,7 +1031,7 @@ Initial entries (all `verified: false` until checked):
 | `hrp-risks` | Risks of Human Spaceflight | NASA Human Research Program | https://www.nasa.gov/hrp/risks | Lists specific risks including behavioral changes, inadequate sleep, SANS, immune changes and radiation-induced cancer. |
 | `radiation-nasa-ochmo` | Radiation Protection technical brief (NASA-STD-3001) | NASA OCHMO | https://www.nasa.gov/wp-content/uploads/2023/03/radiation-protection-technical-brief-ochmo.pdf | Career limit 600 mSv for all astronauts; 250 mSv short-term limit per solar particle event. |
 | `co2-nasa-ochmo` | Carbon Dioxide technical brief OCHMO-TB-004 | NASA OCHMO | https://www.nasa.gov/ochmo-tb-004-carbon-dioxide-2/ | 1-hour average CO2 limited to 3 mmHg; headaches reported between 2.8 and 4.5 mmHg. |
-| `sleep-barger-2014` | Sleep deficiency in astronauts (Barger et al., The Lancet Neurology) | The Lancet Neurology, NASA-funded | https://www.space.com/26829-astronauts-space-station-sleep-deprivation.html (coverage; replace with the primary paper) | Crews averaged about 6 hours of sleep against 8.5 scheduled. |
+| `sleep-barger-2014` | Prevalence of sleep deficiency and use of hypnotic drugs in astronauts before, during, and after spaceflight: an observational study | The Lancet Neurology | https://pmc.ncbi.nlm.nih.gov/articles/PMC4188436/ | Wrist actigraphy showed about 6 hours of sleep a night in flight (ISS 6.09 h, shuttle 5.96 h), although NASA rules set aside 8.5 hours for sleep. |
 | `sleep-nasa-ntrs-2024` | Impact of Sleep Shifting Strategies on the ISS | NASA NTRS | https://ntrs.nasa.gov/citations/20240002094 | Crews have historically averaged around six hours of sleep per night. |
 | `bone-meta-2020` | Systematic review and meta-analysis of bone loss in space travelers | npj Microgravity | https://pmc.ncbi.nlm.nih.gov/articles/PMC7200725 | Cites a long-known loss rate of 1 to 1.5% a month; measured about 0.8% a month in the lower limbs. |
 | `exercise-nasa` | Astronaut exercise research on the station | NASA | https://www.nasa.gov/missions/station/iss-research/astronaut-exercise | Exercise is the main countermeasure against bone and muscle loss; crew members average about two hours of exercise a day. |
@@ -1012,12 +1039,14 @@ Initial entries (all `verified: false` until checked):
 | `sans-nasa-2023` | SANS: 2023 Clinical Update | NASA NTRS | https://ntrs.nasa.gov/citations/20220014606 | About 66% of long-duration astronauts show the earliest signs of SANS. |
 | `fluid-shift-nasa` | Ensuring Astronaut Health (Cardiovascular and Vision Laboratory) | NASA | https://www.nasa.gov/?p=207552 | About two liters of fluid shift toward the head in weightlessness, affecting heart, eyes and brain. |
 | `temp-stahn-2017` | Increased core body temperature in astronauts during long-duration space missions | Scientific Reports | https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5701078/ | Resting core temperature about 1 °C higher in flight, developing over about 2.5 months. |
-| `bp-norsk-2015` | Fluid shifts, vasodilatation and ambulatory blood pressure reduction during long duration spaceflight | The Journal of Physiology | https://pmc.ncbi.nlm.nih.gov/articles/4324706/ | 24-hour blood pressure about 10 mmHg lower in flight; heart rate unchanged. |
-| `insulin-commsbio-2024` | Article on insulin and estrogen signaling in spaceflight (confirm exact title) | Communications Biology | https://link.springer.com/article/10.1038/s42003-023-05213-2 | Insulin resistance has been reported in spaceflight, but studies conflict. |
+| `bp-norsk-2015` | Fluid shifts, vasodilatation and ambulatory blood pressure reduction during long duration spaceflight | The Journal of Physiology | https://pmc.ncbi.nlm.nih.gov/articles/PMC4324706/ | In eight astronauts on the station, 24-hour average blood pressure was 8 to 10 mmHg lower in flight than before flight (systolic 8, diastolic 9, mean arterial 10 mmHg); the 24-hour average heart rate was unchanged. |
+| `insulin-commsbio-2024` | Spaceflight induces changes in gene expression profiles linked to insulin and estrogen | Communications Biology | https://doi.org/10.1038/s42003-023-05213-2 | Insulin resistance has been reported in spaceflight, but studies conflict. |
+| `hypoglycemia-ada-2025` | 6. Glycemic Goals and Hypoglycemia: Standards of Care in Diabetes—2025 | Diabetes Care (American Diabetes Association) | https://pmc.ncbi.nlm.nih.gov/articles/PMC11635034/ | A glucose level below 70 mg/dL is level 1 hypoglycemia, and 70 mg/dL is recognized as the level where people without diabetes start responding to falling glucose; for a conscious person, glucose is the preferred treatment, repeated after 15 minutes if still low. |
 | `immune-herpes-iss` | Immune System Dysregulation and Herpesvirus Reactivation Persist During Long-Duration Spaceflight | (find journal) | https://core.ac.uk/works/15261213 | Varicella-zoster virus reactivated in about half of astronauts on six-month missions. |
 | `immune-mehta-2017` | Latent virus reactivation in astronauts on the International Space Station | npj Microgravity | https://doaj.org/article/f32947e92776479e9e3b840364e87d36 | Reactivation of latent herpes viruses increases on long missions alongside stress hormones. |
 | `delay-nasa-m2m-2023` | Human Health and Performance (Moon to Mars Architecture) | NASA NTRS | https://ntrs.nasa.gov/api/citations/20230015521/downloads/Human%20Health%20and%20Performance.pdf | One-way communication delay to Mars up to 22 minutes; crews need Earth independence. |
 | `delay-nasa-timedelay-2017` | NASA technical report 20170011337 on operations under communication time delay (confirm exact title) | NASA NTRS | https://ntrs.nasa.gov/api/citations/20170011337/downloads/20170011337.pdf | One-way light time to Mars about 182 s at closest and about 1338 s at farthest. |
+| `gateway-medical-conops` | Recommendation for a Medical System Concept of Operations for Gateway Missions (NASA HRP-48012) | NASA Human Research Program (NTRS 20200001341) | https://ntrs.nasa.gov/api/citations/20200001341/downloads/20200001341.pdf#page=17 | Gateway missions face an average one-way light-time delay of approximately 1.3 seconds between the Moon and Earth (page 17, section 4.2 Communication). |
 | `autonomy-nasa-exmc-2021` | Development of Medical Capabilities and Technologies (decadal topical paper) | NASA NTRS | https://ntrs.nasa.gov/api/citations/20210023828/downloads/Decadal%20Topical%20-%20Development%20of%20Medical%20Capabilities%20and%20Technologies_New%20Graphic.docx.pdf | Mars delays demand crew medical autonomy and decision support usable by non-medical crew. |
 | `donki` | Space Weather Database Of Notifications, Knowledge, Information (DONKI) | NASA CCMC | https://ccmc.gsfc.nasa.gov/tools/DONKI | Catalog of solar flares, solar energetic particle events and related space weather. |
 | `spaceapps-challenge` | Challenge page | NASA Space Apps | https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/ | Official brief. Its Resources tab must be added to this registry. |
@@ -1040,7 +1069,9 @@ Done on 14 November 2026: every item from the challenge's Resources tab is in th
 
 Kinds for the new entries: `biomonitor-csa` is `space-agency`; `deltoid-uw-atlas` is `reference`; `sep-ml-inceoglu-2018` and `sep-gsep-2023` are `peer-reviewed` once the journal versions are confirmed; the NASA and NTRS entries are `nasa`. All entries, including the body view and ML ones, are added in M1 (decided on 14 November 2026).
 
-**Source review (decided on 14 November 2026).** Before a rule that relies on a questionable entry is built, Claude Code reads the primary source and shows Divyanshu the supporting passage and any proposed correction (title, year, URL or key finding). Nothing changes until he confirms, and `verified` becomes `true` only after his review. Open questions: `bp-norsk-2015` (the URL may be malformed: PMC article links normally read `/articles/PMC<number>/`), `insulin-commsbio-2024` (the DOI suggests a 2023 article; confirm title and year), `immune-herpes-iss` (journal unknown), `sleep-barger-2014` (news coverage; find the primary paper), `delay-nasa-timedelay-2017` and `osdr-i4-nasa` (confirm titles), `sep-ml-inceoglu-2018` and `sep-gsep-2023` (confirm journal references). This review checks that a source says what we cite. It is not clinical validation, and thresholds marked `illustrative` stay labeled illustrative. `hrp-ongoing-research` is `nasa`; the two CSA articles are `space-agency`; `physionet-sepsis-2019` is `reference`; `sepsis-ccm-2020` is `peer-reviewed`.
+**Source review (decided on 14 November 2026).** Before a rule that relies on a questionable entry is built, Claude Code reads the primary source and shows Divyanshu the supporting passage and any proposed correction (title, year, URL or key finding). Nothing changes until he confirms, and `verified` becomes `true` only after his review. Open questions (`bp-norsk-2015`, `insulin-commsbio-2024` and `sleep-barger-2014` were resolved in M1): `immune-herpes-iss` (journal unknown), `delay-nasa-timedelay-2017` and `osdr-i4-nasa` (confirm titles), `sep-ml-inceoglu-2018` and `sep-gsep-2023` (confirm journal references). This review checks that a source says what we cite. It is not clinical validation, and thresholds marked `illustrative` stay labeled illustrative.
+
+Status after M1: see `docs/source-review.md`. `bp-norsk-2015`, `insulin-commsbio-2024` and `sleep-barger-2014` were checked against their primary papers and support the claims. Their URL, title and key-finding corrections were applied on 14 November after Divyanshu confirmed them; the table above shows the corrected entries. `hypoglycemia-ada-2025` was added as the clinical source for the low-glucose cut-off and its protocol. The NTRS-hosted sources could not be reached; for `gateway-medical-conops` (the Moon delay) Divyanshu supplied the excerpt. `verified` stays false for every entry until a team member has checked the relevant claim. `hrp-ongoing-research` is `nasa`; the two CSA articles are `space-agency`; `physionet-sepsis-2019` is `reference`; `sepsis-ccm-2020` is `peer-reviewed`.
 
 Technical references. These support how we build, not what the app tells the crew, so they go in `REFERENCES.md` only:
 
@@ -1070,6 +1101,8 @@ Content rules:
 - Always includes when to re-check and when to escalate.
 - `reviewed: false` until the health adviser signs off. The UI shows a small "Draft guidance" tag when false.
 - Steps are illustrative for a prototype. The README and footer say so.
+- Every protocol has a `note` saying why it is a draft and which timings are illustrative. Timings without direct support from a source are illustrative. When the protocol screen is built (M4), the "Draft guidance" tag and the note must be visible with the steps. Approval of a draft by Divyanshu is not clinical validation, and no health adviser has reviewed any protocol yet.
+- `P-GLU-LOW` is a draft adaptation of Earth clinical guidance (`hypoglycemia-ada-2025`): 15 g of fast-acting carbohydrate (preferably glucose) only if awake and able to swallow safely; nothing by mouth otherwise and the crew medical officer at once; immediate help for confusion, a seizure, reduced consciousness or worsening symptoms; a re-check after 15 minutes, repeating and calling the crew medical officer if still low. The urgent re-check is not a fasting measurement and must not wait for fasting. It names no medication.
 
 Protocol IDs needed for the v1 rules:
 
@@ -2189,6 +2222,8 @@ Tests exist to prove validity, not to chase coverage.
 | Hospital pipeline (deferred with A4) | Baseline window, floors read from `indicators.json`, carried-forward limits, exclusions, patient-level split, determinism | Python unittest |
 
 The golden scenario tests double as evidence for judges: every claim "the app detects X" is backed by a test that runs.
+
+Where tests live (M1): engine logic tests use inline fixtures in `src/engine/__tests__/`. Tests that need the real data files (data integrity, the six P0 rules, the section 13.5 table) live in `src/data/__tests__/`, because engine code, its tests included, may not import `src/data`. Engine and body view tests may import Vitest; otherwise the same import boundary applies to them.
 
 `npm run check` runs typecheck, lint and the Vitest tests. It must pass before every push to `main`. The Python tests run with `python -m unittest discover -s ml/tests` and `python -m unittest discover -s tools/tests` whenever `ml/` or `tools/` change.
 

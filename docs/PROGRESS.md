@@ -2,9 +2,24 @@
 
 One entry per milestone, newest first (ARCHITECTURE.md section 30.4). Targets are in section 31.1.
 
-## M1 Engine core (awaiting Divyanshu's approval)
+## M2 Seed data and DONKI cache (awaiting Divyanshu's approval)
 - Not started. Starts only after Divyanshu approves.
-- To record at the start of M1: the hash of the M0 close commit and its deployment check.
+- To record at the start of M2: the hash of the M1 commit and its deployment check.
+- Open before M2: how to reach DONKI (section 34, item 23); the CCMC servers and NTRS were unreachable from the team's network on 14 November.
+
+## M1 Engine core (started Sat 18:08, done Sat 19:23)
+- M0 close recorded: commit 556edb5 pushed to `main`; https://void-shifters.vercel.app/ served its build within about 30 seconds (HTTP 200, asset files identical to the local build of 556edb5, shell text present in the deployed bundle). Re-checked at 18:08: still serving that build.
+- Built: `src/engine/` (Zod schemas and derived types; median, MAD and mean; baselines with the section 10 windows; every condition type and comparison kind, including `modelThreshold`; rules with one alert per rule per crew member and superseding; triage exactly as section 13.3; region and overall status with missing-data reporting; cross-reference checks; `evaluate()`). `src/data/`: indicators (10), regions (7), sources (37, all `verified: false`), environments (5), the six P0 rules and their six draft protocols, loaded and validated by `src/data/index.ts`.
+- `sep_risk` stays inactive until A2: the feed has no value, so no condition on it can pass. No model threshold is typed anywhere; `rules.json` has no `modelThreshold` rule yet.
+- Tests: 183 passing in 13 files (`npm run check` green; `npm run build` green). They cover baseline window edges, readiness and the spread floor; every comparison kind, including a not-ready baseline and a missing model; every condition type with missing data; superseding and deduplication; every cell of the section 13.5 table from the real rules and environments; link-down cases; missing habitat feeds and missing data kept next to active alerts; draft notes on protocols; and the cross-reference checks. Five deliberate bugs were each caught by the tests (mutation checks).
+- Triage table: computed by the engine, 0 mismatches against section 13.5 (reply estimates 5, 5, 11 and 49 min). Approved by Divyanshu.
+- Source review (`docs/source-review.md`): approved corrections applied (`bp-norsk-2015`, the Mathyk 2024 title and DOI, the Barger paper). New sources: `hypoglycemia-ada-2025` (glucose cut-off and protocol, passages read directly) and `gateway-medical-conops` (Moon delay; excerpt supplied by Divyanshu because the PDF could not be retrieved here). The `R-RAD-01` wording was checked against the NASA radiation brief. All sources stay `verified: false`.
+- Decided in review: Environment shows No data when today's habitat sample is missing, and `Evaluation` reports `missingFeeds` and `regionGaps` next to any alert; Skin's Good means "no active alert" only; status order Act > Watch > No data > Good; `R-TEMP-02` basis `illustrative` (thresholds unchanged); study findings worded as observations in particular studies; 250 mSv worded as a design requirement, not the alert trigger or a harmless dose; CO2 evidence names the day's worst 1-hour average; the station's 0 s and the 5-minute ground handling are prototype assumptions; an act alert routed to the ground still starts on board.
+- Protocols: all six remain drafts (`reviewed: false`), each with a `note` the protocol screen must show (M4). `P-GLU-LOW` is a draft adaptation of the ADA guideline: 15 g of fast-acting carbohydrate if awake and able to swallow safely, nothing by mouth otherwise, immediate help for danger signs, a 15-minute re-check that is not a fasting measurement. No medication instructions. Approval of these drafts is not clinical validation; no health adviser has reviewed them.
+- Changed tooling: `resolveJsonModule` in `tsconfig.app.json`; the ESLint import boundary lets engine and body view tests import Vitest (boundary re-proved).
+- Manual check: Divyanshu approved the triage table, the source corrections, the rewordings and the status semantics. No browser check applies: no screen uses the engine yet, so the engine is unit-tested only, not browser-tested.
+- Known issues: NTRS-hosted sources other than the supplied Moon excerpt are unchecked. The data model has no way to mark a glucose reading as a non-fasting urgent re-check; M3 or M4 must keep such re-checks out of the fasting baseline. The Tailwind Markdown scanning and `npm audit` follow-ups from M0 are unchanged (not in scope).
+- Next: M2, after Divyanshu's approval.
 
 ## M0 Scaffold and deploy (started Sat 17:13, done Sat 18:01)
 - Built: Vite React TypeScript scaffold (strict, noUncheckedIndexedAccess), Tailwind v4 via `@tailwindcss/vite`, hash router (Home, Check-in, Earth link), layout shell with "Simulated data" tag and not-a-medical-device footer, status and 3D colour tokens, ESLint import boundaries (proved with throwaway bad imports: 10 of 10 caught), Prettier, Vitest with jsdom and Testing Library, `.gitignore` and `.gitattributes` (checked before the first `git add`).

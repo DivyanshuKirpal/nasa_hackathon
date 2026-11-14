@@ -14,34 +14,23 @@ const outsideSrcFolders = 'ml|tools|public'
 
 const relativeInto = (folders) => `^\\.{1,2}/(.*/)?(${folders})(\\.tsx?)?(/|$)`
 
-// A bare package import other than zod (scoped packages start with "@").
-const packageOtherThanZod = '^(?!zod(/|$))[^./]'
+// A bare package import other than the allowed ones (scoped packages start with "@").
+const packageOtherThan = (allowed) => `^(?!(${allowed})(/|$))[^./]`
 
-const engineBoundary = [
+// Engine and body view code may import only zod; their tests may also import
+// vitest. Both stay inside their own folder.
+const pureBoundary = (folder, otherPure, allowedPackages) => [
   {
-    regex: packageOtherThanZod,
-    message:
-      'src/engine imports nothing outside src/engine except zod (ARCHITECTURE.md section 6).',
+    regex: packageOtherThan(allowedPackages),
+    message: `src/${folder} imports nothing outside src/${folder} except zod (ARCHITECTURE.md section 6).`,
   },
   {
-    regex: relativeInto(`bodyview|${otherSrcFolders}|${outsideSrcFolders}`),
-    message:
-      'src/engine imports nothing outside src/engine except zod, and never src/bodyview (decision D11).',
+    regex: relativeInto(`${otherPure}|${otherSrcFolders}|${outsideSrcFolders}`),
+    message: `src/${folder} imports nothing outside src/${folder} except zod, and never src/${otherPure} (decision D11).`,
   },
 ]
 
-const bodyviewBoundary = [
-  {
-    regex: packageOtherThanZod,
-    message:
-      'src/bodyview imports nothing outside src/bodyview except zod (ARCHITECTURE.md section 6).',
-  },
-  {
-    regex: relativeInto(`engine|${otherSrcFolders}|${outsideSrcFolders}`),
-    message:
-      'src/bodyview imports nothing outside src/bodyview except zod, and never src/engine (decision D11).',
-  },
-]
+const testFiles = ['**/__tests__/**']
 
 const appBoundary = [
   {
@@ -72,14 +61,40 @@ export default defineConfig([
   },
   {
     files: ['src/engine/**/*.{ts,tsx}'],
+    ignores: testFiles,
     rules: {
-      'no-restricted-imports': ['error', { patterns: engineBoundary }],
+      'no-restricted-imports': [
+        'error',
+        { patterns: pureBoundary('engine', 'bodyview', 'zod') },
+      ],
+    },
+  },
+  {
+    files: ['src/engine/**/__tests__/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { patterns: pureBoundary('engine', 'bodyview', 'zod|vitest') },
+      ],
     },
   },
   {
     files: ['src/bodyview/**/*.{ts,tsx}'],
+    ignores: testFiles,
     rules: {
-      'no-restricted-imports': ['error', { patterns: bodyviewBoundary }],
+      'no-restricted-imports': [
+        'error',
+        { patterns: pureBoundary('bodyview', 'engine', 'zod') },
+      ],
+    },
+  },
+  {
+    files: ['src/bodyview/**/__tests__/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { patterns: pureBoundary('bodyview', 'engine', 'zod|vitest') },
+      ],
     },
   },
   {

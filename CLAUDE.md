@@ -117,8 +117,8 @@ docs/                PROGRESS.md, body-model-handoff.md, model-notes.md, demo-sc
 
 Import rules (ESLint enforces the first four):
 
-- `src/engine` imports nothing outside `src/engine` except Zod. No React, DOM, storage, `Date` or three.
-- `src/bodyview` imports nothing outside `src/bodyview` except Zod.
+- `src/engine` imports nothing outside `src/engine` except Zod (its tests may also import Vitest). No React, DOM, storage, `Date` or three.
+- `src/bodyview` imports nothing outside `src/bodyview` except Zod (its tests may also import Vitest).
 - `src/engine` and `src/bodyview` never import each other.
 - `three` is imported only in `src/features/body/viewer/`.
 - Features do not import from other features. Shared code moves to `src/components` or `src/lib`.
@@ -151,7 +151,7 @@ These matter more than any code style rule.
 5. **Not a diagnosis.** Copy says "possible", "check" and "consult". Never "you have", never medication names or doses.
 6. **Simulated means labeled.** Seed data, habitat feeds, suit sensors and ground replies always show a "Simulated" tag. Crew names are fictional; never use real astronauts.
 7. **Protocols are drafts** until `reviewed` is true, and the UI shows a draft tag.
-8. **An `act` alert always shows its first steps immediately.** Triage decides who leads, never whether help is shown.
+8. **An `act` alert always shows its first steps immediately.** Triage decides who leads, never whether help is shown. The reply estimate is never permission to postpone those steps.
 9. **Body observations are not health inputs.** Soreness reports, suit samples, body profiles and the body model in use never reach `evaluate()` or the outbox. The invariance test must stay green.
 10. **Say only what the observation is.** "Crew-reported soreness", "Simulated skin temperature", "local surface reading". Never "strain", "injury" or "inflammation"; a sensor value never replaces the daily temperature check.
 11. **Stale means no value.** A sensor past its freshness window or without contact shows "No current reading", and the last valid value only with its time.

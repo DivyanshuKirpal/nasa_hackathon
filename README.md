@@ -8,7 +8,7 @@ Team VoidShifters' entry for the 2026 NASA Space Apps Challenge, challenge "Crea
 
 A browser-only web app for a crew member checking their own health once a day. They enter a few readings; the app compares each one with that person's own in-flight normal, shows status on a body map, explains each result with a source, gives a short action card, and says whether to handle the problem on board or consult doctors on Earth, based on how long a reply from Earth would take.
 
-Status: milestone M0 (scaffold and deploy) is complete; M1 (engine core) awaits approval. The screens are placeholders for now. The plan is in [ARCHITECTURE.md](ARCHITECTURE.md), section 31; progress is in [docs/PROGRESS.md](docs/PROGRESS.md).
+Status: milestones M0 (scaffold and deploy) and M1 (the health engine, with its tests and data files) are complete; M2 awaits approval. The screens are still placeholders: no screen uses the engine yet. The plan is in [ARCHITECTURE.md](ARCHITECTURE.md), section 31; progress is in [docs/PROGRESS.md](docs/PROGRESS.md).
 
 Live site: https://void-shifters.vercel.app/
 
