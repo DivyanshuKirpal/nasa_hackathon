@@ -341,6 +341,7 @@ Install every npm package above in M0, so versions are pinned at scaffold time e
 │   ├── requirements.txt          Pinned Python packages for training (installed in .venv)
 │   ├── fetch_donki.py            Downloads DONKI FLR, CME and SEP records (standard library only)
 │   ├── features.py               Feature definitions, mirrored exactly in src/engine/models/sepRisk.ts
+│   ├── sep_instrument_classes.json  SEP instrument names: observed, model or unknown, with sources (decision D22)
 │   ├── build_dataset.py          Links events, filters and labels flares, computes features
 │   ├── train_sep_risk.py         Model 1: splits, trains, evaluates, exports, writes the model card
 │   ├── personal_pattern.py       Model 2 in Python, mirroring personalPattern.ts
@@ -1929,6 +1930,8 @@ NASA's Human Research Program describes the same constraint: with only four peop
 
 Keep every catalog the API returns by default and record the `catalog` field. DONKI notes that entries in its primary catalog from June 2020 onward were analyzed by the Moon to Mars Space Weather Analysis Office (`donki`); the dataset report gives counts per catalog and per year so the change is visible.
 
+As downloaded on 14 November 2026 (found in A1): SEP records carry no `catalog` field, so the report can give catalogs only for flares and CMEs; and every SEP record lists exactly one instrument name, so no record is mixed in the sense of section 26.4.
+
 ### 26.4 Building the dataset (`ml/build_dataset.py`)
 
 The raw files in `ml/data/raw/donki/` are only read: nothing in them is changed, filtered or rewritten. Every choice below happens in the processed files (decision D22).
@@ -1948,8 +1951,8 @@ The raw files in `ml/data/raw/donki/` are only read: nothing in them is changed,
 
    Observed-only and mixed records count as instrument-observed, because each holds established instrument-observed evidence. The `model` and `unknown` names of a mixed record are kept with the record and reported, never dropped.
 4. Build one undirected link graph from the `linkedEvents` lists of all three types, because a link may be listed on either side.
-5. Filter flares, counting every drop by reason: class must parse as a letter (A, B, C, M or X) and a number, and only class M1.0 and above is kept; `peakTime` and `beginTime` must be present; `sourceLocation` must parse (for example `S14W59`). The flares that remain are eligible.
-6. Linked CME: among the CMEs linked to the flare, take each CME's analysis marked `isMostAccurate` (the first analysis if none is marked), and keep the analysis with the highest speed. A flare with no linked CME analysis gets `has_cme = 0`.
+5. Filter flares, counting every drop by reason: class must parse as a letter (A, B, C, M or X) and a number, and only class M1.0 and above is kept; `peakTime` and `beginTime` must be present, and the peak must not be before the begin; `sourceLocation` must parse (for example `S14W59`). The flares that remain are eligible. An end time before the peak cannot be right, so it counts as a missing end time (added in A1: the download holds a few such records).
+6. Linked CME: among the CMEs linked to the flare, take each CME's analyses marked `isMostAccurate` (the first analysis if none is marked), and keep the analysis with the highest speed. An analysis without a speed or a half-angle cannot be used; of equal speeds the first in CME ID order is kept. A flare with no usable linked CME analysis gets `has_cme = 0`.
 7. Label each eligible flare through the permitted associations only: a direct link to an SEP record, or a link through one CME (flare to CME to SEP). Paths through other flares or through interplanetary shocks do not count.
    - **Positive (`1`):** an association reaches at least one instrument-observed SEP record. Associations with model-only or unknown records as well do not change this.
    - **Excluded as ambiguous:** associations reach SEP records, but none of them is instrument-observed (only model-only or unknown records). The flare is neither positive nor negative. It is left out of training, validation and test, and it is counted.
@@ -1977,7 +1980,7 @@ Why sine and cosine of the longitude: together they let the model learn which lo
 
 ### 26.6 Splits
 
-Chronological, by flare peak year (UTC): train from the first year to 2020; validation 2021 and 2022; test from 2023 to the last fetched month. No shuffling across years. If a split ends up with fewer than 10 positives, move the boundary by one year, keep the order train, validation, test, and record the change and the reason in the model card. The test set is used once, after every choice is fixed. Flares excluded as ambiguous (section 26.4) are not used for training or scoring in any split, but their counts are still reported per year and split.
+Chronological, by flare peak year (UTC): train from the first year to 2020; validation 2021 and 2022; test from 2023 to the last fetched month. No shuffling across years. If a split ends up with fewer than 10 positives, move the boundary by one year, keep the order train, validation, test, and record the change and the reason in the model card. The moves, as built in A1: a short training split moves the train/validation boundary one year later; a short validation split moves the validation/test boundary one year later; a short test split moves it one year earlier; every split keeps at least one year, and the rule stops and says so when no move helps. The rule looks only at the counts of positives, never at a score. The test set is used once, after every choice is fixed. Flares excluded as ambiguous (section 26.4) are not used for training or scoring in any split, but their counts are still reported per year and split.
 
 ### 26.7 Models and training (`ml/train_sep_risk.py`)
 
@@ -1985,7 +1988,7 @@ Chronological, by flare peak year (UTC): train from the first year to 2020; vali
 |---|---|---|
 | Climatology | Reference for the Brier skill score | The training base rate as a constant forecast |
 | Class only | Baseline | Logistic regression on `log10_peak_flux` alone, same procedure as the shipped model |
-| Logistic regression, all features | **Shipped as v1** | `StandardScaler` then `LogisticRegression` (L2, `lbfgs`, `max_iter` 1000, no class weights so the probabilities stay interpretable). `C` chosen from 0.01, 0.1, 1 and 10 by validation ROC AUC. Trained on the training split only |
+| Logistic regression, all features | **Shipped as v1** | `StandardScaler` then `LogisticRegression` (L2, `lbfgs`, `max_iter` 1000, no class weights so the probabilities stay interpretable). `C` chosen from 0.01, 0.1, 1 and 10 by validation ROC AUC, ties to the smaller `C`. Trained on the training split only |
 | Gradient boosting | Benchmark only, not shipped | `HistGradientBoostingClassifier` with default settings and `random_state` 42 |
 
 Decision threshold: the probability that gives the highest TSS on the validation set, with ties going to the higher threshold. Rule `R-RAD-03` uses exactly this value, and a test checks that the two match. Each baseline and the benchmark get their own threshold by the same rule, so the comparison is fair.
@@ -2003,6 +2006,12 @@ On validation and test (definitions in section 35). Only positive and negative f
 - Reliability: five equal-width probability bins with count, mean predicted probability and observed frequency.
 - Plots in `ml/reports/`: test ROC curve, reliability diagram, coefficient chart.
 - Comparison of the shipped model with the class-only baseline and the gradient boosting benchmark on the same test set.
+
+Added in A1, so that the uncertainty of the comparison is visible and a shift in the base rate cannot flatter the model:
+
+- The same bootstrap resamples also give 95% intervals for each comparison model, and for the difference "shipped model minus comparison model" in ROC AUC and in TSS. The model card says in words whether each difference interval lies above zero, below zero or includes zero.
+- A second Brier skill score against a constant forecast of the split's own share of positives. Nobody could know that share in advance, so it is the harder reference; it is reported next to the planned one.
+- How many test flares the shipped model flags at its threshold.
 
 Report the results whichever way they go. If the shipped model does not beat the class-only baseline on the test set, the model card and the pitch say so plainly; the app can still show the model, because its value is in being transparent and on board, not in a claimed score.
 
@@ -2057,7 +2066,14 @@ Report the results whichever way they go. If the shipped model does not beat the
 }
 ```
 
-2. `ml/artifacts/sep-risk-v1-parity.json`: up to 50 rows from the test split (all of them if fewer), sorted by DONKI ID, each with the raw inputs the app receives (`classType`, `sourceLocation`, `riseMin`, `durationMin`, `cme`), the expected feature values and the expected probability.
+   As built in A1 the file holds more than the shape above, all written by the script:
+   - `data.retrievedFrom`, and `hyperparameters.candidates` with the validation ROC AUC of every `C`.
+   - In `metrics`: `brierSkillVsOwnBaseRate` next to each `brierSkill`, `testFlaggedAtThreshold`, and `bootstrap` (resamples drawn and used, seed, method).
+   - In `comparisons`: `climatology` (the training base rate and its test Brier score), and for `classOnly` and `gradientBoosting` the threshold, the validation scores, the test intervals, `shippedMinusThis` with its intervals, and a `finding` sentence.
+   - `training`: the seed and the library versions.
+   - Limitations with numbers follow the seven of section 26.14: the count of validation positives, the share of positives per split, how many of the flares flagged on the test years were negative, and, when it is so, that the lowest estimates were too high on the test years.
+
+2. `ml/artifacts/sep-risk-v1-parity.json`: up to 50 rows from the test split (all of them if fewer), sorted by DONKI ID, each with the raw inputs the app receives (`classType`, `sourceLocation`, `riseMin`, `durationMin`, `cme`), the expected feature values and the expected probability. The 50 are spread evenly over the split in ID order, and include a flare without a CME, one with a CME, and one without a usable end time when the split has one.
 3. `ml/reports/sep-risk-v1.md`, the model card: purpose; data and retrieval; label and selection policy (decision D22: why only instrument-observed SEP records count, the instrument names with their classes and supporting sources, SEP record classes by year and split, the model and unknown parts of mixed records, and positives, negatives and ambiguous exclusions by year and split); filters and drop counts; features in plain words; splits with counts; training choices; metrics with intervals; comparisons; reliability table; threshold; limitations; references; how to reproduce. The plots sit next to it.
 
 A retrain that changes any coefficient becomes `v2` with new files; the app reads the version from the file. Zod validates the model file at load and in tests.
@@ -2628,6 +2644,7 @@ Manual check (Divyanshu reads `ml/reports/sep-risk-v1.md`):
 6. The numbers in the app's model file and in the model card are the same (Claude Code shows a few side by side).
 
 Exit test: the model file, the parity file and the model card are produced by one command; the Python tests are green; nothing in them was typed by hand.
+Status after A1 (15 November 2026): built and pushed. The results, the label counts and the instrument classes are in `ml/reports/sep-risk-v1.md`; they are not repeated here. The manual check above is still open. The model is not in the app yet (A2).
 Docs: REFERENCES (DONKI, scikit-learn, numpy, pandas, matplotlib, `sep-ml-inceoglu-2018`, `sep-gsep-2023`, and the instrument documentation behind the SEP instrument classes); AI_USAGE (the trained model is part of the project; Claude Code wrote the pipeline); PROGRESS (pointing to the model card, without retyping its numbers).
 Commit: "A1: Build DONKI dataset and train SEP risk model v1".
 

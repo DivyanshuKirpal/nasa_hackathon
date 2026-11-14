@@ -2,6 +2,66 @@
 
 One entry per milestone, newest first (ARCHITECTURE.md section 30.4). Targets are in section 31.1.
 
+## A1 ML model 1: dataset, training and model card (started Sun about 00:55, closed Sun 01:35)
+- Documentation checkpoint recorded: commits `07e98de` and `d7b9c90` pushed to `main`. Deployment of `d7b9c90` confirmed once from Vercel's own commit status on GitHub (state "success", "Deployment has completed", 00:48 IST). The public site then served the same asset files as the local build (`index-CEAMow3E.js`, `index-D7q4ypPC.css`).
+- Built, all offline in `ml/`:
+  - `.venv` with numpy, pandas, scikit-learn and matplotlib; versions pinned in `ml/requirements.txt`.
+  - `features.py`: the eight features, standard library only, so `sepRisk.ts` can mirror it in A2.
+  - `sep_instrument_classes.json`: every SEP instrument name in the download with its class and the pages read for it.
+  - `build_dataset.py`: writes `ml/data/processed/flares.csv` and `dataset_summary.json`. The raw DONKI files are only read.
+  - `train_sep_risk.py`: one command writes the model file and the parity file (`ml/artifacts/`), the model card and three plots (`ml/reports/`), and the copy `src/data/models/sep-risk-v1.json`.
+  - `ml/README.md`: how to reproduce, with the expected outputs.
+- **Results: read the model card, `ml/reports/sep-risk-v1.md`.** Its numbers are not retyped here. In words:
+  - On the held-out test years the shipped model ranked flares better than flare class alone: the intervals of both differences (ROC AUC and TSS) lie above zero.
+  - The test years show no difference from the gradient boosting benchmark: both difference intervals include zero.
+  - The estimates in the lowest range were too high. The share of positive flares is much lower in the recent years than in the training years, and the card reports the Brier skill against both references for that reason.
+  - Most flares that the threshold flags are negative, and the validation years have only just enough positives. Both are stated in the card and in the model file's limitations.
+- Instrument classes (decision D22):
+  - Claude Code read official documentation through a web fetch service and recorded each source.
+  - `observed`: the GOES SEISS, GOES-13 SEM, STEREO IMPACT and SOHO COSTEP names. The pages are from NOAA and from the instrument teams.
+  - `model`: the four `MODEL:` names. The prefix is enough under D22; no REleASE documentation could be retrieved, and the table says so.
+  - `unknown`: `ACE: EPAM >30 MeV`. The ACE documentation gives EPAM no proton channel that high. It is one record. The one eligible flare that reaches it is positive through other, observed records, so no label depends on it and this was not a material open decision.
+  - Not reachable: pages on NASA GSFC hosts. None of them was needed for a class.
+- Found in the data and handled by rules now written in ARCHITECTURE.md (sections 26.3, 26.4 and 26.6):
+  - SEP records have no `catalog` field.
+  - Every SEP record lists exactly one instrument, so no record is mixed. The code and tests still handle mixed records and report their other names.
+  - Two flares have a peak before their begin and are dropped with that reason. An end time before the peak counts as a missing end time.
+  - The planned split boundaries were kept.
+- Split honesty, proved by tests:
+  - The fitting function never receives the test years.
+  - Flipping the test labels and replacing the test durations changes no coefficient, no `C` and no threshold.
+  - The scaler and the missing-duration value equal the training years' own statistics.
+  - Removing the ambiguous flares changes nothing, because they are never used.
+  - The test years were scored after every choice was fixed. One reporting number, the Brier skill against the test years' own base rate, was added after the first run. No modelling choice changed after that run.
+- Tests:
+  - Python, inside `.venv`: 123 tests in `ml/tests` pass with none skipped (46 downloader tests and 77 new ones); 24 tests in `tools/tests` pass. Without `.venv` the 26 training tests are skipped with a message.
+  - 14 deliberate bugs were planted in a temporary copy, among them model-only records counted as observed, ambiguous flares turned into negatives, a missing name treated as observed, a path through another flare, the scaler seeing the validation years, and a flipped longitude. 13 were caught at once. The fourteenth (the missing-duration value also using the test years) was not, because that value happens to be the same on this data; the test now also replaces the test durations, and catches it.
+  - Reproducibility: two runs gave byte-identical dataset files, parity file and plots, and the same model file apart from `createdAt`. A test checks that the committed files are what the scripts write.
+  - Raw DONKI files: unchanged (`git status` shows none, `--verify` passes).
+  - `npm run check` green (283 tests in 21 files) and `npm run build` green; the asset files are unchanged because no app code changed. Seed files regenerate unchanged.
+- Fixed on the way: ESLint scanned a JavaScript file inside `.venv` (one warning). `.venv` is now in ESLint's ignore list.
+- Unchanged: every source stays `verified: false`, and every protocol stays `reviewed: false`. The model is not used by the app yet (A2).
+- Known issues:
+  - Nobody on the team has re-read the instrument documentation pages or the model card yet.
+  - `R-RAD-03` does not exist yet, so the threshold test of section 26.12 and the TypeScript parity test belong to A2.
+  - The JavaScript bundle size warning is unchanged.
+- **Manual checks pending** (one list; none confirmed yet):
+  - A1, read `ml/reports/sep-risk-v1.md` (ARCHITECTURE.md section 31.7):
+    1. Dataset: date range, counts per split, positives, drop reasons.
+    2. Label and selection policy: instrument names with classes and sources, SEP record classes by year and split, flare labels and exclusions by year and split.
+    3. Test-year scores with intervals, and the comparison with flare class alone and gradient boosting.
+    4. The reliability table, and the three plots open.
+    5. The limitations section is present.
+    6. The numbers in `src/data/models/sep-risk-v1.json` and in the card are the same.
+  - A1: open two or three of the instrument documentation links in the card and confirm they say what the table says.
+  - M2: open `public/seed/sleep-debt.json` and see `"simulated": true`, the fictional crew names and `expectedAlerts`.
+  - M2: open `ml/data/raw/donki/meta.json` and see `apiBase`, `requested`, `recordCounts` and `complete: true`.
+  - M3: a look by eye at Home and Check-in on the deployed site.
+  - M4: record the short screen capture of the decisive-moment flow.
+  - M4: a look by eye at the alert screen on the deployed site.
+  - M4: approve the re-check name "Blood sugar re-check (not fasting)" and the reworded `R-GLU-02` explanation.
+- Next: stop. A2, A3, M5 and every other milestone wait for Divyanshu's approval.
+
 ## After M2: decisions for A1 (Sun 00:31, clarified Sun 00:45; no milestone started)
 - M2 close recorded: commit `b020fd0` pushed to `main`. Deployment confirmed once from Vercel's own commit status on GitHub (state "success", "Deployment has completed", 00:11:07 IST). The public site then served the new `data/space-weather.json` (event `2023-08-08T01:00:00-SEP-001`), with the same asset files as the local build (`index-CEAMow3E.js`, `index-D7q4ypPC.css`).
 - Divyanshu accepted the M2 closure at `b020fd0` and its four additional changes: the real event in `solar-storm`, the retrieval-date fix, the clearer `--verify` wording and the documentation updates.

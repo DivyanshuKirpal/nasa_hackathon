@@ -46,7 +46,8 @@ const appBoundary = [
 ]
 
 export default defineConfig([
-  globalIgnores(['dist', 'coverage']),
+  // .venv holds Python packages for ml/ (some ship JavaScript files); it is not our code.
+  globalIgnores(['dist', 'coverage', '.venv']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
