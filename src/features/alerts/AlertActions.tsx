@@ -6,6 +6,7 @@ import {
 } from '../../components/buttonStyles.ts'
 import { Tag } from '../../components/Tag.tsx'
 import type { Alert } from '../../engine/index.ts'
+import { messageWords } from '../../lib/route.ts'
 import { useAppStore } from '../../store/index.ts'
 
 /**
@@ -72,9 +73,8 @@ export function AlertActions({ alert }: { alert: Alert }) {
             tabIndex={-1}
             className="flex flex-wrap items-center gap-2"
           >
-            Sent to ground: queued for Earth at {formatTimeOfDay(sent.sentAtMs)}{' '}
-            mission time.
-            <Tag>Simulated</Tag>
+            Sent to ground at {formatTimeOfDay(sent.sentAtMs)} mission time.{' '}
+            {messageWords(sent)}.<Tag>Simulated</Tag>
           </p>
         ) : (
           <button type="button" className={SECONDARY_BUTTON} onClick={send}>

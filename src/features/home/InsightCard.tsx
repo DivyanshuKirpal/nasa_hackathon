@@ -8,6 +8,7 @@ import type { Evaluation, Insight } from '../../engine/index.ts'
 import { todaysValue } from '../../lib/checkin.ts'
 import { factorDetail, factorWords, insightText } from '../../lib/insights.ts'
 import { modelName } from '../../lib/modelScore.ts'
+import { messageWords } from '../../lib/route.ts'
 import { SECOND_OPINION_TITLE } from '../../link/earthLink.ts'
 import { useAppStore } from '../../store/index.ts'
 
@@ -36,9 +37,8 @@ function SendInsight({ insightKey }: { insightKey: string }) {
         tabIndex={-1}
         className="flex flex-wrap items-center gap-2"
       >
-        {SECOND_OPINION_TITLE}: queued for Earth at{' '}
-        {formatTimeOfDay(sent.sentAtMs)} mission time.
-        <Tag>Simulated</Tag>
+        {SECOND_OPINION_TITLE} at {formatTimeOfDay(sent.sentAtMs)} mission time.{' '}
+        {messageWords(sent)}.<Tag>Simulated</Tag>
       </p>
     )
   }

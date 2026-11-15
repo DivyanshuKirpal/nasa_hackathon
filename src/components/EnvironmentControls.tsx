@@ -11,7 +11,12 @@ const DELAY_STEP_SEC = 60
  * have one fixed delay; the three Mars environments have a slider. Changing
  * either re-routes every alert at once (section 13).
  */
-export function EnvironmentControls() {
+export function EnvironmentControls({
+  idPrefix = '',
+}: {
+  /** Keeps ids unique when a second copy sits in the presenter tools. */
+  idPrefix?: string
+}) {
   const environmentId = useAppStore((state) => state.mission.environmentId)
   const link = useAppStore((state) => state.mission.link)
   const setEnvironment = useAppStore((state) => state.setEnvironment)
@@ -25,11 +30,14 @@ export function EnvironmentControls() {
   return (
     <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
       <div>
-        <label htmlFor="environment" className="block text-slate-600">
+        <label
+          htmlFor={`${idPrefix}environment`}
+          className="block text-slate-600"
+        >
           Environment
         </label>
         <select
-          id="environment"
+          id={`${idPrefix}environment`}
           value={environmentId}
           onChange={(event) => {
             const next = healthData.environments.find(
@@ -55,12 +63,15 @@ export function EnvironmentControls() {
         </div>
       ) : (
         <div>
-          <label htmlFor="link-delay" className="block text-slate-600">
+          <label
+            htmlFor={`${idPrefix}link-delay`}
+            className="block text-slate-600"
+          >
             Earth link delay, one way
           </label>
           <div className="flex flex-wrap items-center gap-x-3">
             <input
-              id="link-delay"
+              id={`${idPrefix}link-delay`}
               type="range"
               min={environment.oneWayDelaySecMin}
               max={environment.oneWayDelaySecMax}

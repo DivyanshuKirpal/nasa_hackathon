@@ -1,10 +1,17 @@
-import type { Alert, GroundMessage, Insight, Route } from '../engine/index.ts'
+import type {
+  Alert,
+  GroundMessage,
+  Insight,
+  LinkState,
+  Route,
+} from '../engine/index.ts'
 import { messageId } from '../lib/ids.ts'
 import { routeSentence } from '../lib/route.ts'
 
 // The simulated outbox to Earth (ARCHITECTURE.md section 15). Nothing is
-// really sent anywhere. Milestone M6 adds the clock-driven transit; until then
-// every message stays "queued".
+// really sent anywhere. A message waits in the outbox while the link is down,
+// travels for the one-way delay, and is delivered. Simulated replies were cut
+// (14 November 2026): a consult shows only when a reply could be expected.
 
 export type MessageKind = GroundMessage['kind']
 
@@ -74,6 +81,60 @@ export function composeInsightMessage(
     replyDueAtMs: null,
     status: 'queued',
   }
+}
+
+const MS_PER_SEC = 1000
+const MS_PER_MIN = 60_000
+
+/** A consult's expected reply: there and back, plus the ground's handling time (section 13.2). */
+export function replyDueAtMs(departedAtMs: number, link: LinkState): number {
+  const oneWayMs = link.oneWayDelaySec * MS_PER_SEC
+  return (
+    departedAtMs + oneWayMs + link.groundHandlingMin * MS_PER_MIN + oneWayMs
+  )
+}
+
+/**
+ * The outbox at mission time `nowMs` (section 15). Pure. A queued message
+ * leaves while the link is up, at the later of the moment it was queued and
+ * the moment the link came up; it arrives one delay later. A message already
+ * on its way keeps going when the link goes down. Returns the same array when
+ * nothing changed, so the store does not write for nothing.
+ */
+export function advance(
+  messages: readonly GroundMessage[],
+  nowMs: number,
+  link: LinkState,
+): GroundMessage[] {
+  let changed = false
+  const next = messages.map((message) => {
+    let current = message
+    if (current.status === 'queued' && link.linkUp) {
+      const departedAtMs = Math.max(current.sentAtMs, link.upSinceMs ?? 0)
+      if (departedAtMs <= nowMs) {
+        current = {
+          ...current,
+          status: 'in_transit',
+          departedAtMs,
+          arrivesAtMs: departedAtMs + link.oneWayDelaySec * MS_PER_SEC,
+          replyDueAtMs:
+            current.kind === 'consult'
+              ? replyDueAtMs(departedAtMs, link)
+              : null,
+        }
+      }
+    }
+    if (
+      current.status === 'in_transit' &&
+      current.arrivesAtMs !== null &&
+      nowMs >= current.arrivesAtMs
+    ) {
+      current = { ...current, status: 'delivered' }
+    }
+    if (current !== message) changed = true
+    return current
+  })
+  return changed ? next : (messages as GroundMessage[])
 }
 
 export interface AlertMessageInput {

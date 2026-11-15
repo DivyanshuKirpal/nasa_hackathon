@@ -55,7 +55,8 @@ describe('alert detail', () => {
     expect(banner()).toHaveTextContent(
       'Prototype assumption: no communication delay (0 s).',
     )
-    expect(banner()).toHaveTextContent('Queued for Earth: a consult request')
+    // At the station the delay is 0 s, so the consult arrives the moment it leaves (M6).
+    expect(banner()).toHaveTextContent('Delivered to Earth: a consult request')
     expect(within(banner()).getByText('Simulated')).toBeInTheDocument()
   })
 
@@ -87,7 +88,8 @@ describe('alert detail', () => {
     expect(
       screen.getByText('Link up, 22 min each way (Mars far)'),
     ).toBeVisible()
-    expect(banner()).toHaveTextContent('Queued for Earth: a report')
+    // 22 minutes each way, and the clock is paused: the report is on its way (M6).
+    expect(banner()).toHaveTextContent('On its way to Earth: a report')
   })
 
   it('shows the draft protocol with its note, and the ticks persist', async () => {
@@ -176,7 +178,7 @@ describe('alert detail', () => {
     expect(banner()).toHaveTextContent('You can handle this yourself.')
     await user.click(screen.getByRole('button', { name: 'Send to ground' }))
     expect(
-      screen.getByText(/Sent to ground: queued for Earth at 09:00/),
+      screen.getByText(/Sent to ground at 09:00 mission time\./),
     ).toHaveFocus()
 
     loadScenario('solar-storm')

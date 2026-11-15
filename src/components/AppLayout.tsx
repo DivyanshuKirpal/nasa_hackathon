@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Outlet } from 'react-router'
+import { useMissionClock } from '../clock/useMissionClock.ts'
 import { DemoPanel } from '../features/demo/DemoPanel.tsx'
 import { useBootstrapScenario } from '../store/bootstrap.ts'
 import { AppFooter } from './AppFooter.tsx'
@@ -80,6 +81,7 @@ function usePresenterTools() {
 }
 
 export function AppLayout() {
+  useMissionClock()
   const presenter = usePresenterTools()
   return (
     <>

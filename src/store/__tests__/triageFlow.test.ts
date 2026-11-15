@@ -77,10 +77,17 @@ describe('the outbox', () => {
   it('queues one consult when the route is consult the ground', () => {
     loadScenario('solar-storm')
     expect(messages()).toEqual(['consult:R-RAD-01:c1'])
+    // The station has no delay: the consult leaves and arrives at once (M6),
+    // and its reply is expected after the ground's handling time.
+    const sentAtMs = store().mission.nowMs
     expect(store().outbox[0]).toMatchObject({
-      status: 'queued',
+      status: 'delivered',
       title: 'Solar particle event in progress',
       crewId: 'c1',
+      sentAtMs,
+      departedAtMs: sentAtMs,
+      arrivesAtMs: sentAtMs,
+      replyDueAtMs: sentAtMs + store().mission.link.groundHandlingMin * 60_000,
     })
   })
 

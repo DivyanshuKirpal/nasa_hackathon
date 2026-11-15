@@ -1004,6 +1004,13 @@ The Earth link screen shows: current delay, link state, each message with a prog
 
 As built in A3: a consult sent from an insight has the id `consult:<insight key>`, the title "Second opinion sent by crew", `insightKey` set and `alertKey` null, and a body marked "Private medical." (section 26.17). It is queued only when the crew member presses "Send to ground"; `syncAlerts` never queues one.
 
+As built in M6 (15 November 2026):
+
+- `advance(messages, nowMs, link)` in `src/link/earthLink.ts` is the pure state machine. A queued message leaves while the link is up, at the later of the moment it was queued and the moment the link last came up (`link.upSinceMs`, new and optional); it records `departedAtMs` (new and optional) and arrives at `departedAtMs + one-way delay`. A consult's `replyDueAtMs` is `departedAtMs + delay + groundHandlingMin + delay`, the same estimate triage uses; a report has none. A message on its way keeps going when the link goes down, and keeps the arrival time it left with when the delay changes. Messages stop at `delivered` (replies were cut).
+- `advance` never creates a message. The store runs it at the end of `syncAlerts`, which every action that can change a route, the time or the outbox calls. At the station (0 s) a message is delivered the moment it leaves.
+- The "sent" lines on an alert and on an insight say when it was sent and where it is now ("On its way to Earth: a consult request").
+- The Earth link screen shows the link (up or down), the one-way delay, the ground handling time with its note, and every message, newest first: title, sender, status words, the three steps (in the outbox, on its way, delivered) with the current one marked, a progress bar while it travels, the arrival time, a consult's expected reply time with "Replies are not simulated in this prototype", and the message text under "Message text". A private message shows "Private medical message: its text is not shown in this list." instead of its text.
+
 ---
 
 ## 16. Mission clock and demo mode
@@ -1026,6 +1033,8 @@ Demo panel (`src/features/demo/`), opened with the keyboard shortcut `Shift+D` o
 - Body view (from B1 and B2): "Restart suit replay" (re-anchors the replay at the current `nowMs`), "Force 2D" (behaves as if WebGL were missing, to show the fallback), and one read-only line per crew member with the body model in use, its version and its contract result.
 
 The panel is a presenter tool. It must never be needed for the normal crew flow. Milestone M4 adds a first version with only the scenario picker, because the M4 exit test needs it; M6 completes it.
+
+As built in M6 (15 November 2026): `src/clock/missionClock.ts` holds the ticker (`startMissionClock`): every 250 ms of real time it adds the elapsed real time times the speed (0, 1, 60 or 600) to `nowMs`, so the store gets at most four writes a second; `useMissionClock` starts it once in the layout. A scenario loads paused (speed 0), so time moves only when the presenter chooses a speed. The header shows the mission time next to the mission day. The presenter tools now hold the mission clock (the time, Paused, 1×, 60× and 600× as pressed buttons, "+10 min", "+1 day"), the crew member, the environment and delay (the same controls as the header, with their own ids), the link ("Take the link down" or "Bring the link back up"), "Reset to seed" (reloads the current scenario after a second, explicit press), and the scenario picker. The body view items arrive with B1 and B2.
 
 As built in M4: `src/features/demo/` holds the drawer, a modal dialog: focus moves to its heading, Escape or the close button closes it, focus returns to whatever opened it, and the page behind is `inert` while it is open. The scenario picker reads `public/seed/index.json`. Shift+D is ignored while focus is in a text field, a number field or a menu. Loading a scenario closes the drawer and shows Home.
 
@@ -1348,6 +1357,8 @@ As built in M3 (14 November 2026):
 - `addReading(indicator, value, purpose)` refuses out-of-range values with a message and never corrects them. `purpose: "recheck"` marks an urgent re-check (section 10). Re-checks are entered only from an alert (M4), never through the daily check-in, where a new value for a step replaces today's routine value.
 - The ground handling time comes from `environments.json` (`groundHandlingMin: 5`, with a note that it is a prototype assumption), so it is data, not code.
 - Tests have their own `tsconfig.test.json` (Node types, to read generated files); app code is type-checked without Node types.
+
+As built in M6: new actions `advanceTime(missionMs)` (the ticker, "+10 min", "+1 day"), `setSpeed`, `setLinkUp` (records `link.upSinceMs` when the link comes back) and `switchCrew`. Each ends with `syncAlerts`, which records alerts, queues their automatic messages and then lets the outbox travel. The new fields `link.upSinceMs` and `message.departedAtMs` are optional, so a state stored before M6 still loads.
 
 As built in M4: new actions `acknowledgeAlert`, `toggleStep`, `sendToGround` and `syncAlerts` (section 15). An alert interaction is created when the alert is first seen (`firstSeenDay`, `lastSeenDay`). `setDelay` clamps to the environment's range and ignores a value that does not change the delay. `loadScenario` clears `alertState` and `outbox`, then records the new scenario's alerts and queues their messages.
 
@@ -2818,6 +2829,7 @@ Build:
 Tests: every transition (queued, in transit, delivered), including link down and link back up; a consult's expected reply time is sent + delay + handling + delay; the private message title.
 Manual check: at 600×, send a consult at Mars far: it goes in transit, then delivered after the one-way delay, with its expected reply time shown; toggle the link down and up; "+1 day" moves the mission day.
 Exit test: at 600×, a consult message is delivered after the one-way delay and shows its expected reply time.
+Status after M6 (15 November 2026): built; the exit test passes in a store test and in headless Chrome (a consult sent at 09:00 at Mars far arrives at 09:22 and expects a reply around 09:49), not yet checked by a person.
 Commit: "M6: Add Earth link outbox, mission clock and demo panel".
 
 ### 31.13 B1 Body view without 3D

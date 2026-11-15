@@ -1,3 +1,4 @@
+import { formatTimeOfDay } from '../clock/missionClock.ts'
 import { crewLabel } from '../lib/labels.ts'
 import { useAppStore } from '../store/index.ts'
 import { selectActiveCrew, selectToday } from '../store/selectors.ts'
@@ -24,6 +25,7 @@ export function AppHeader() {
   const loaded = useAppStore((state) => state.mission.scenarioId !== null)
   const crew = useAppStore(selectActiveCrew)
   const today = useAppStore(selectToday)
+  const nowMs = useAppStore((state) => state.mission.nowMs)
 
   return (
     <header className="border-b border-slate-200 bg-white">
@@ -39,6 +41,10 @@ export function AppHeader() {
               value={loaded && crew ? crewLabel(crew) : null}
             />
             <Fact label="Mission day" value={loaded ? `Day ${today}` : null} />
+            <Fact
+              label="Mission time"
+              value={loaded ? formatTimeOfDay(nowMs) : null}
+            />
           </dl>
           {loaded && <EnvironmentControls />}
         </div>

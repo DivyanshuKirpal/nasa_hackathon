@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { scenarioStartMs } from '../clock/missionClock.ts'
+import { scenarioStartMs, type ClockSpeed } from '../clock/missionClock.ts'
 import { healthData, linkDefaults } from '../data/index.ts'
 import {
   missionDayOf,
@@ -9,6 +9,7 @@ import {
   type ScenarioFile,
   type SymptomId,
 } from '../engine/index.ts'
+import { advance } from '../link/earthLink.ts'
 import { alertMessage, insightMessage, syncedAlertSlices } from './alertSync.ts'
 import {
   STORAGE_KEY,
@@ -50,9 +51,16 @@ export interface AppActions {
    * Records first and last sight of each active alert and queues the
    * automatic messages: one report for "act on board", one consult for
    * "consult the ground", at most one per alert and kind (section 13.4).
-   * The actions below call it after every change that can move a route.
+   * Then lets the outbox travel (section 15). The actions below call it
+   * after every change that can move a route or the time.
    */
   syncAlerts(): void
+  /** Moves mission time forward: the ticker, "+10 min" and "+1 day" (section 16). */
+  advanceTime(missionMs: number): void
+  setSpeed(speed: ClockSpeed): void
+  /** Link up or down. Queued messages leave when it comes back up. */
+  setLinkUp(linkUp: boolean): void
+  switchCrew(crewId: string): void
 }
 
 export type AppState = PersistedState & AppActions
@@ -297,6 +305,7 @@ export const useAppStore = create<AppState>()(
           return { ok: true }
         }
         set({ outbox: [...state.outbox, message] })
+        get().syncAlerts()
         return { ok: true }
       },
 
@@ -314,12 +323,53 @@ export const useAppStore = create<AppState>()(
           return { ok: true }
         }
         set({ outbox: [...state.outbox, message] })
+        get().syncAlerts()
         return { ok: true }
       },
 
       syncAlerts() {
         const changed = syncedAlertSlices(get())
         if (changed) set(changed)
+        // Messages never start by themselves here: this only moves the ones
+        // already in the outbox along (section 15).
+        const { outbox, mission } = get()
+        const moved = advance(outbox, mission.nowMs, mission.link)
+        if (moved !== outbox) set({ outbox: moved })
+      },
+
+      advanceTime(missionMs) {
+        if (!Number.isFinite(missionMs) || missionMs <= 0) return
+        const { mission } = get()
+        set({ mission: { ...mission, nowMs: mission.nowMs + missionMs } })
+        get().syncAlerts()
+      },
+
+      setSpeed(speed) {
+        const { mission } = get()
+        if (mission.speed === speed) return
+        set({ mission: { ...mission, speed } })
+      },
+
+      setLinkUp(linkUp) {
+        const { mission } = get()
+        if (mission.link.linkUp === linkUp) return
+        set({
+          mission: {
+            ...mission,
+            link: linkUp
+              ? { ...mission.link, linkUp, upSinceMs: mission.nowMs }
+              : { ...mission.link, linkUp },
+          },
+        })
+        get().syncAlerts()
+      },
+
+      switchCrew(crewId) {
+        const { mission, crew } = get()
+        if (mission.activeCrewId === crewId) return
+        if (!crew.some((member) => member.id === crewId)) return
+        set({ mission: { ...mission, activeCrewId: crewId } })
+        get().syncAlerts()
       },
     }),
     {

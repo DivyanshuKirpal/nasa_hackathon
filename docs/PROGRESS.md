@@ -2,6 +2,27 @@
 
 One entry per milestone, newest first (ARCHITECTURE.md section 30.4). Targets are in section 31.1.
 
+## M6 Earth link, clock and demo panel (started Sun 10:20, checked and committed Sun 10:35; manual checks pending)
+- M5 close recorded: commit `54e918c` pushed to `main`. Deployment confirmed from Vercel's own commit status on GitHub (state "success", "Deployment has completed", 10:18:26 IST; the first query hit GitHub's anonymous rate limit, one later query succeeded). The public site serves `index-BactSZzl.js`, `RegionPage-C1IXocY0.js` and `index-DhXs9j3C.css`, byte-identical to the local build, and the 16 M5 browser checks passed on the public site.
+- Like M5, M6 follows ARCHITECTURE.md section 31.12 as written: the earlier prompt with M5 and M6 requirements never reached this session.
+- Built:
+  - The outbox state machine `advance` (in the outbox, on its way, delivered) in `src/link/earthLink.ts`, with the departure rule for a link that was down, the arrival after one delay and a consult's expected reply time. It never creates a message; the store runs it after every change.
+  - The mission clock ticker (paused, 1×, 60×, 600×; at most four writes a second), started once in the layout; the header shows the mission time.
+  - The Earth link screen: link, delay, handling time and every message with its steps, progress, arrival and expected reply; private messages without their text.
+  - The presenter tools: mission clock, crew member, environment and delay, link down and up, "Reset to seed" (asks first), and the scenario picker.
+  - New store actions `advanceTime`, `setSpeed`, `setLinkUp`, `switchCrew`. New optional fields `link.upSinceMs` and `message.departedAtMs`, so older stored states still load.
+- Changed behaviour, with the tests updated to match: messages no longer stay "queued". At the station (0 s) a consult is delivered at once; at Mars a message is on its way while the clock is paused. The "sent" lines on alerts and insights now say "Sent to ground at 09:00 mission time. On its way to Earth: a consult request." The second-opinion rules are unchanged: an insight is still sent only when the crew member presses "Send to ground", once per insight and day.
+- Tests: `npm run check` green with 611 tests in 38 files (583 before M6). New: every transition of `advance` (leaves at once, reply time, exactly one delay, one-step delivery, link down keeps it, leaves when the link is back, keeps going when the link goes down, keeps its arrival when the delay changes, unchanged array); the ticker with fake timers (600× moves ten minutes in four writes, paused writes nothing); the store (the exit test at Mars far, link down and back up, "+1 day", "+10 min", a step that does not move forward, the speed, crew switch with the other member's messages); the Earth link screen (delivered with reply time, in transit with progress and steps, link down, private message, empty); the presenter controls (speed pressed, "+10 min" and "+1 day" in the header, link, crew, reset only after the second press).
+- Browser checks: headless Chrome against `vite preview` of the production build. 17 of 17 passed: by keyboard only, the slider to Mars far, "Send to ground" on the sleep alert (on its way at once), the Earth link screen with progress and "Expected reply around 09:49 on day 142", 600× from the presenter tools, then "Arrived at Earth at 09:22 on day 142" with the reply time still shown, link down and up, "+1 day" moves the day; at 390 px no sideways scrolling, tap targets at least 44 px and text at least 16 px on the Earth link screen and the presenter tools; every stop had a focus ring; no console errors.
+- Known issues:
+  - The progress bar uses the browser's own look.
+  - While the clock runs, Home re-evaluates up to four times a second; it is paused by default.
+  - The bundle is 587 kB (180 kB gzipped), still over Vite's 500 kB warning.
+- **Manual checks pending** (none confirmed yet):
+  - M6 (ARCHITECTURE.md section 31.12), on the deployed site: at 600×, send a consult at Mars far: it goes in transit, then is delivered after the one-way delay, with its expected reply time shown; toggle the link down and up; "+1 day" moves the mission day.
+  - M5, A3, A2, A1 and the "before M5" checks listed in the entries below, unchanged.
+- This commit's deployment is recorded in the next entry.
+
 ## M5 Trends and streak (started Sun about 10:05, checked and committed Sun 10:20; manual checks pending)
 - A3 close recorded: commit `176d9ff` pushed to `main`. Deployment confirmed from Vercel's own commit status on GitHub (state "success", "Deployment has completed", 03:52:04 IST). The public site then served `index-CJ8JT9Td.js` and `index-D2LNX2L2.css`, byte-identical to the local build, and the same seed and space weather files; the 26 A3 browser checks passed on the public site as well.
 - Scope change (Divyanshu, 15 November, Sun 09:55): A4 is included in the hackathon submission and the batch is M5, M6, A4, each with its own checks, commit and push. Recorded in ARCHITECTURE.md (sections 3, 24.3, 26.19, 27, 30, 31.1, 31.10, 31.17, 32.1, 33, 34) and CLAUDE.md. B1, B2, B3 and M7 are not started.

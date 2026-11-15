@@ -354,6 +354,8 @@ export const linkStateSchema = z.strictObject({
   oneWayDelaySec: z.number().nonnegative(),
   linkUp: z.boolean(),
   groundHandlingMin: z.number().nonnegative(),
+  /** Mission time the link last came up; absent means up since the start (M6). */
+  upSinceMs: z.number().nonnegative().optional(),
 })
 
 // Section 26.11: fixed now so the shapes do not move; used from A2.
@@ -734,6 +736,8 @@ export const groundMessageSchema = z.strictObject({
   title: z.string().min(1),
   body: z.string(),
   sentAtMs: missionMsSchema,
+  /** When it actually left: later than sentAtMs if the link was down (M6). */
+  departedAtMs: missionMsSchema.nullable().optional(),
   arrivesAtMs: missionMsSchema.nullable(),
   replyDueAtMs: missionMsSchema.nullable(),
   status: z.enum(['queued', 'in_transit', 'delivered']),

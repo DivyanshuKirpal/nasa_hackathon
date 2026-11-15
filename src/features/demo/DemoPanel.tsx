@@ -1,11 +1,14 @@
 import { X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
+import { ClockControls } from './ClockControls.tsx'
+import { CrewAndLinkControls } from './CrewAndLinkControls.tsx'
+import { ResetToSeed } from './ResetToSeed.tsx'
 import { ScenarioPicker } from './ScenarioPicker.tsx'
 
 /**
  * The presenter tools drawer (section 16), opened with Shift+D or the footer
- * link. A presenter tool only: the crew never needs it. M4 has the scenario
- * picker; M6 adds the clock, crew switch and link controls.
+ * link. A presenter tool only: the crew never needs it. Clock, crew,
+ * environment and link, reset, and the scenario picker (M4, completed in M6).
  */
 export function DemoPanel({ onClose }: { onClose: () => void }) {
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -48,7 +51,10 @@ export function DemoPanel({ onClose }: { onClose: () => void }) {
         <p className="mt-1 text-slate-700">
           For demonstrations only. Press Escape to close.
         </p>
-        <div className="mt-4">
+        <div className="mt-4 space-y-6">
+          <ClockControls />
+          <CrewAndLinkControls />
+          <ResetToSeed onDone={onClose} />
           <ScenarioPicker onLoaded={onClose} />
         </div>
       </div>

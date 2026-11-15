@@ -144,13 +144,16 @@ describe('Second opinions on Home', () => {
       title: 'Second opinion sent by crew',
       insightKey: insight?.key,
       alertKey: null,
-      status: 'queued',
+      // The clock is paused and Mars is minutes away: the consult is on its way (M6).
+      status: 'in_transit',
     })
+    const { link, nowMs } = useAppStore.getState().mission
+    expect(outbox[0]?.arrivesAtMs).toBe(nowMs + link.oneWayDelaySec * 1000)
     expect(outbox[0]?.body).toContain('Private medical.')
     expect(outbox[0]?.body).toContain(personalPatternModel.caveat)
 
     const sent = within(card()).getByText(
-      /Second opinion sent by crew: queued for Earth/,
+      /Second opinion sent by crew at \d\d:\d\d mission time\./,
     )
     expect(sent).toHaveFocus()
     expect(
