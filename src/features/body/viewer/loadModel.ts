@@ -45,6 +45,10 @@ export interface LoadedModel {
   anchors: Map<SensorSiteId, Object3D>
   contract: ContractResult
   layers: LayerState[]
+  /** Meshes painted with the shared skin material (the skin layer, or the body of a contract model). */
+  surfaceMeshes: Mesh[]
+  /** The shared skin material; the health overlay switches it to vertex colours. */
+  bodyMaterial: MeshStandardMaterial
   setLayerVisible(id: string, visible: boolean): void
   /** Pins may be placed only while the skin is shown. */
   surfacePickable(): boolean
@@ -145,10 +149,12 @@ export function prepareModel(
   const surfaceLayer = layers.find((layer) => layer.surface)
   // The skin, and whatever shares its layer (eyes, nails), is plain gray.
   const painted = surfaceLayer?.object ?? body
+  const surfaceMeshes: Mesh[] = []
   painted.traverse((node) => {
-    if (node instanceof Mesh) {
+    if (node instanceof Mesh && node !== patch) {
       disposeMaterials(node.material, materials)
       node.material = materials.body
+      surfaceMeshes.push(node)
     }
   })
   if (patch) {
@@ -204,6 +210,8 @@ export function prepareModel(
     patch,
     anchors,
     contract,
+    surfaceMeshes,
+    bodyMaterial: materials.body,
     get layers() {
       return layers.map(({ id, label, surface, object }) => ({
         id,

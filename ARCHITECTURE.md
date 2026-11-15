@@ -1630,6 +1630,44 @@ As built in B2 (15 November 2026):
 - The presenter tools have "Force 2D" and one line per crew member: the model, its version and file, and the result of its last load in this session.
 - Tests: `src/test/setup.ts` now imports `resetStore` from `src/test/resetStore.ts` instead of `helpers.tsx`, so the setup no longer loads the screens before a test file's `vi.mock` calls (the 3D screen tests mock `webgl.ts` and the viewer).
 
+
+### 22.12 Health status overlay on the 3D body (15 November 2026, local, not pushed)
+
+Asked for by the model owner (team VoidShifters) on 15 November 2026: the 3D body shows today's health status, and the
+anatomical model is connected with all its layers. **It changes one earlier rule:** the 3D colours used to carry no
+health meaning (section 20). Now the overlay colours do, and only next to a legend that shows each status as colour,
+icon and word. The direction stays one way: the overlay reads the engine's output and nothing goes back
+(decision D11, invariance test unchanged).
+
+- **Mapping** (`src/bodyview/healthOverlay.ts`, pure TypeScript, tested):
+  - head: the brain and the skin of the head and neck;
+  - eyes: the eyes;
+  - heart: the heart and major vessels, and the skin of the chest and upper back;
+  - core: the abdominal organs and the abdominal skin;
+  - bones_muscle: the skeleton, the muscles and the limb skin;
+  - skin: the whole skin, whenever its status is the more serious one;
+  - whole_body (environment): the lungs and airway.
+
+  Skin regions come from the anatomical model's `_region_id` attribute. Bodies without it (the contract mannequins,
+  the placeholder) are zoned by height and distance from the midline.
+- **Viewer** (`src/features/body/viewer/healthOverlay3d.ts`): skin vertices get the status colour mixed into the gray
+  (good 35 %, watch 70 %, act 80 %; no data stays gray), and inner parts switch to a status material. "Colour the body
+  by today's status" (on by default while the 3D body is shown) restores the file's own look when unticked.
+  - "Show the organs behind each Watch or Act" turns on the layers that hold them.
+  - "Tap to name a part" names the tapped visible part and its region's status, without placing a pin.
+  - Colours are the tokens `--body-status-good`, `--body-status-watch` and `--body-status-act`.
+- **Motion** (`bodyMotion.ts`, `BodyMotionControls.tsx`): models with shape keys get sliders for heart contraction,
+  breath in and the second body shape, and an "Animate the heartbeat and breathing" option, off by default. The
+  heartbeat follows the crew member's latest heart-rate reading. Breathing uses a fixed, labelled pace of 12 a
+  minute, because no breathing-rate reading exists. Pins cannot be placed while the second body shape is not 0.
+- **Models**: crew A uses the complete anatomical model, `public/models/crew-a.glb` (the 3DBlend
+  `astronaut_digital_twin.glb`, byte for byte), with the prepared entry from `docs/b3-crew-a-entry.json`. Crew B uses the
+  contract mannequin, `public/models/crew-b.glb` (3DBlend `export/crew/crew-b.glb`, CC0 base mesh). Both pass
+  `tools/check_body_model.py`.
+- **Open:** the provenance and licence questions in `docs/b3-model-review.md` still apply to crew A. CLAUDE.md's rule
+  that Claude Code never creates files in `public/models/` was set aside at the model owner's request (copies only).
+  Divyanshu decides before anything is pushed.
+
 ---
 
 ## 23. Body model contract (Blender handoff)

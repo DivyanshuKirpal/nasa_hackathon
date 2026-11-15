@@ -18,12 +18,23 @@ const colors: ViewerColors = {
   pinSelected: new Color(),
   sensor: new Color(),
   sensorLost: new Color(),
+  statusGood: new Color(),
+  statusWatch: new Color(),
+  statusAct: new Color(),
 }
 
-function entry() {
-  const model = bodyModels.find((entry) => entry.status === 'placeholder')
-  if (!model) throw new Error('no placeholder model')
-  return model
+// A placeholder entry made from a contract-named model, so these tests do not
+// depend on which crew members still use the placeholder in the manifest.
+function entry(): (typeof bodyModels)[number] {
+  const model = bodyModels.find((entry) => entry.nodeMap === undefined)
+  if (!model) throw new Error('no contract-named model')
+  return {
+    ...model,
+    status: 'placeholder',
+    file: null,
+    version: 'placeholder-1',
+    layers: undefined,
+  }
 }
 
 function materials() {

@@ -15,7 +15,7 @@ export function Card({
   return (
     <section
       aria-labelledby={headingId}
-      className="rounded-lg border border-slate-200 bg-white p-4"
+      className="glass-panel rounded-2xl p-5"
     >
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 id={headingId} className="text-lg font-semibold">

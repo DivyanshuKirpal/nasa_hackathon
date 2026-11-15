@@ -110,6 +110,9 @@ describe('markers (section 22.8)', () => {
     pinSelected: new Color().setScalar(0.4),
     sensor: new Color().setScalar(0.6),
     sensorLost: new Color().setScalar(0.8),
+    statusGood: new Color(),
+    statusWatch: new Color(),
+    statusAct: new Color(),
   }
   const anchor: PinAnchor = {
     modelId: 'crew-a',

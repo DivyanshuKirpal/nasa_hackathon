@@ -326,7 +326,7 @@ describe('Presenter tools: body view', () => {
     expect(useAppStore.getState().prefs.force2d).toBe(true)
     act(() =>
       useBodyModelStatus.getState().report('crew-b', {
-        version: 'placeholder-1',
+        version: bodyModelFor('c2')?.version ?? 'placeholder-1',
         state: 'ready',
         contract: { outcome: 'accept', missing: [] },
       }),

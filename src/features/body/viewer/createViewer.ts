@@ -50,9 +50,10 @@ export function createViewer(
   canvas: HTMLCanvasElement,
   colors: ViewerColors,
 ): Viewer {
-  const renderer = new WebGLRenderer({ canvas, antialias: true })
+  const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true })
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-  renderer.setClearColor(colors.background)
+  // Transparent clear: the hologram stage behind the canvas shows through.
+  renderer.setClearColor(colors.background, 0)
   const scene = new Scene()
   scene.add(new HemisphereLight(undefined, undefined, 1.6))
   const sun = new DirectionalLight(undefined, 1.8)

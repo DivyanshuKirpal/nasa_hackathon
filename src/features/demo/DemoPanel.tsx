@@ -26,7 +26,7 @@ export function DemoPanel({ onClose }: { onClose: () => void }) {
   }, [onClose])
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/50">
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/60">
       <div
         role="dialog"
         aria-modal="true"

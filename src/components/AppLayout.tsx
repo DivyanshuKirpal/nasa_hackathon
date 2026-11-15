@@ -87,7 +87,7 @@ export function AppLayout() {
     <>
       <div className="flex min-h-screen flex-col" inert={presenter.open}>
         <AppHeader />
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 lg:px-8">
           <ScenarioGate />
         </main>
         <AppFooter onOpenPresenterTools={presenter.show} />

@@ -12,6 +12,9 @@ export interface ViewerColors {
   pinSelected: Color
   sensor: Color
   sensorLost: Color
+  statusGood: Color
+  statusWatch: Color
+  statusAct: Color
 }
 
 export function readViewerColors(element: Element): ViewerColors {
@@ -28,5 +31,8 @@ export function readViewerColors(element: Element): ViewerColors {
     pinSelected: read('--pin-selected'),
     sensor: read('--sensor'),
     sensorLost: read('--sensor-lost'),
+    statusGood: read('--body-status-good'),
+    statusWatch: read('--body-status-watch'),
+    statusAct: read('--body-status-act'),
   }
 }

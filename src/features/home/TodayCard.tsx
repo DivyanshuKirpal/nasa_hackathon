@@ -41,7 +41,7 @@ export function TodayCard({ evaluation }: { evaluation: Evaluation }) {
       </p>
       <Link
         to="/check-in"
-        className="mt-3 inline-flex min-h-11 items-center rounded-lg bg-slate-900 px-4 font-semibold text-white"
+        className="holo-button mt-3 inline-flex min-h-11 items-center rounded-xl px-4 font-semibold"
       >
         {progress.done === 0
           ? 'Start check-in'

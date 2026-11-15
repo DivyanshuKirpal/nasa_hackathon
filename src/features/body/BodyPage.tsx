@@ -16,6 +16,7 @@ import { SensorSection } from './SensorSection.tsx'
 import { SorenessForm } from './SorenessForm.tsx'
 import { SorenessList } from './SorenessList.tsx'
 import { areaLabel } from './sorenessDraft.ts'
+import { useBodyHealth } from './useBodyHealth.ts'
 import { useBodyScreenState } from './useBodyScreenState.ts'
 import { useSuitReplay } from './suitReplay.ts'
 
@@ -34,6 +35,7 @@ export function BodyPage() {
   const replay = useSuitReplay()
   const locationRef = useRef<HTMLInputElement>(null)
   const screen = useBodyScreenState(crewId)
+  const health = useBodyHealth()
   const model = bodyModelFor(crewId)
   const status = useBodyModelStatus((state) =>
     model ? state.byModel[model.id] : undefined,
@@ -82,6 +84,7 @@ export function BodyPage() {
   )
 
   const viewer: ViewerInputs = {
+    health,
     crewName: crew?.name ?? '',
     pins,
     sensors: viewerSensors,

@@ -27,9 +27,9 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Main"
-      className="sticky bottom-0 border-t border-slate-200 bg-white"
+      className="sticky bottom-0 z-40 border-t border-slate-200 bg-white"
     >
-      <ul className="mx-auto flex max-w-5xl">
+      <ul className="mx-auto flex max-w-3xl">
         {navItems.map(({ to, label, Icon }) => (
           <li key={to} className="flex-1">
             <NavLink to={to} end className={navLinkClass}>

@@ -1,6 +1,12 @@
 /*
  * Design tokens (ARCHITECTURE.md section 20). The only place raw colour
  * values live; components and viewer code use these names.
+ *
+ * Theme "calm hologram" (15 November 2026, by request of the team): a dark,
+ * low-glare ink background with soft mint, aqua and lavender light. The
+ * Tailwind slate scale and white are remapped here so every existing screen
+ * picks up the theme without touching each component: slate-900 is now the
+ * main text colour, slate-50 the page, white a frosted glass panel.
  */
 
 /*
@@ -8,49 +14,104 @@
  * status. Status is always shown as colour plus icon plus word, never colour
  * alone. Tailwind turns these into classes such as bg-status-watch-bg,
  * text-status-watch-fg and border-status-watch-border.
- * Contrast is checked against WCAG AA; results are in docs/PROGRESS.md (M0).
  */
 @theme {
-  --color-status-good-bg: #e6f4ea;
-  --color-status-good-fg: #14532d;
-  --color-status-good-border: #2e7d4f;
+  --color-status-good-bg: rgb(110 200 160 / 0.14);
+  --color-status-good-fg: #b3ecd0;
+  --color-status-good-border: #5fb894;
 
-  --color-status-watch-bg: #fff3d6;
-  --color-status-watch-fg: #713f12;
-  --color-status-watch-border: #a16207;
+  --color-status-watch-bg: rgb(240 195 120 / 0.14);
+  --color-status-watch-fg: #f5d9aa;
+  --color-status-watch-border: #d4a35e;
 
-  --color-status-act-bg: #fde8e8;
-  --color-status-act-fg: #8b1a1a;
-  --color-status-act-border: #c53030;
+  --color-status-act-bg: rgb(236 140 140 / 0.16);
+  --color-status-act-fg: #f8c1be;
+  --color-status-act-border: #e0817d;
 
-  --color-status-none-bg: #eef0f3;
-  --color-status-none-fg: #374151;
-  --color-status-none-border: #6b7280;
+  --color-status-none-bg: rgb(160 180 180 / 0.12);
+  --color-status-none-fg: #c3d1cf;
+  --color-status-none-border: #7d9391;
 
-  --color-focus-ring: #1d4ed8;
+  --color-focus-ring: #9ee6d3;
 
   /*
-   * Trend chart colours (milestone M5). Not status colours: a chart never
-   * says Good, Watch or Act by colour. The line is dark enough to read on
-   * white and on the band; the band marks "your usual range".
+   * Trend chart colours. Not status colours: a chart never says Good, Watch
+   * or Act by colour. The band marks "your usual range".
    */
-  --color-chart-line: #1e3a8a;
-  --color-chart-band: #dbeafe;
-  --color-chart-band-edge: #60a5fa;
-  --color-chart-center: #475569;
-  --color-chart-axis: #334155;
+  --color-chart-line: #8fdcc9;
+  --color-chart-band: rgb(143 220 201 / 0.1);
+  --color-chart-band-edge: rgb(143 220 201 / 0.45);
+  --color-chart-center: #8ea7a4;
+  --color-chart-axis: #a3b8b5;
+
+  /* Calm hologram palette, remapped onto the classes the screens already use. */
+  --color-white: rgb(16 30 34 / 0.72);
+  --color-slate-50: #0d181b;
+  --color-slate-100: rgb(143 220 201 / 0.08);
+  --color-slate-200: rgb(143 220 201 / 0.14);
+  --color-slate-300: rgb(143 220 201 / 0.24);
+  --color-slate-400: #6f8c8a;
+  --color-slate-500: #8ea7a4;
+  --color-slate-600: #a3b8b5;
+  --color-slate-700: #bccdca;
+  --color-slate-800: #d2dfdc;
+  --color-slate-900: #e6efed;
+  --color-slate-950: #f3f8f7;
+  --color-blue-800: #8fdcc9;
+
+  /* Accent lights for the hologram look. */
+  --color-holo-mint: #8fdcc9;
+  --color-holo-aqua: #7cc7d9;
+  --color-holo-lavender: #b7a8e8;
+  --color-holo-peach: #f0c39a;
+  --color-holo-ink: #0b1517;
+  --color-holo-ink-2: #10201f;
+  --color-holo-glass: rgb(16 30 34 / 0.72);
+  --color-holo-glass-strong: rgb(14 26 30 / 0.9);
+  --color-holo-line: rgb(143 220 201 / 0.16);
+  --color-holo-glow: rgb(143 220 201 / 0.35);
+
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Space Grotesk', 'Manrope', ui-sans-serif, sans-serif;
 }
 
-/*
- * 3D viewer colours. The viewer reads them once at mount (section 22.8).
- * They are not status colours and never carry a health meaning.
- */
 :root {
-  --viewer-bg: #eef1f5;
-  --body-surface: #a8adb5;
-  --body-patch: #3b6fd8;
-  --pin: #6d28d9;
-  --pin-selected: #3b0f8c;
-  --sensor: #0e7490;
-  --sensor-lost: #6b7280;
+  color-scheme: dark;
+  accent-color: #8fdcc9;
+
+  --page-bg: #0b1517;
+  --page-glow-1: rgb(143 220 201 / 0.1);
+  --page-glow-2: rgb(183 168 232 / 0.09);
+  --page-glow-3: rgb(124 199 217 / 0.07);
+  --page-grid: rgb(143 220 201 / 0.035);
+  --glass-edge: rgb(255 255 255 / 0.06);
+  --glass-shadow: rgb(0 0 0 / 0.35);
+  --button-ink: #0b1517;
+  --button-from: #a6e8d6;
+  --button-to: #8fc9e0;
+
+  /*
+   * 3D viewer colours. The viewer reads them once at mount (section 22.8).
+   * The canvas itself is transparent so the hologram stage shows through.
+   */
+  --viewer-bg: #0d1a1d;
+  --stage-glow: rgb(143 220 201 / 0.16);
+  --stage-glow-2: rgb(183 168 232 / 0.12);
+  --stage-ring: rgb(143 220 201 / 0.55);
+  --stage-ring-soft: rgb(143 220 201 / 0.18);
+  --stage-scan: rgb(143 220 201 / 0.05);
+  --body-surface: #b8d8d2;
+  --body-patch: #7cc7d9;
+  --pin: #b7a8e8;
+  --pin-selected: #e6ddff;
+  --sensor: #7cc7d9;
+  --sensor-lost: #6f8c8a;
+  /*
+   * Health status overlay on the 3D body (section 22.12): the only 3D colours
+   * that carry a status. They always appear next to the legend, which shows
+   * each status as colour plus icon plus word.
+   */
+  --body-status-good: #6cc9a1;
+  --body-status-watch: #e8b46a;
+  --body-status-act: #e8746e;
 }

@@ -2,6 +2,15 @@
 
 One entry per milestone, newest first (ARCHITECTURE.md section 30.4). Targets are in section 31.1.
 
+## B3 continued: health data on the 3D body, hologram dashboard and AI guidance (Sun, model owner's session; pushed at the model owner's request)
+- Health status overlay on the 3D body (section 22.12): skin and organs coloured by the region statuses, with a legend that shows colour, icon and word; "Show the organs behind each Watch or Act"; "Tap to name a part"; heartbeat and breathing shape keys driven by the latest heart rate (animation on by default). New tests: `src/bodyview/__tests__/healthOverlay.test.ts`, `viewer/__tests__/healthOverlay3d.test.ts`.
+- Crew B now uses Chirag's CC0 contract mannequin (`public/models/crew-b.glb`, copied byte for byte from 3DBlend `export/crew/crew-b.glb`; it passes `tools/check_body_model.py --crew c2`). Revert `src/data/body-models.json` crew B to the placeholder entry if the team prefers.
+- Home is now a dashboard around the 3D digital twin: body-area status strip, latest vitals with small trend lines and "your usual", active alerts, and the 3DBlend viewer's left bar (body systems, legend, motion controls) next to the model. Falls back to the 2D body map without WebGL or a model.
+- Theme: calm hologram (dark, low-glare, soft mint, aqua and lavender; glass panels; a hologram stage behind the model). The Tailwind slate scale is remapped in `src/styles/tokens.css`, so every screen follows. This departs from "light theme only" in CLAUDE.md by request.
+- AI guidance card and "Ask the wellness assistant": the app's own results go to `/api/guidance`, a server-side Groq proxy (`server/groq.js`; Vite middleware locally, `api/guidance.js` on Vercel). The key lives only in `GROQ_API_KEY` (`.env.local`, never committed; Vercel project settings). The prompt forbids diagnoses, medication names and invented numbers. This is a runtime network call and a small backend, which CLAUDE.md does not allow; added by request, to be reviewed by Divyanshu.
+- Checks: `npm run check` green (778 tests in 58 files), `npm run build` OK, headless Chrome screenshots of home, check-in and a region screen, a live Groq request through the dev server.
+- Open: set `GROQ_API_KEY` on Vercel, update ARCHITECTURE.md sections 19, 20 and 22 for the dashboard, theme and AI card, tests for the new home cards, and Divyanshu's manual checks.
+
 ## B3 published: Chirag's anatomical model on the site (Sun 14:27 to 14:40; verified on the site; human checks pending)
 - Previous commit `35415a5` deployed: Vercel success 13:50:16 IST. Its files were byte-identical to the local build, `models/crew-a.glb` returned 404 there (not yet published), and the B2 checks passed on the site (23 of 23, 6 of 6 without WebGL).
 - Divyanshu's decision (15 November 2026): publish the atlas as a generic anatomical reference with its appearance and layers, as a narrow exception documented in ARCHITECTURE.md sections 23.5 and 23.12 and in CLAUDE.md; state its real-volunteer origin and that it is not a replica; credit the team, Chirag and the upstream creators.

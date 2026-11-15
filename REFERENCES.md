@@ -161,6 +161,7 @@ Crew A's 3D body (`public/models/crew-a.glb`) is licensed CC BY-SA 4.0. Its lice
 - Mitsuhashi N, et al. BodyParts3D: 3D structure database for anatomical concepts. Nucleic Acids Research, 2009. https://pmc.ncbi.nlm.nih.gov/articles/PMC2686534/ (the whole-body model was built from MRI images of one male volunteer)
 - Cranial Nerves and Foramina, by the University of Dundee, CAHID. CC BY 4.0. Listed by Z-Anatomy as included and adapted.
 - BodyParts3D 4.0 OBJ files (`partof_BP3D_4.0_obj_99.zip`), DBCLS. Used only to compare the delivered meshes with their source; not part of the app. https://dbarchive.biosciencedbc.jp/en/bodyparts3d/download.html
+- Blender Studio, Human Base Meshes asset bundle v1.4.1 (CC0, public domain): the base of crew B's mannequin. https://download.blender.org/demo/asset-bundles/human-base-meshes/
 
 ## Tools and assets
 
@@ -171,5 +172,7 @@ Crew A's 3D body (`public/models/crew-a.glb`) is licensed CC BY-SA 4.0. Its lice
 | Git and GitHub | Version control and the public repository | https://github.com/DivyanshuKirpal/nasa_hackathon |
 | Vercel | Hosting the public site | https://vercel.com |
 | Python 3.12 | The simulator, the DONKI downloader and the offline machine learning | https://www.python.org |
+| Groq API (`openai/gpt-oss-120b`, `openai/gpt-oss-20b`) | AI guidance card, called only from the server-side proxy | https://console.groq.com/docs |
+| Google Fonts: Manrope and Space Grotesk (SIL Open Font License 1.1) | Interface typefaces | https://fonts.google.com/specimen/Manrope, https://fonts.google.com/specimen/Space+Grotesk |
 
-No images, fonts or other assets are used in the app yet. The three plots next to the model card (`ml/reports/sep-risk-v1-*.png`) are drawn by `ml/train_sep_risk.py` from the test results.
+No images are used in the app; the two typefaces above load from Google Fonts. The three plots next to the model card (`ml/reports/sep-risk-v1-*.png`) are drawn by `ml/train_sep_risk.py` from the test results.
