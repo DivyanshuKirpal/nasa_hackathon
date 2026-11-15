@@ -6,6 +6,7 @@ import { CheckinPage } from './features/checkin/CheckinPage.tsx'
 import { EarthLinkPage } from './features/earthlink/EarthLinkPage.tsx'
 import { HomePage } from './features/home/HomePage.tsx'
 import { ModelCardPage } from './features/model/ModelCardPage.tsx'
+import { LazyRegionPage } from './features/region/LazyRegionPage.tsx'
 
 // Shared by the app's hash router and the tests' memory router.
 export const routes: RouteObject[] = [
@@ -16,6 +17,7 @@ export const routes: RouteObject[] = [
       { index: true, element: <HomePage /> },
       { path: 'check-in', element: <CheckinPage /> },
       { path: 'alert/:alertKey', element: <AlertPage /> },
+      { path: 'region/:regionId', element: <LazyRegionPage /> },
       { path: 'earth-link', element: <EarthLinkPage /> },
       { path: 'model/:modelId', element: <ModelCardPage /> },
       { path: '*', element: <NotFoundPage /> },

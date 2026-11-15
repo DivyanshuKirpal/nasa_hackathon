@@ -15,7 +15,7 @@ export function SourceLink({ sourceId }: { sourceId: string }) {
         href={source.url}
         target="_blank"
         rel="noreferrer"
-        className="underline underline-offset-4"
+        className="inline-flex min-h-11 items-center underline underline-offset-4"
       >
         {source.title}
       </a>

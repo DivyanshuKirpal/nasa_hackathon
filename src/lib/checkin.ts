@@ -115,6 +115,49 @@ export function isStepDone(
   )
 }
 
+/** The steps that record readings. The streak is derived from readings only (section 19.1). */
+const READING_STEPS = CHECKIN_STEPS.filter(
+  (step) => step.kind === 'number' || step.kind === 'scale',
+)
+
+/**
+ * Consecutive mission days with a completed check-in: every reading step has
+ * a routine reading that day. Counted back from today if today's check-in is
+ * complete, otherwise from yesterday, so an unfinished today never breaks
+ * the streak. Derived, never stored, and it never scolds a missed day.
+ */
+export function checkinStreak(records: CheckinRecords): number {
+  const logged = new Map<number, Set<IndicatorId>>()
+  for (const reading of records.readings) {
+    if (reading.crewId !== records.crewId || isRecheck(reading)) continue
+    const day = logged.get(reading.day) ?? new Set<IndicatorId>()
+    day.add(reading.indicator)
+    logged.set(reading.day, day)
+  }
+  const complete = (day: number) =>
+    READING_STEPS.every((step) =>
+      step.indicators.every(
+        (indicator) => logged.get(day)?.has(indicator) ?? false,
+      ),
+    )
+  let day = complete(records.today) ? records.today : records.today - 1
+  let count = 0
+  while (day >= 1 && complete(day)) {
+    count += 1
+    day -= 1
+  }
+  return count
+}
+
+/** The streak lengths that earn a short message (section 19.1). */
+const STREAK_MILESTONES = [14, 7, 3] as const
+
+/** "7-day check-in streak" for the highest milestone reached, or null below the first. */
+export function streakMilestone(days: number): string | null {
+  const reached = STREAK_MILESTONES.find((milestone) => days >= milestone)
+  return reached === undefined ? null : `${reached}-day check-in streak`
+}
+
 /** Steps the crew member can complete today (the coming-soon step does not count). */
 export function checkinProgress(records: CheckinRecords) {
   const countable = CHECKIN_STEPS.filter((step) => step.kind !== 'coming_soon')

@@ -2,6 +2,29 @@
 
 One entry per milestone, newest first (ARCHITECTURE.md section 30.4). Targets are in section 31.1.
 
+## M5 Trends and streak (started Sun about 10:05, checked and committed Sun 10:20; manual checks pending)
+- A3 close recorded: commit `176d9ff` pushed to `main`. Deployment confirmed from Vercel's own commit status on GitHub (state "success", "Deployment has completed", 03:52:04 IST). The public site then served `index-CJ8JT9Td.js` and `index-D2LNX2L2.css`, byte-identical to the local build, and the same seed and space weather files; the 26 A3 browser checks passed on the public site as well.
+- Scope change (Divyanshu, 15 November, Sun 09:55): A4 is included in the hackathon submission and the batch is M5, M6, A4, each with its own checks, commit and push. Recorded in ARCHITECTURE.md (sections 3, 24.3, 26.19, 27, 30, 31.1, 31.10, 31.17, 32.1, 33, 34) and CLAUDE.md. B1, B2, B3 and M7 are not started.
+- The message refers to an earlier prompt with M5 and M6 requirements and an instruction to stop after M6. That prompt never reached this session (the session log holds no such message), so M5 follows ARCHITECTURE.md section 31.11 as written.
+- A4 dataset access, checked first (details in the A4 entry): the official PhysioNet page answers from this machine; version 1.0.0, Open Access, Creative Commons Attribution 4.0 International. The page no longer links one ZIP file and the old challenge ZIP files return 404, so the download takes the official file list and fetches the patient files from PhysioNet's open-data bucket, which the page names. It ran in the background during M5, inside the 30-minute time box.
+- Built:
+  - Region detail `#/region/:regionId`: status header and missing data, the area's active alerts, second opinions about the area, the simulated habitat feed (Environment) or the skin note, one card per reading (latest value, normal, 30-day chart, summary line), and "Why this matters in space" with sources. It loads on first visit; the chart library is a separate file.
+  - `TrendChart` (Recharts): the readings, the band `center ± 2 × spread` as "your usual range", the normal as a dashed line, round ticks, no animation; chart colours are new tokens, never status colours.
+  - `src/lib/trendSummary.ts`: the 30-day window, the band and the summary line.
+  - The check-in streak in the Today card (`src/lib/checkin.ts`), derived from readings and never stored.
+  - Home: areas on the body map and rows of the status list open the region screen; the in-place summary is gone. `AlertItem`, `HabitatFeeds` and `RegionInsights` moved to `src/components` so both screens share them.
+  - Fix found by the 390 px check: source links were 24 px tall; they are 44 px everywhere now.
+- Tests: `npm run check` green with 583 tests in 33 files (560 before M5). New: the summary (down, up, same, one reading, five latest only, learning, no readings, the window, the band), the streak (yesterday, today done, gaps, a missing step, re-checks, other crew, day 1), the milestones, the region page (Head in `sleep-debt` with the summary, sources, Environment, early mission, second opinions, unknown area), Home's links and streak.
+- Browser checks: headless Chrome against `vite preview` of the production build (the dev server had been stopped by Claude Code for low memory). 16 of 16 passed: the streak on Home; Head by keyboard opens `#/region/head`; the sleep card shows the value, the normal and the summary; the chart draws the band and the last five nights below it; the alert and the sources are there; the keyboard reaches every link on the page; a status row opens its area; at 390 px no sideways scrolling, tap targets at least 44 px, text at least 16 px; every stop had a focus ring; no console errors.
+- Known issues:
+  - The streak needs the exercise reading, which is logged in the evening, so today joins the streak only after the evening entry. Until then it counts up to yesterday.
+  - The summary describes the last five readings, not a fixed number of days.
+  - The bundle stays at 579 kB (177 kB gzipped); the region screen and its chart library load separately (340 kB, 100 kB gzipped).
+- **Manual checks pending** (none confirmed yet):
+  - M5 (ARCHITECTURE.md section 31.11), on the deployed site: the Head region in `sleep-debt`: the sleep line dips below the band and the summary line matches; the streak shows on Home; the keyboard reaches every link; 390 px.
+  - The A3, A2, A1 and "before M5" checks listed in the A3 entry below, unchanged.
+- This commit's deployment is recorded in the next entry.
+
 ## A3 ML model 2: personal pattern (started Sun 02:52, checked and committed Sun 03:55; manual checks pending)
 - A2 close recorded: commit `3e9c906` pushed to `main`. Deployment confirmed from Vercel's own commit status on GitHub (state "success", 02:41:52 IST). The public site then served `index-Be89xDW-.js` and `index-BFMLICiP.css`, byte-identical to the local build, and the same seed, index and space weather files.
 - A1 model card wording, corrected as text only (Divyanshu's instruction for A3):

@@ -1,7 +1,11 @@
 import { Link } from 'react-router'
 import { Card } from '../../components/Card.tsx'
 import type { Evaluation } from '../../engine/index.ts'
-import { checkinProgress } from '../../lib/checkin.ts'
+import {
+  checkinProgress,
+  checkinStreak,
+  streakMilestone,
+} from '../../lib/checkin.ts'
 import { indicatorDef } from '../../lib/labels.ts'
 import { useAppStore } from '../../store/index.ts'
 import { selectToday } from '../../store/selectors.ts'
@@ -21,6 +25,14 @@ export function TodayCard({ evaluation }: { evaluation: Evaluation }) {
     noSymptomDays,
   })
   const allDone = progress.done === progress.total
+  const streak = checkinStreak({
+    crewId,
+    today,
+    readings,
+    symptoms,
+    noSymptomDays,
+  })
+  const milestone = streakMilestone(streak)
 
   return (
     <Card title="Today">
@@ -37,6 +49,14 @@ export function TodayCard({ evaluation }: { evaluation: Evaluation }) {
             ? 'Review check-in'
             : 'Continue check-in'}
       </Link>
+
+      {streak > 0 && (
+        <p className="mt-3">
+          <span className="font-semibold">Check-in streak:</span> {streak}{' '}
+          {streak === 1 ? 'day' : 'days'}
+          {milestone && ` (${milestone})`}
+        </p>
+      )}
 
       {progress.open.length > 0 && (
         <p className="mt-3">

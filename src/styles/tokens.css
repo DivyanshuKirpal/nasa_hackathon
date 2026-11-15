@@ -28,6 +28,17 @@
   --color-status-none-border: #6b7280;
 
   --color-focus-ring: #1d4ed8;
+
+  /*
+   * Trend chart colours (milestone M5). Not status colours: a chart never
+   * says Good, Watch or Act by colour. The line is dark enough to read on
+   * white and on the band; the band marks "your usual range".
+   */
+  --color-chart-line: #1e3a8a;
+  --color-chart-band: #dbeafe;
+  --color-chart-band-edge: #60a5fa;
+  --color-chart-center: #475569;
+  --color-chart-axis: #334155;
 }
 
 /*

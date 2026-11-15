@@ -53,27 +53,43 @@ describe('Home with the sleep-debt scenario', () => {
     ])
   })
 
-  it('gives each status row a spoken name with clear breaks', () => {
+  it('gives each status row a spoken name with clear breaks, linking to its area', () => {
     loadScenario('sleep-debt')
     renderApp('/')
 
     const list = screen.getByRole('region', { name: 'Status by area' })
     expect(
-      within(list).getByRole('button', {
+      within(list).getByRole('link', {
         name: 'Head: Watch. Sleep has been low for several nights',
       }),
-    ).toHaveAttribute('aria-expanded', 'false')
+    ).toHaveAttribute('href', '/region/head')
   })
 
-  it('opens the readings of an area chosen on the map', async () => {
+  it('opens the area chosen on the map, with its readings and normal (M5)', async () => {
     const user = userEvent.setup()
     loadScenario('sleep-debt')
     renderApp('/')
 
     await user.click(screen.getByRole('button', { name: 'Head: Watch' }))
-    const list = screen.getByRole('region', { name: 'Status by area' })
-    expect(within(list).getByText(/Sleep last night:/)).toBeInTheDocument()
-    expect(within(list).getByText(/Your normal: 6\.\d h/)).toBeInTheDocument()
+    expect(
+      await screen.findByRole(
+        'heading',
+        { level: 1, name: 'Head' },
+        { timeout: 10000 },
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/Your normal: 6\.\d h/)).toBeInTheDocument()
+  })
+
+  it('shows the check-in streak in the Today card (M5)', () => {
+    loadScenario('sleep-debt')
+    renderApp('/')
+
+    const today = screen.getByRole('region', { name: 'Today' })
+    // Every seeded day up to yesterday has a complete check-in; today's is not done yet.
+    expect(today).toHaveTextContent(
+      'Check-in streak: 141 days (14-day check-in streak)',
+    )
   })
 })
 
@@ -146,7 +162,13 @@ describe('Home with other scenarios', () => {
     await user.click(screen.getByRole('button', { name: 'Chest: Good' }))
     // Day 4: the 3 most recent days are left out of a baseline, so 1 day counts.
     expect(
-      screen.getAllByText(/Learning your normal \(1 of 7\)/).length,
+      (
+        await screen.findAllByText(
+          /Learning your normal \(1 of 7\)/,
+          {},
+          { timeout: 10000 },
+        )
+      ).length,
     ).toBeGreaterThan(0)
   })
 

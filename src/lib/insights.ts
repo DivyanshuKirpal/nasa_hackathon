@@ -1,6 +1,7 @@
 import { personalPatternModel } from '../data/index.ts'
 import type {
   Baseline,
+  Evaluation,
   Insight,
   InsightFactor,
   PatternReadiness,
@@ -63,6 +64,19 @@ export function factorLineForGround(
   const words = `${def.label}: ${direction(factor)} than usual for this crew member`
   if (todayValue === null || !baseline?.ready) return words
   return `${words} (${formatValue(todayValue, def)} today, usual ${formatNormal(baseline.center, def)})`
+}
+
+/** Today's insights with the factors that belong to one region (section 26.17). */
+export function insightsForRegion(
+  evaluation: Evaluation,
+  regionId: RegionId,
+): { insight: Insight; factors: InsightFactor[] }[] {
+  return evaluation.insights.flatMap((insight) => {
+    const factors = insight.factors.filter(
+      (factor) => indicatorDef(factor.indicator).region === regionId,
+    )
+    return factors.length === 0 ? [] : [{ insight, factors }]
+  })
 }
 
 /** The body regions an insight's factors belong to, for the region view. */

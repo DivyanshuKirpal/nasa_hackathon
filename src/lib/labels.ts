@@ -1,5 +1,6 @@
 import { healthData } from '../data/index.ts'
 import type {
+  Baseline,
   CrewMember,
   Environment,
   EnvironmentId,
@@ -73,6 +74,18 @@ export function formatValue(value: number, def: IndicatorDef): string {
 export function formatNormal(value: number, def: IndicatorDef): string {
   const number = value.toFixed(def.step < 1 ? 1 : 0)
   return def.unit === '' ? number : `${number} ${def.unit}`
+}
+
+/** "Your normal: 6.5 h", or "Learning your normal (3 of 7)" while the baseline is not ready. */
+export function normalText(
+  baseline: Baseline | undefined,
+  def: IndicatorDef,
+): string | null {
+  if (!baseline) return null
+  if (baseline.ready) {
+    return `Your normal: ${formatNormal(baseline.center, def)}`
+  }
+  return `Learning your normal (${baseline.n} of ${baseline.needed})`
 }
 
 export const ROUTE_WORDS: Record<Route, string> = {

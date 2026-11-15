@@ -1,9 +1,7 @@
-import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { BodyMap2D } from '../../components/BodyMap2D.tsx'
 import { Card } from '../../components/Card.tsx'
 import { StatusBadge } from '../../components/StatusBadge.tsx'
-import type { RegionId } from '../../engine/index.ts'
 import { useAppStore } from '../../store/index.ts'
 import { selectEvaluation } from '../../store/selectors.ts'
 import { AlertList } from './AlertList.tsx'
@@ -20,9 +18,7 @@ export function HomePage() {
       (reading) => reading.crewId === state.mission.activeCrewId,
     ),
   )
-  const [selected, setSelected] = useState<RegionId | null>(null)
-  const toggle = (region: RegionId) =>
-    setSelected((current) => (current === region ? null : region))
+  const navigate = useNavigate()
 
   return (
     <div className="space-y-4">
@@ -48,22 +44,17 @@ export function HomePage() {
         <Card title="Your body">
           <BodyMap2D
             regionStatus={evaluation.regionStatus}
-            selected={selected}
-            onSelect={toggle}
+            onSelect={(region) => void navigate(`/region/${region}`)}
           />
           <p className="mt-3 text-slate-600">
-            Choose an area to see its readings.
+            Choose an area to see its readings and trends.
           </p>
         </Card>
         <div className="space-y-4">
           <AlertList evaluation={evaluation} />
           <SecondOpinionsCard evaluation={evaluation} />
           <TodayCard evaluation={evaluation} />
-          <StatusList
-            evaluation={evaluation}
-            selected={selected}
-            onSelect={toggle}
-          />
+          <StatusList evaluation={evaluation} />
         </div>
       </div>
     </div>

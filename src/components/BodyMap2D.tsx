@@ -4,7 +4,7 @@ import { STATUS_DISPLAY } from './statusDisplay.ts'
 
 interface BodyMapProps {
   regionStatus: Record<RegionId, Status>
-  selected: RegionId | null
+  /** Opens the region's detail screen (section 19.3). */
   onSelect: (region: RegionId) => void
 }
 
@@ -21,21 +21,18 @@ function RegionButton({
   shape,
   chip = false,
   regionStatus,
-  selected,
   onSelect,
 }: RegionButtonProps) {
   const { word, Icon, classes } = STATUS_DISPLAY[regionStatus[region]]
   const label = regionLabel(region)
-  const isSelected = selected === region
   return (
     <button
       type="button"
       aria-label={`${label}: ${word}`}
-      aria-pressed={isSelected}
       onClick={() => onSelect(region)}
       className={`flex min-h-11 min-w-11 items-center justify-center border-2 px-2 py-1 text-center leading-tight ${
         chip ? 'flex-row gap-2 rounded-lg px-3' : 'flex-col gap-0.5'
-      } ${classes} ${shape} ${isSelected ? 'ring-4 ring-slate-900 ring-offset-2' : ''}`}
+      } ${classes} ${shape}`}
     >
       <Icon aria-hidden="true" size={20} className="shrink-0" />
       <span className="font-semibold">{label}</span>

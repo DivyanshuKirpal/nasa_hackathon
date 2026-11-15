@@ -15,7 +15,7 @@ The centerpiece is **triage by communication delay**. Protect it above every oth
 Three extensions:
 
 - **ML radiation outlook (P0).** A logistic regression trained offline on NASA DONKI space weather data scores a solar flare by how often similar flares were linked to a recorded solar particle event. It runs on board in the browser and can raise a watch-level alert labeled "Model estimate", with an "Experimental model score" out of 100 that is never shown as a percent chance (section 26).
-- **ML second opinion (P1).** A personal pattern model that learns each crew member's own normal across all daily readings, on board, shows insights, never alerts; the crew may send an insight to the ground. The Earth hospital model (PhysioNet ICU data) is deferred until after the hackathon (decision of 14 November 2026; sections 26.17 to 26.19).
+- **ML second opinion (P1).** A personal pattern model that learns each crew member's own normal across all daily readings, on board, shows insights, never alerts; the crew may send an insight to the ground. The Earth hospital model (PhysioNet ICU data) is built in A4, after M5 and M6 (decision of 15 November 2026, which replaced the deferral of 14 November; sections 26.17 to 26.19).
 - **Personal body view (P1).** The crew member reports where it is sore (form and list, or a tap on an optional gray 3D body) and inspects three simulated suit skin-temperature sensors. Body observations never feed the health engine or the messages to Earth (section 22).
 
 ## Who builds what
@@ -159,7 +159,7 @@ These matter more than any code style rule.
 
 ## Machine learning rules
 
-Three models (section 26): `sep-risk` (P0, A1 and A2), `personal-pattern` (P1, A3) and `earth-hospital` (A4, deferred until after the hackathon; these rules still apply if it is built).
+Three models (section 26): `sep-risk` (P0, A1 and A2), `personal-pattern` (P1, A3) and `earth-hospital` (A4, brought back on 15 November 2026).
 
 1. **Each model does only what its evidence allows** (evidence ladder, decision D19). The rules alone set Good, Watch and Act. `sep-risk` enters the engine only as the `sep_risk` context feed and may raise only the watch-level rule `R-RAD-03`. `personal-pattern` and `earth-hospital` only produce insights: never a status, an alert, a route or a message by themselves. The second-opinion invariance test must stay green.
 2. **Real data, honest split.** `sep-risk` trains only on NASA DONKI records, split by year: train, then validation, then test. `earth-hospital` trains on PhysioNet hospital A and is tested once on hospital B, split by patient. Test data is used once, after every choice is fixed. Never shuffle across years or patients, never tune on a test set. `personal-pattern` is evaluated on simulated data only, and every place that shows its results says so.
@@ -204,7 +204,7 @@ If you cannot run something, say so plainly. Do not report a change as working w
 
 ## Milestone workflow
 
-Order (section 31): M0, M1, M2, M3, M4, A1, A2 (P0 complete), A3, M5, M6, B1, B2, B3 (when Chirag's files arrive), M7, M8. A4 is deferred until after the hackathon. The time checkpoints in section 32.3 stay: Claude Code proposes, Divyanshu decides every further cut.
+Order (section 31): M0, M1, M2, M3, M4, A1, A2 (P0 complete), A3, M5, M6, A4, B1, B2, B3 (when Chirag's files arrive), M7, M8. A4 was deferred on 14 November and brought back on 15 November 2026; it runs after M6. The time checkpoints in section 32.3 stay: Claude Code proposes, Divyanshu decides every further cut.
 
 For each milestone:
 
@@ -223,8 +223,8 @@ M0 is the one exception: push the scaffold as soon as `npm run check` passes, be
 Build in the order of section 31. Priorities:
 
 - **P0**: check-in, 2D body map and accessible status list, baseline, at least six rules, alert detail with protocol, triage with environment and delay, sources on alerts, three scenarios, the trained ML model with its model card running in the app as `R-RAD-03`, public deploy.
-- **P1**: the personal pattern model (A3), trend charts and check-in streak, Earth link outbox, demo panel, reaction test, remaining rules, the body view (B1), the 3D viewer with pins, named shoulder patch and compare view (B2), Chirag's models (B3).
-- **Deferred or cut (14 November 2026)**: the Earth hospital model (A4), simulated ground replies, sensor trend charts, the standalone Library screen.
+- **P1**: the personal pattern model (A3), the Earth hospital model (A4), trend charts and check-in streak, Earth link outbox, demo panel, reaction test, remaining rules, the body view (B1), the 3D viewer with pins, named shoulder patch and compare view (B2), Chirag's models (B3).
+- **Cut (14 November 2026)**: simulated ground replies, sensor trend charts, the standalone Library screen. (The Earth hospital model, deferred that day, is back since 15 November 2026.)
 - **P2**: near-vision test, dark theme, link blackouts, offline install, more named areas, NASA RadLab dose data if the team agrees (open question in section 34), the future ML work in section 26.16.
 
 When asked for something outside P0 while P0 is unfinished, say so and ask before starting. Do the simplest version that satisfies the milestone's exit test. No speculative abstractions, no extra configuration options, no features nobody asked for. If behind schedule, use the cut order and decision points in section 32 and ask before cutting.

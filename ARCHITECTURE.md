@@ -24,7 +24,7 @@ Changes on 14 November 2026:
 
 Decisions on 14 November 2026, evening (milestone M0 started at 17:13, about six hours after the planned 11:00 start):
 
-6. Scope, option B: the Earth hospital model (A4) is deferred until after the hackathon. A1, A2, A3 and the body view milestones B1, B2 and B3 stay in the target scope. The time checkpoints stay; Claude Code proposes and Divyanshu decides every further cut (section 32).
+6. Scope, option B: the Earth hospital model (A4) is deferred until after the hackathon. A1, A2, A3 and the body view milestones B1, B2 and B3 stay in the target scope. The time checkpoints stay; Claude Code proposes and Divyanshu decides every further cut (section 32). Changed on 15 November 2026 by Divyanshu: A4 is included in the hackathon submission and runs after M5 and M6 (order M5, M6, A4). The B milestones and M7 wait for his approval.
 7. Smaller cuts: simulated ground replies (the outbox stays), sensor trend charts (sensor value, contact and freshness stay) and the standalone Library screen (source links on alerts and the model card screens stay).
 8. `R-RAD-03` takes its threshold by reference from the generated model file through a new comparison kind, `modelThreshold`; `rules.json` holds no number for it (sections 11.1 and 12). The schema change is built in M1.
 9. All evidence registry entries are added in M1. Questionable references are checked against primary sources before the rules that use them are built, and `verified` stays false until Divyanshu confirms the review (section 17).
@@ -1205,6 +1205,8 @@ Purpose: answer "how am I doing today?" in five seconds.
 
 As built in M3: the region detail route arrives in M5, so until then choosing an area on the body map or in the status list opens its readings in place (latest value, "Your normal: …" or "Learning your normal (n of 7)"). Environment shows today's simulated habitat feed values with a "Simulated habitat feed" tag; Skin says that Good means only "no active alert" and does not show that the skin is healthy. Each status row carries missing data next to its status ("Missing: …"). The Today card counts 8 steps (the reaction test step counts from M7), names the steps still to do today, lists overdue measurements (an in-app test that is not available yet says so) and says when today's habitat sample is missing.
 
+As built in M5 (15 November 2026): choosing an area on the body map, or a row of the status list, opens its region screen `#/region/:regionId` (section 19.3); the in-place summary of M3 is gone. The status rows are links with the same spoken names. The Today card shows "Check-in streak: N days", followed by "(3-day check-in streak)", "(7-day …)" or "(14-day …)" for the highest milestone reached. A day counts when every reading step of the check-in (sleep, mood, blood pressure, heart rate, temperature, blood sugar, exercise) has a routine reading that day; urgent re-checks never count, and symptoms are not readings. The streak counts back from today once today's check-in is complete, otherwise from yesterday, so an unfinished today never breaks it. It lives in `src/lib/checkin.ts` and is never stored.
+
 ### 19.2 Check-in `#/check-in`
 
 Purpose: collect today's readings quickly.
@@ -1225,6 +1227,8 @@ Purpose: understand one body area.
 - Active alerts for the region.
 - Insights whose factors involve this region's indicators (section 26.17).
 - "Why this matters in space" with sources.
+
+As built in M5 (15 November 2026): the screen loads on its first visit, because it carries the chart library (a separate file, so Home does not wait for it). Each reading shows its latest value at 20 px, "Your normal: …" or "Learning your normal (n of 7)", and a 30-day chart: the readings as a line, the band `center ± 2 × spread` shaded as "your usual range", the normal as a dashed line. Under each chart is one line from `src/lib/trendSummary.ts`: the mean of the last five readings against the normal, and how many of them are outside the band ("Down 1.4 h from your normal over the last 5 readings; 5 of 5 outside your usual range."). The chart itself is hidden from screen readers; the line under it says the same in words. Urgent re-checks are not drawn, as in every baseline. Environment shows today's simulated habitat feed and Skin its note; areas without readings take "Why this matters in space" from their rules' `whySpace`, with sources. Insights about the area are listed under "Second opinions about this area". An unknown area says "No such body area".
 
 ### 19.4 Alert detail `#/alert/:alertKey`
 
@@ -1294,7 +1298,7 @@ As built in A3: `#/model/personal-pattern` is the second card, linked from each 
 - **Motion.** Subtle transitions only. No flashing. Respect `prefers-reduced-motion`.
 - **Keyboard.** Every control reachable and operable by keyboard with a visible focus ring. Body-map regions are real buttons with accessible names ("Head: Watch").
 - **Contrast.** Meet WCAG AA for text. Check the amber status on white.
-- **Charts.** Each chart has a one-line text summary under it ("Down 1.7 h from your normal over five nights").
+- **Charts.** Each chart has a one-line text summary under it ("Down 1.7 h from your normal over five nights"). As built in M5, chart colours are their own tokens in `src/styles/tokens.css` (`--color-chart-line`, `-band`, `-band-edge`, `-center`, `-axis`), never status colours.
 - **Copy.** Plain words, short sentences, sentence case, no jargon without explanation. Use "possible", "check", "consult". Never "diagnosis", "you have", or "normal" without "for you".
 - **Simulated data.** A persistent small tag "Simulated data" in the header, and "Simulated reply" on ground replies.
 - **Footer.** "Prototype for the NASA Space Apps Challenge. Not a medical device."
@@ -1809,7 +1813,7 @@ For each crew member and indicator, a daily value is `personal mean + adaptation
 | `sleep-debt` | Five short nights | `R-SLEEP-01` | M2 |
 | `solar-storm` | A real large flare yesterday at 15:00 (`2023-08-07T20:30:00-FLR-001`, X1.5), then a solar particle event starts today. Starts at the space station (0 s delay, reply estimate 5 min) | `R-RAD-01` (it supersedes `R-RAD-03`) | M2; flare added in A2 |
 | `solar-flare-watch` | A real large flare from the model's test years peaked this morning at 07:30 (`2023-08-05T21:45:00-FLR-001`, X1.6); no particle event yet. Mission day 150 in the Mars transit vehicle, so the delay slider is there to show that the route does not move | `R-RAD-03` for every crew member | A2 |
-| `fever` | Temperature climbs over the last two days, with resting heart rate rising alongside | `R-TEMP-02` (the `earth-hospital` insight is deferred with A4) | M2 if time, else M7 |
+| `fever` | Temperature climbs over the last two days, with resting heart rate rising alongside | `R-TEMP-02`; the `earth-hospital` insight is checked in A4 (section 26.19) | M2 if time, else M7 |
 | `low-glucose` | One low fasting reading today | `R-GLU-02` | M2 if time, else M7 |
 | `early-mission` | Mission day 4, baselines not ready | none (UI shows "Learning your normal") | M2 if time, else A3 |
 | `cognitive-compound` | Sleep debt, slower reaction time, CO2 creeping over 3 mmHg | `R-COG-01`, `R-CO2-01` | M7 |
@@ -2298,7 +2302,7 @@ As built in A3 (15 November 2026):
 
 ### 26.19 Model 3: Earth hospital (`earth-hospital`)
 
-**Deferred until after the hackathon (team decision, 14 November 2026).** The design below is kept for later. Nothing in it is built during the hackathon, `EvaluationInput.models.earthHospital` stays null, and no PhysioNet data is downloaded.
+**Deferred on 14 November 2026; brought back on 15 November 2026 (Divyanshu's decision).** Built in A4, after M5 and M6. Until A4 is pushed, `EvaluationInput.models.earthHospital` stays null.
 
 Originally priority P1, milestone A4. Code: `ml/fetch_physionet_sepsis.py`, `ml/build_hospital_dataset.py` and `ml/train_earth_hospital.py` offline; `src/engine/models/earthHospital.ts` on a shared `logistic.ts` in the app.
 
@@ -2344,10 +2348,10 @@ Tests exist to prove validity, not to chase coverage.
 | Copy | No data file contains the banned whole words or phrases "you have", "diagnosis", "diagnose", "injury", "strain" | Vitest |
 | Tools | Simulator helpers; `check_body_model.py` on a tiny GLB built in the test | Python unittest |
 | Personal pattern | Parity with Python; contributions add up to the distance; readiness; fewer than four indicators gives no insight | Vitest |
-| Earth hospital (deferred with A4) | Parity with Python; needs five ready baselines; no percentage on the crew card | Vitest |
+| Earth hospital (A4) | Parity with Python; needs five ready baselines; no percentage on the crew card | Vitest |
 | Second-opinion invariance | `evaluate()` with the second-opinion models loaded and set to null gives identical alerts, statuses and routes | Vitest |
 | Golden insights | Each scenario gives exactly its `expectedInsights` for the loaded models | Vitest |
-| Hospital pipeline (deferred with A4) | Baseline window, floors read from `indicators.json`, carried-forward limits, exclusions, patient-level split, determinism | Python unittest |
+| Hospital pipeline (A4) | Baseline window, floors read from `indicators.json`, carried-forward limits, exclusions, patient-level split, determinism | Python unittest |
 
 The golden scenario tests double as evidence for judges: every claim "the app detects X" is backed by a test that runs.
 
@@ -2453,7 +2457,7 @@ Chirag's work runs in parallel and joins the build in B3. Agree on these targets
 
 When the first rough export arrives, bring the standalone checker forward (decided on 14 November 2026): `tools/check_body_model.py` from B2 step 8, Python standard library only, no app code, about 30 to 45 minutes. Claude Code flags the moment and asks Divyanshu before starting it, without starting the rest of B2. Divyanshu sends Chirag feedback within the hour. Integration waits for B3.
 
-Decision of 14 November 2026 (option B): the 3D body (B2) and Chirag's models (B3) stay in the target scope, and the Earth hospital model (A4) is deferred instead. The fallback stays: if the after-B1 checkpoint (section 32.3) shows too little time, Claude Code tells Divyanshu, and he decides whether to skip B2 and B3. The app then ships the 2D body view, and the README and slides credit Chirag's models as work in progress. `docs/body-model-handoff.md` tells Chirag this.
+Decision of 14 November 2026 (option B): the 3D body (B2) and Chirag's models (B3) stay in the target scope, and the Earth hospital model (A4) is deferred instead. Changed on 15 November 2026 by Divyanshu: A4 is included in the hackathon submission and runs after M5 and M6 (order M5, M6, A4). The fallback stays: if the after-B1 checkpoint (section 32.3) shows too little time, Claude Code tells Divyanshu, and he decides whether to skip B2 and B3. The app then ships the 2D body view, and the README and slides credit Chirag's models as work in progress. `docs/body-model-handoff.md` tells Chirag this.
 
 ---
 
@@ -2463,7 +2467,7 @@ Local schedule: work was planned to start about 11:00 on Saturday; M0 actually s
 
 ### 31.1 Overview
 
-Recalculated on 14 November 2026 from the actual start (17:13, rounded to 17:15), with the plan's own durations. M6, B1 and M7 are shortened by the work the 14 November cuts removed; A4 is deferred.
+Recalculated on 14 November 2026 from the actual start (17:13, rounded to 17:15), with the plan's own durations. M6, B1 and M7 are shortened by the work the 14 November cuts removed; A4 is deferred. Changed on 15 November 2026 by Divyanshu: A4 is included in the hackathon submission and runs after M5 and M6 (order M5, M6, A4). The table keeps the plan's other rows unchanged.
 
 | # | Milestone | Priority | Exit test | Plan hours | Target at plan pace |
 |---|---|---|---|---|---|
@@ -2475,7 +2479,7 @@ Recalculated on 14 November 2026 from the actual start (17:13, rounded to 17:15)
 | A1 | ML model 1: dataset, training and model card | P0 | Model file, parity file and model card produced by one command; Python tests green | 2.5 | Sun 14:15 |
 | A2 | ML model 1 in the app | P0 | Parity test green; `solar-flare-watch` shows `R-RAD-03` with its model estimate; model card screen reads the file | 1 | Sun 15:15 (P0 complete) |
 | A3 | ML model 2: personal pattern | P1 | Parity green; `pattern-shift` shows the insight with no alert; second opinions cannot change alerts | 1.75 | Sun 17:00 |
-| A4 | ML model 3: Earth hospital | Deferred | Deferred until after the hackathon (decision of 14 November 2026) | 0 | None |
+| A4 | ML model 3: Earth hospital | P1 since 15 November 2026 (deferred on 14 November) | One command writes the model file, parity file and model card; parity green; `fever` shows the insight or the miss is recorded; no PhysioNet data in git | Not recalculated | After M6 |
 | M5 | Trends and streak | P1 | Sleep chart shows the dip against the band; streak shows on Home | 1 | Sun 18:00 |
 | M6 | Earth link, clock and demo panel | P1 | At 600×, a consult message is delivered after the one-way delay and shows its expected reply time | 1 | After the freeze at plan pace |
 | B1 | Body view without 3D | P1 | Report saved by keyboard; forearm shows "No current reading"; invariance test green | 1 | After the freeze at plan pace |
@@ -2751,7 +2755,7 @@ Commit: "A3: Add personal pattern model with on-board second opinions".
 
 ### 31.10 A4 ML model 3: Earth hospital
 
-**Deferred on 14 November 2026 (option B).** Not built during the hackathon; kept as the plan for later.
+**Deferred on 14 November 2026 (option B); brought back on 15 November 2026 by Divyanshu's decision, to run after M6.** The PhysioNet download keeps its 30-minute time box (section 26.19).
 
 **Goal.** A second opinion trained on real Earth ICU data that uses only changes from each person's own baseline, tested on a second hospital system.
 **Read first.** 26.17, 26.19, 26.8, 26.13 to 26.15, 10, 28.
@@ -2795,6 +2799,7 @@ Build:
 Tests: summary function cases (up, down, no baseline); streak counting (gaps, today not yet done); the region page renders for `head` in `sleep-debt`.
 Manual check: the Head region in `sleep-debt`: the sleep line dips below the band and the summary line matches; the streak shows on Home; keyboard reaches every link; 390 px.
 Exit test: the sleep chart shows the dip against the band; the streak shows on Home.
+Status after M5 (15 November 2026): built; the exit test passes in headless Chrome, not yet checked by a person. Also fixed: source links are at least 44 px tall everywhere (the 390 px check found 24 px links on the new screen).
 Commit: "M5: Add trend charts with baseline band and check-in streak".
 
 ### 31.12 M6 Earth link, clock and demo panel
@@ -2936,7 +2941,7 @@ Commit: "M7: Add remaining rules, reaction test and accessibility fixes".
 
 Build:
 
-1. `README.md`: what it is; the live URL; how to run; how it works (one paragraph each for triage, the ML models that were built, with a note that the Earth hospital model was deferred, and the body view); what is simulated; "Prototype for the NASA Space Apps Challenge. Not a medical device."; team and roles; credits (Chirag for the body models; DONKI and CCMC for the space weather data); AI use summary; links to `REFERENCES.md`, `AI_USAGE.md` and the model cards in `ml/reports/`.
+1. `README.md`: what it is; the live URL; how to run; how it works (one paragraph each for triage, the ML models that were built, including the Earth hospital model if A4 is complete, and the body view); what is simulated; "Prototype for the NASA Space Apps Challenge. Not a medical device."; team and roles; credits (Chirag for the body models; DONKI and CCMC for the space weather data); AI use summary; links to `REFERENCES.md`, `AI_USAGE.md` and the model cards in `ml/reports/`.
 2. `REFERENCES.md` complete, NASA items first; `AI_USAGE.md` complete.
 3. `docs/demo-script.md` final: the person (sleep change), a second opinion (`pattern-shift`), the radiation outlook (model estimate), the body (shoulder report, calf pin, sensors), the decisive moment (`solar-storm` flips to an onboard response at far-Mars delay), with timings and talking points.
 4. Slides (at most seven, title included) or a video of 30 seconds or less, per the 2026 guide. Screenshots keep the "Simulated data" tag, the "Model estimate" tag on estimates and insights and, where it applies, the "AI-assisted model" tag. No NASA logos in AI-generated material. Model numbers are copied from the model card.
@@ -2956,7 +2961,7 @@ Commit: "M8: Add submission docs, demo script and final references".
 
 - **P0, must ship**: daily check-in; 2D body map and accessible status list; personal baseline; at least six rules; alert detail with protocol; triage with environment and delay; sources on alerts; three scenarios; ML model 1 with its model card, running in the app as `R-RAD-03` (A1, A2); public deploy.
 - **P1, should ship**: the personal pattern model (A3); trend charts and the check-in streak; the Earth link outbox; demo panel; reaction test; all v1 rules; the personal body view: soreness form and list with three simulated suit sensors (B1), the 3D viewer with free pins, the named shoulder patch and the compare view (B2), and Chirag's two models (B3).
-- **Deferred or cut on 14 November 2026**: the Earth hospital model (A4, deferred until after the hackathon); simulated ground replies; sensor trend charts; the standalone Library screen.
+- **Cut on 14 November 2026**: simulated ground replies; sensor trend charts; the standalone Library screen. The Earth hospital model (A4), deferred that day, was brought back on 15 November 2026 and runs after M6.
 - **P2, stretch**: near-vision test; dark theme; link blackout windows; offline install; bone-loss projection graphic; soreness dots on the 2D figure (front and back); more named surface areas; NASA RadLab dose data for the radiation context, if the team agrees (section 34, item 22); the future ML work in section 26.16.
 
 ### 32.2 Cut order
@@ -3003,7 +3008,7 @@ Based on the Project Submission Guide available on November 11, 2026, which stil
 | Link to final project | Public deployed URL, with the repository linked from the README |
 | Detailed description | Section 2 table turned into prose, plus how it works (section 4), the three ML models, the evidence ladder and their evaluations (section 26), the body view (section 22) and how validity is tested (section 27) |
 | NASA data | `REFERENCES.md`, NASA section: DONKI (training and test data of the model, and the real events in scenarios) and the NASA research behind the rules |
-| Space agency partner and other data | `REFERENCES.md`, other sections: the CSA articles from the Resources tab and the CSA Bio-Monitor page (the PhysioNet data is not used while the Earth hospital model is deferred) |
+| Space agency partner and other data | `REFERENCES.md`, other sections: the CSA articles from the Resources tab and the CSA Bio-Monitor page (the PhysioNet data, used by the Earth hospital model in A4, is credited there) |
 | Use of artificial intelligence | `AI_USAGE.md`: the ML models in the product (with links to their model cards), Claude Code's work in this repository, Claude for the planning documents, and Chirag's use of Claude for the Blender models |
 
 Other requirements noted in that guide: everything in English, AI-generated images and video carry a visible watermark, AI-generated code and data are acknowledged in text, no NASA logos in AI-generated material, and all external resources are listed. Screenshots or video that show a body model AI helped make keep the "AI-assisted model" tag visible, and any model number shown is copied from the model card.
@@ -3031,8 +3036,8 @@ Other requirements noted in that guide: everything in English, AI-generated imag
 17. Update the concept brief PDF: it still names standalone MakeHuman and OBJ files, and does not mention the ML model.
 18. Make the GitHub repository public before submission, or confirm that judges can open it.
 19. Confirm the three-model plan and the evidence ladder (decision D19) with the whole team.
-20. Record the PhysioNet license and its citation request before A4 (section 26.19). Deferred with A4.
-21. Decided on 14 November 2026: option B. The 3D viewer (B2, B3) stays and the Earth hospital model (A4) is deferred. Chirag is told through `docs/body-model-handoff.md`.
+20. Record the PhysioNet license and its citation request before A4 (section 26.19). Back in scope with A4 on 15 November 2026.
+21. Decided on 14 November 2026: option B. The 3D viewer (B2, B3) stays and the Earth hospital model (A4) is deferred. Chirag is told through `docs/body-model-handoff.md`. Changed on 15 November 2026 by Divyanshu: A4 is included in the hackathon submission and runs after M5 and M6 (order M5, M6, A4).
 22. Decide whether to add NASA RadLab dose data (real ISS dosimetry) for the radiation context; it is P2 for now.
 23. DONKI access: still open after M2 and a blocker for A1 (section 31.4). The CCMC servers did not answer from anywhere on 14 November, and `DEMO_KEY` was rate limited. Next step: Divyanshu gets a personal api.nasa.gov key, sets `NASA_API_KEY` privately in his terminal and runs `ml/fetch_donki.py`; or retry when the CCMC servers answer again.
 
