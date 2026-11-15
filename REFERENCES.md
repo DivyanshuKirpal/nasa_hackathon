@@ -52,6 +52,7 @@ The sources below are the evidence registry, `src/data/sources.json` (ARCHITECTU
 ## Other references
 
 - Deltoid, Musculoskeletal Atlas. University of Washington, Department of Radiology. https://rad.uw.edu/muscle-atlas/deltoid (`deltoid-uw-atlas`)
+- glTF 2.0 Specification. The Khronos Group. https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html (`gltf-spec` in ARCHITECTURE.md section 23; the body model file format, its +Y up and +Z front conventions and the GLB container the checker reads)
 
 ## Instrument documentation for the SEP labels
 

@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { ClockControls } from './ClockControls.tsx'
+import { BodyViewControls } from './BodyViewControls.tsx'
 import { CrewAndLinkControls } from './CrewAndLinkControls.tsx'
 import { ResetToSeed } from './ResetToSeed.tsx'
 import { ScenarioPicker } from './ScenarioPicker.tsx'
@@ -10,7 +11,7 @@ import { SuitReplayControls } from './SuitReplayControls.tsx'
  * The presenter tools drawer (section 16), opened with Shift+D or the footer
  * link. A presenter tool only: the crew never needs it. Clock, crew,
  * environment and link, reset, the scenario picker (M4, completed in M6) and
- * the suit replay (B1).
+ * the suit replay (B1) and the body view (B2).
  */
 export function DemoPanel({ onClose }: { onClose: () => void }) {
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -57,6 +58,7 @@ export function DemoPanel({ onClose }: { onClose: () => void }) {
           <ClockControls />
           <CrewAndLinkControls />
           <SuitReplayControls />
+          <BodyViewControls />
           <ResetToSeed onDone={onClose} />
           <ScenarioPicker onLoaded={onClose} />
         </div>

@@ -1,3 +1,5 @@
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { loadScenario } from '../../test/helpers.tsx'
 import { useAppStore } from '../../store/index.ts'
@@ -69,15 +71,13 @@ describe('body observations never change health results (invariance)', () => {
 
   it('the engine input has no place for body data', () => {
     loadScenario('fever')
-    useAppStore
-      .getState()
-      .addSorenessReport({
-        score: 7,
-        areaId: null,
-        locationText: 'Marker-place-7Q',
-        activityNote: '',
-        anchor: null,
-      })
+    useAppStore.getState().addSorenessReport({
+      score: 7,
+      areaId: null,
+      locationText: 'Marker-place-7Q',
+      activityNote: '',
+      anchor: null,
+    })
     const input = selectEvaluationInput(useAppStore.getState())
     expect(Object.keys(input).sort()).toEqual([
       'context',
@@ -92,5 +92,26 @@ describe('body observations never change health results (invariance)', () => {
       'symptoms',
     ])
     expect(JSON.stringify(input)).not.toContain('Marker-place-7Q')
+  })
+})
+
+describe('the body model in use and the 2D or 3D choice cannot reach the engine', () => {
+  function sourcesUnder(folder: string): string[] {
+    return readdirSync(folder, { recursive: true, withFileTypes: true })
+      .filter((entry) => entry.isFile() && /\.tsx?$/.test(entry.name))
+      .map((entry) => readFileSync(join(entry.parentPath, entry.name), 'utf8'))
+  }
+
+  it('neither the engine nor the selectors import body view code or data', () => {
+    const health = [
+      ...sourcesUnder(join(process.cwd(), 'src', 'engine')),
+      readFileSync(join(process.cwd(), 'src', 'store', 'selectors.ts'), 'utf8'),
+      readFileSync(join(process.cwd(), 'src', 'store', 'alertSync.ts'), 'utf8'),
+    ]
+    for (const source of health) {
+      expect(source).not.toMatch(
+        /from '[^']*(bodyview|bodyView|features\/body|bodyModelStatus)[^']*'/,
+      )
+    }
   })
 })

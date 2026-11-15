@@ -5,6 +5,7 @@ import {
   SECONDARY_BUTTON,
 } from '../../components/buttonStyles.ts'
 import { SourceLink } from '../../components/SourceLink.tsx'
+import { Tag } from '../../components/Tag.tsx'
 import { bodyAreas } from '../../data/bodyView.ts'
 import { useAppStore } from '../../store/index.ts'
 import { ScoreField } from './ScoreField.tsx'
@@ -30,10 +31,13 @@ export function SorenessForm({
   draft,
   setDraft,
   locationRef,
+  placementUnchecked = false,
 }: {
   draft: SorenessDraft
   setDraft: (draft: SorenessDraft) => void
   locationRef: RefObject<HTMLInputElement | null>
+  /** True while the 3D patch is shown and its placement was not checked (section 22.4). */
+  placementUnchecked?: boolean
 }) {
   const addSorenessReport = useAppStore((state) => state.addSorenessReport)
   const [problems, setProblems] = useState<ReportProblem[]>([])
@@ -110,6 +114,7 @@ export function SorenessForm({
             {named.sourceIds.map((id) => (
               <SourceLink key={id} sourceId={id} />
             ))}
+            {placementUnchecked && <Tag>Placement not yet checked</Tag>}
           </p>
         )}
       </div>

@@ -52,13 +52,11 @@ describe('soreness reports in the store', () => {
     loadScenario('sleep-debt')
     useAppStore.getState().addSorenessReport(shoulder)
     useAppStore.getState().switchCrew('c2')
-    useAppStore
-      .getState()
-      .addSorenessReport({
-        ...shoulder,
-        areaId: 'calf_l',
-        locationText: 'Left calf',
-      })
+    useAppStore.getState().addSorenessReport({
+      ...shoulder,
+      areaId: 'calf_l',
+      locationText: 'Left calf',
+    })
     const byCrew = useAppStore
       .getState()
       .soreness.map((report) => [report.crewId, report.locationText])

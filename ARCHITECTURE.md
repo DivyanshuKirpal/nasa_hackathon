@@ -1620,6 +1620,16 @@ As built in B1 (15 November 2026):
 - Sensor cards: a stale sensor whose newest sample had contact says "No new sample in the last 15 minutes"; a lost one says "Contact lost: the sensor is not touching the skin"; both show "No current reading" and the last valid reading with its time.
 - The presenter tools gained "Restart suit replay". The invariance test (`src/data/__tests__/bodyInvariance.test.ts`) adds and removes reports, restarts the replay and switches the 3D and Force 2D preferences for every crew member in four scenarios and finds the evaluation, the alert interactions and the outbox deep-equal; the engine input has exactly its health keys.
 
+As built in B2 (15 November 2026):
+
+- `src/features/body/viewer/` holds `webgl.ts` (no three.js, so the Body screen can ask without loading it), `colors.ts`, `createViewer.ts`, `placeholderModel.ts`, `loadModel.ts`, `picking.ts`, `markers.ts`, `viewText.ts`, `ViewButtons.tsx`, `Viewer3D.tsx` and `Compare3D.tsx`. `Viewer3D` and `Compare3D` load with `React.lazy`; `vite.config.ts` names the shared three.js chunk `three`, so the build output shows it on its own and it downloads only when a 3D view is turned on.
+- The viewer renders on demand, has no pan and no damping (camera moves are instant), limits the zoom to 0.45 to 1.5 times the framing distance and keeps the camera above the floor at the farthest zoom. Under the view buttons a live line says which side is shown ("Showing the front and the left side"; left and right are the crew member's own), so keyboard and screen reader users know what a button did.
+- A tap picks among the body, the patch and the markers together and the nearest hit wins, so a marker on the far side of the body is never picked through it. A hit on a pin selects its report; a hit on a sensor marker selects its card. Sensor anchors carry no normal in the contract, so their markers are lifted away from the body's vertical midline.
+- Loading: the placeholder is built in code; a delivered file goes through `GLTFLoader` with a 15-second limit (`withTimeout`), and a result that arrives after the limit or after leaving the screen is disposed. The node names are checked before anything is shown. A failed load replaces the viewer with "The 3D body could not be loaded." and a "Try again" button; the placeholder is never swapped in. The last load result per model is kept in memory (`src/lib/bodyModelStatus.ts`, never persisted) for the Body screen and the presenter tools.
+- The compare view places the two bodies side by side by their own widths with a 20 cm gap between the hands, so the A-pose arms never overlap. Its fallback line reads "3D view is not available here. The tables below give the same measurements."
+- The presenter tools have "Force 2D" and one line per crew member: the model, its version and file, and the result of its last load in this session.
+- Tests: `src/test/setup.ts` now imports `resetStore` from `src/test/resetStore.ts` instead of `helpers.tsx`, so the setup no longer loads the screens before a test file's `vi.mock` calls (the 3D screen tests mock `webgl.ts` and the viewer).
+
 ---
 
 ## 23. Body model contract (Blender handoff)
@@ -1746,6 +1756,8 @@ Automated, run by Divyanshu (Chirag may run it too): `python tools/check_body_mo
 7. Orientation: `sensor_chest` has a larger Z than `sensor_upper_back` (the body faces +Z); the center of `patch_shoulder_r_outer` has X below 0 (right side) and Y above 65% of the height; `sensor_forearm_l` has X above 0 (left side).
 
 The app-side check `checkNodeNames(names)` (in `src/bodyview/modelContract.ts`) runs at load: missing `body` rejects the model; a missing patch or anchor degrades the features as in section 22.10.
+
+As built in B2: `tools/check_body_model.py` implements checks 1 to 7 with the standard library. It reads only the GLB's JSON chunk, follows parent transforms when it places nodes, takes "4 MB" as 4,000,000 bytes, shortens long lists of names in a line, and prints one PASS, FAIL or WARN line per check with the measured and expected values, ending with `Result: PASS` or `Result: FAIL (n failed)`. `tools/tests/test_check_body_model.py` builds tiny GLBs in memory for a pass and each kind of failure.
 
 Visual check in the app (B3): both bodies load; a tap on the shoulder patch gives "Right outer shoulder · deltoid area"; a tap on the left calf gives a free pin; markers sit on the skin; the back sensor shows after rotating; the compare view shows the two bodies side by side at the same height.
 

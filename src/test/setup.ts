@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterEach, beforeEach } from 'vitest'
-import { resetStore } from './helpers.tsx'
+import { resetStore } from './resetStore.ts'
 
 // Every test starts like a first visit: empty store, empty storage.
 beforeEach(() => {

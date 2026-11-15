@@ -36,12 +36,15 @@ export function SensorCard({
   nowMs,
   selected = false,
   onSelect,
+  onTurn,
 }: {
   site: SensorSite
   readout: SensorReadout
   nowMs: number
   selected?: boolean
   onSelect?: () => void
+  /** Offered while this card is selected and the 3D body is shown. */
+  onTurn?: () => void
 }) {
   const { Icon, text } = contactLine(readout)
   const trend = trendText(readout, sensorSites.trendWindowMin)
@@ -92,6 +95,15 @@ export function SensorCard({
           className="inline-flex min-h-11 items-center rounded-lg border-2 border-slate-700 px-4 font-semibold"
         >
           {selected ? 'Marker highlighted' : 'Highlight marker'}
+        </button>
+      )}
+      {selected && onTurn && (
+        <button
+          type="button"
+          onClick={onTurn}
+          className="ml-2 inline-flex min-h-11 items-center rounded-lg border-2 border-slate-700 px-4 font-semibold"
+        >
+          Turn to this sensor
         </button>
       )}
     </article>

@@ -8,6 +8,9 @@ import { useAppStore } from '../../../store/index.ts'
 import { loadScenario, renderApp } from '../../../test/helpers.tsx'
 import { SuitReplayControls } from '../../demo/SuitReplayControls.tsx'
 
+// The 3D view needs WebGL, which jsdom lacks; Body3D.test.tsx covers it.
+vi.mock('../viewer/webgl.ts', () => ({ canUseWebGL: () => false }))
+
 const ENTRY =
   'Right outer shoulder · 4/10 · after overhead work · Crew-reported soreness'
 

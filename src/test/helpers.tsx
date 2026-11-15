@@ -6,7 +6,9 @@ import { RouterProvider } from 'react-router/dom'
 import type { ScenarioFile } from '../engine/index.ts'
 import { scenarioFileSchema } from '../engine/schemas.ts'
 import { routes } from '../routes.tsx'
-import { emptyState, useAppStore } from '../store/index.ts'
+import { useAppStore } from '../store/index.ts'
+
+export { resetStore } from './resetStore.ts'
 
 /** Reads a generated scenario file from public/seed, validated like the app does. */
 export function readScenario(scenarioId: string): ScenarioFile {
@@ -18,12 +20,6 @@ export function loadScenario(scenarioId: string): ScenarioFile {
   const scenario = readScenario(scenarioId)
   useAppStore.getState().loadScenario(scenario)
   return scenario
-}
-
-/** A clean store and empty storage, as on a first visit. */
-export function resetStore(): void {
-  localStorage.clear()
-  useAppStore.setState(emptyState())
 }
 
 /** Renders the whole app at a route, with the same routes as the real router. */

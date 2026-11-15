@@ -1,24 +1,28 @@
-import { useMemo, useRef, useState } from 'react'
-import { reportsForCrew } from '../../bodyview/pins.ts'
+import { useMemo, useRef } from 'react'
+import { pinVisibility, reportsForCrew } from '../../bodyview/pins.ts'
 import {
   anchorReplay,
   hasSuitData,
   sensorReadout,
 } from '../../bodyview/sensors.ts'
 import { bodyModelFor, sensorSites } from '../../data/bodyView.ts'
+import { useBodyModelStatus } from '../../lib/bodyModelStatus.ts'
 import { crewLabel } from '../../lib/labels.ts'
 import { useAppStore } from '../../store/index.ts'
 import { selectActiveCrew } from '../../store/selectors.ts'
+import { use3dAvailable } from './body3d.ts'
+import { BodyViewSection, type ViewerInputs } from './BodyViewSection.tsx'
 import { SensorSection } from './SensorSection.tsx'
 import { SorenessForm } from './SorenessForm.tsx'
 import { SorenessList } from './SorenessList.tsx'
-import { EMPTY_DRAFT, type SorenessDraft } from './sorenessDraft.ts'
+import { areaLabel } from './sorenessDraft.ts'
+import { useBodyScreenState } from './useBodyScreenState.ts'
 import { useSuitReplay } from './suitReplay.ts'
 
 /**
- * The personal body view (section 22): crew-reported soreness and simulated
- * suit sensors. Both are kept apart from the health checks: nothing here
- * reaches the engine, an alert, a route or a message to Earth (decision D11).
+ * The personal body view (section 22): crew-reported soreness, simulated
+ * suit sensors and an optional 3D body for showing where. None of it reaches
+ * the engine, an alert, a route or a message to Earth (decision D11).
  */
 export function BodyPage() {
   const crew = useAppStore(selectActiveCrew)
@@ -26,18 +30,32 @@ export function BodyPage() {
   const nowMs = useAppStore((state) => state.mission.nowMs)
   const soreness = useAppStore((state) => state.soreness)
   const anchorMs = useAppStore((state) => state.suit.anchorMs)
+  const show3d = useAppStore((state) => state.prefs.show3d)
   const replay = useSuitReplay()
   const locationRef = useRef<HTMLInputElement>(null)
-  const [draftFor, setDraftFor] = useState({ crewId, draft: EMPTY_DRAFT })
-
-  // A half-filled form belongs to one crew member; switching starts afresh.
-  const draft = draftFor.crewId === crewId ? draftFor.draft : EMPTY_DRAFT
-  const setDraft = (next: SorenessDraft) => setDraftFor({ crewId, draft: next })
-
+  const screen = useBodyScreenState(crewId)
   const model = bodyModelFor(crewId)
+  const status = useBodyModelStatus((state) =>
+    model ? state.byModel[model.id] : undefined,
+  )
+  const loadFailed =
+    status !== undefined &&
+    status.version === model?.version &&
+    status.state === 'failed'
+  const viewerOn = use3dAvailable() && show3d && model !== null && !loadFailed
+
   const reports = useMemo(
     () => reportsForCrew(soreness, crewId),
     [soreness, crewId],
+  )
+  const pins = useMemo(
+    () =>
+      reports.flatMap((report) =>
+        report.anchor && pinVisibility(report, model) === 'drawn'
+          ? [{ id: report.id, anchor: report.anchor }]
+          : [],
+      ),
+    [reports, model],
   )
   const replayFile = replay.status === 'ready' ? replay.replay : null
   const samples = useMemo(
@@ -51,6 +69,57 @@ export function BodyPage() {
         sensorReadout(samples, crewId, site.id, nowMs, sensorSites),
       ),
     [samples, crewId, nowMs],
+  )
+  // Markers change only when a contact state does, not on every clock tick.
+  const lostKey = readouts.map((readout) => readout.contact === 'lost').join()
+  const viewerSensors = useMemo(
+    () =>
+      sensorSites.sites.map((site, index) => ({
+        site: site.id,
+        contactLost: lostKey.split(',')[index] === 'true',
+      })),
+    [lostKey],
+  )
+
+  const viewer: ViewerInputs = {
+    crewName: crew?.name ?? '',
+    pins,
+    sensors: viewerSensors,
+    selectedReportId: screen.selectedReportId,
+    selectedSite: screen.selectedSite,
+    highlightPatch: screen.draft.area === 'shoulder_r_outer',
+    turnRequest: screen.turnRequest,
+    onPick(pick, picked) {
+      const onPatch = pick.target === 'patch_shoulder_r_outer'
+      screen.setDraft({
+        ...screen.draft,
+        area: onPatch ? 'shoulder_r_outer' : 'other',
+        locationText: onPatch ? areaLabel('shoulder_r_outer') : '',
+        anchor: { modelId: picked.id, modelVersion: picked.version, ...pick },
+      })
+      if (!onPatch) locationRef.current?.focus()
+    },
+    onSelectReport: screen.selectReport,
+    onSelectSite: screen.selectSite,
+  }
+
+  const sorenessPart = (
+    <>
+      <SorenessForm
+        draft={screen.draft}
+        setDraft={screen.setDraft}
+        locationRef={locationRef}
+        placementUnchecked={
+          viewerOn && model?.patchChecks.shoulder_r_outer.checked === false
+        }
+      />
+      <SorenessList
+        reports={reports}
+        model={model}
+        selectedId={viewerOn ? screen.selectedReportId : undefined}
+        onSelect={viewerOn ? screen.selectReport : undefined}
+      />
+    </>
   )
 
   return (
@@ -67,19 +136,21 @@ export function BodyPage() {
       </header>
       <div className="grid gap-8 lg:grid-cols-2">
         <div className="space-y-8">
-          <SorenessForm
-            draft={draft}
-            setDraft={setDraft}
-            locationRef={locationRef}
-          />
-          <SorenessList reports={reports} model={model} />
+          <BodyViewSection model={model} viewer={viewer} />
+          {!viewerOn && sorenessPart}
         </div>
-        <SensorSection
-          replay={replay}
-          readouts={readouts}
-          hasData={hasSuitData(samples, crewId)}
-          nowMs={nowMs}
-        />
+        <div className="space-y-8">
+          {viewerOn && sorenessPart}
+          <SensorSection
+            replay={replay}
+            readouts={readouts}
+            hasData={hasSuitData(samples, crewId)}
+            nowMs={nowMs}
+            selectedSite={viewerOn ? screen.selectedSite : undefined}
+            onSelectSite={viewerOn ? screen.selectSite : undefined}
+            onTurn={viewerOn ? screen.requestTurn : undefined}
+          />
+        </div>
       </div>
     </div>
   )

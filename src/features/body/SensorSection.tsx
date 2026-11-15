@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react'
 import type { SensorReadout, SensorSiteId } from '../../bodyview/types.ts'
 import { SECONDARY_BUTTON } from '../../components/buttonStyles.ts'
 import { sensorSites } from '../../data/bodyView.ts'
@@ -13,7 +12,7 @@ export function SensorSection({
   nowMs,
   selectedSite,
   onSelectSite,
-  children,
+  onTurn,
 }: {
   replay: SuitReplayState
   readouts: readonly SensorReadout[]
@@ -21,8 +20,8 @@ export function SensorSection({
   nowMs: number
   selectedSite?: SensorSiteId | null
   onSelectSite?: (site: SensorSiteId | null) => void
-  /** Extra controls under the heading, such as "Turn to this sensor" (B2). */
-  children?: ReactNode
+  /** With the 3D body shown: turns the view to a sensor's side. */
+  onTurn?: (site: SensorSiteId) => void
 }) {
   return (
     <section aria-labelledby="sensors-title" className="space-y-3">
@@ -51,7 +50,6 @@ export function SensorSection({
       )}
       {replay.status === 'ready' && hasData && (
         <>
-          {children}
           <div className="space-y-3">
             {sensorSites.sites.map((site) => {
               const readout = readouts.find((entry) => entry.site === site.id)
@@ -69,6 +67,7 @@ export function SensorSection({
                       ? () => onSelectSite(selected ? null : site.id)
                       : undefined
                   }
+                  onTurn={onTurn ? () => onTurn(site.id) : undefined}
                 />
               )
             })}
