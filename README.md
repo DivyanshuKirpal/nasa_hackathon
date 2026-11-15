@@ -90,6 +90,10 @@ python ml/train_sep_risk.py --seed 42                 # model file, parity file,
 - NASA DONKI space weather records, credited to NASA's Community Coordinated Modeling Center (see [Data](#data)).
 - PhysioNet/Computing in Cardiology Challenge 2019 (Reyna et al.), PhysioNet: the ICU data behind the Earth hospital model. Its patient files are never published with this project; citations and licence are in [REFERENCES.md](REFERENCES.md).
 
+## Team
+
+Team VoidShifters. Divyanshu builds the app with Claude Code (see [AI_USAGE.md](AI_USAGE.md)). Chirag is responsible for the Blender body models. His first delivery, an anatomical model derived from the Z-Anatomy and BodyParts3D atlases (CC BY-SA 4.0), is reviewed in [docs/b3-model-review.md](docs/b3-model-review.md) and is not in the app yet. Until the team decides the open points there, the 3D view shows the labeled placeholder built in code.
+
 ## Documents
 
 - [ARCHITECTURE.md](ARCHITECTURE.md): the design, the milestones and the cut list

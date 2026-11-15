@@ -1781,6 +1781,8 @@ Chirag's self-check before sending, with no code: re-import each `.glb` into an 
 - The standalone checker (`tools/check_body_model.py`) is brought forward when the first rough export arrives, with Divyanshu's OK (section 30.5).
 - If only one file arrives, integrate it; the other crew member keeps the placeholder, and the compare view labels each body.
 
+As reviewed in B3 (15 November 2026): Chirag's delivery (repository `pkapil-star/3DBlend`, commit `c1531ec`, 10:43 IST, on time) is an anatomical model with no `crew-a.glb` or `crew-b.glb`. Every export fails the checker: no contract node names, a skin binding and a shape key, separate eyes and nails, and 15 MB and 599,615 triangles for the full model. Read under its own names, the outer body's geometry meets the contract. Nothing was integrated: both crew members keep the placeholder, and nothing was copied to `public/models/`. Provenance (a real donor's anatomical dataset), the CC BY-SA 4.0 licence, the scope (organs against a mannequin), crew B, who converts the files, and the AI label wait for the team's decisions. Findings, checker lines and a draft message to Chirag are in `docs/b3-model-review.md`.
+
 ---
 
 ## 24. Seed data and simulator
@@ -2964,6 +2966,18 @@ Docs: REFERENCES (Blender; any base mesh and its license; Chirag's credit); AI_U
 Commit: "B3: Add Chirag's Blender body models for crew A and B".
 
 ### 31.16 M7 Evidence, remaining rules and polish
+
+Carried into M7 from B1 to B3 (15 November 2026): optional polish and performance work, none of it needed for the body view to work:
+
+1. Main bundle 643.7 kB (196.2 kB gzipped), over Vite's 500 kB warning: lazy-load the remaining screens (model cards, alert page, check-in) and measure the first load.
+2. The `three` chunk is 641.9 kB (160.0 kB gzipped) and loads only with a 3D view: check what tree shaking keeps, and preload it when the toggle gets focus.
+3. Viewer: tint the shoulder patch on hover (section 22.8), label markers in the scene, soften the lighting, and add camera transitions that stay instant under `prefers-reduced-motion`.
+4. Placeholder figure: simple hands and feet, a smoother torso; keep it plainly a placeholder.
+5. Compare view: names under each body inside the scene, not only in the tables.
+6. The sensor trend chart (cut on 14 November; B1 built only the one-line trend).
+7. `public/seed/suit-replay.json` is 174 kB (one object per sample): a compact form would cut the fetch.
+8. Tests: pre-bundle Recharts and three.js for Vitest, so the lazy-page tests no longer need waits of up to 25 seconds.
+9. Chirag's model, once the B3 decisions are made and a re-export passes the checker: the optional items in `docs/b3-model-review.md` section 3.2 (arm angle, guide measurements, eyelid rims).
 
 **Goal.** Breadth and quality: every rule in section 12, the reaction test, and an accessibility pass.
 **Read first.** 8.4, 12, 17, 18, 19.6, 19.7, 20, 24.3.
