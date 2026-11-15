@@ -9,11 +9,18 @@ import {
   type ScenarioFile,
   type SymptomId,
 } from '../engine/index.ts'
+import {
+  buildReport,
+  type BuildResult,
+  type SorenessInput,
+} from '../bodyview/pins.ts'
+import { sorenessReportId } from '../lib/ids.ts'
 import { advance } from '../link/earthLink.ts'
 import { alertMessage, insightMessage, syncedAlertSlices } from './alertSync.ts'
 import {
   STORAGE_KEY,
   STORAGE_VERSION,
+  migratePersisted,
   readPersisted,
   type AlertInteraction,
   type PersistedState,
@@ -61,6 +68,17 @@ export interface AppActions {
   /** Link up or down. Queued messages leave when it comes back up. */
   setLinkUp(linkUp: boolean): void
   switchCrew(crewId: string): void
+  /**
+   * Saves a crew-reported soreness entry for the active crew member at the
+   * current mission time (section 22.5). Body observations never touch
+   * alerts, routes or the outbox (decision D11), so this does not sync them.
+   */
+  addSorenessReport(input: SorenessInput): BuildResult
+  removeSorenessReport(reportId: string): void
+  /** Re-anchors the simulated suit replay at the current mission time (section 24.5). */
+  restartSuitReplay(): void
+  setShow3d(show3d: boolean): void
+  setForce2d(force2d: boolean): void
 }
 
 export type AppState = PersistedState & AppActions
@@ -94,7 +112,9 @@ export function emptyState(): PersistedState {
     spaceWeather: [],
     alertState: {},
     outbox: [],
-    prefs: {},
+    soreness: [],
+    suit: { anchorMs: null },
+    prefs: { show3d: false, force2d: false },
   }
 }
 
@@ -125,6 +145,8 @@ function pickPersisted(state: AppState): PersistedState {
     spaceWeather: state.spaceWeather,
     alertState: state.alertState,
     outbox: state.outbox,
+    soreness: state.soreness,
+    suit: state.suit,
     prefs: state.prefs,
   }
 }
@@ -136,9 +158,10 @@ export const useAppStore = create<AppState>()(
 
       loadScenario(scenario) {
         const environment = environmentById(scenario.environmentId)
+        const nowMs = scenarioStartMs(scenario.missionDay)
         set({
           mission: {
-            nowMs: scenarioStartMs(scenario.missionDay),
+            nowMs,
             speed: 0,
             environmentId: scenario.environmentId,
             // The station and the Moon have one fixed delay; a Mars environment
@@ -159,6 +182,8 @@ export const useAppStore = create<AppState>()(
           spaceWeather: scenario.spaceWeather,
           alertState: {},
           outbox: [],
+          soreness: [],
+          suit: { anchorMs: nowMs },
         })
         get().syncAlerts()
       },
@@ -371,13 +396,48 @@ export const useAppStore = create<AppState>()(
         set({ mission: { ...mission, activeCrewId: crewId } })
         get().syncAlerts()
       },
+
+      addSorenessReport(input) {
+        const { mission, soreness } = get()
+        const taken = new Set(soreness.map((report) => report.id))
+        const result = buildReport(input, {
+          id: sorenessReportId(mission.activeCrewId, mission.nowMs, taken),
+          crewId: mission.activeCrewId,
+          day: missionDayOf(mission.nowMs),
+          atMs: mission.nowMs,
+        })
+        if (result.ok) set({ soreness: [...soreness, result.report] })
+        return result
+      },
+
+      removeSorenessReport(reportId) {
+        const { soreness } = get()
+        const kept = soreness.filter((report) => report.id !== reportId)
+        if (kept.length !== soreness.length) set({ soreness: kept })
+      },
+
+      restartSuitReplay() {
+        set({ suit: { anchorMs: get().mission.nowMs } })
+      },
+
+      setShow3d(show3d) {
+        const { prefs } = get()
+        if (prefs.show3d !== show3d) set({ prefs: { ...prefs, show3d } })
+      },
+
+      setForce2d(force2d) {
+        const { prefs } = get()
+        if (prefs.force2d !== force2d) set({ prefs: { ...prefs, force2d } })
+      },
     }),
     {
       name: STORAGE_KEY,
       version: STORAGE_VERSION,
       partialize: pickPersisted,
-      // Version 1 is the first stored shape; later versions migrate here.
-      migrate: (stored) => stored,
+      // Version 2 (B1) added the body view; a version 1 state is migrated,
+      // then validated. Anything invalid is discarded, never trusted.
+      migrate: (stored, version) =>
+        readPersisted(migratePersisted(stored, version)) ?? emptyState(),
       merge: (stored, current) => {
         const valid = readPersisted(stored)
         return valid ? { ...current, ...valid } : current

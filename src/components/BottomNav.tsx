@@ -1,11 +1,17 @@
-import { ClipboardList, House, SatelliteDish } from 'lucide-react'
+import {
+  ClipboardList,
+  House,
+  PersonStanding,
+  SatelliteDish,
+} from 'lucide-react'
 import { NavLink } from 'react-router'
 
-// Body joins in milestone B1. The standalone Library screen was cut on
+// Body joined in milestone B1. The standalone Library screen was cut on
 // 14 November 2026 (ARCHITECTURE.md section 32).
 const navItems = [
   { to: '/', label: 'Home', Icon: House },
   { to: '/check-in', label: 'Check-in', Icon: ClipboardList },
+  { to: '/body', label: 'Body', Icon: PersonStanding },
   { to: '/earth-link', label: 'Earth link', Icon: SatelliteDish },
 ]
 

@@ -3,9 +3,11 @@
 Usage:
     python tools/simulator/generate.py --all --seed 42
     python tools/simulator/generate.py --scenario solar-storm --seed 42
+    python tools/simulator/generate.py --suit --seed 42
 
-Writes public/seed/<scenario>.json, and with --all also public/seed/index.json
-and public/data/space-weather.json. Standard library only. The same seed always
+Writes public/seed/<scenario>.json, and with --all also public/seed/index.json,
+public/seed/suit-replay.json (also alone with --suit) and
+public/data/space-weather.json. Standard library only. The same seed always
 gives byte-identical files. Never edit the generated files by hand.
 """
 
@@ -21,6 +23,7 @@ from pathlib import Path
 
 import model
 import scenarios
+import suit
 from scenarios import Scenario
 
 SEED_DIR = model.REPO_ROOT / 'public' / 'seed'
@@ -283,12 +286,19 @@ def main(argv: list[str] | None = None) -> int:
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--all', action='store_true', help='generate every scenario and the index')
     group.add_argument('--scenario', help='generate one scenario by id')
+    group.add_argument('--suit', action='store_true', help='generate only the suit sensor replay')
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--out', default=str(SEED_DIR), help='folder for the scenario files')
     args = parser.parse_args(argv)
 
-    indicators = model.load_indicators()
     out_dir = Path(args.out)
+    if args.all or args.suit:
+        replay = suit.build_replay(args.seed)
+        write(out_dir / 'suit-replay.json', to_text(replay))
+        print(f"suit-replay.json: {len(replay['samples'])} samples")
+    if args.suit:
+        return 0
+    indicators = model.load_indicators()
     selected = scenarios.SCENARIOS if args.all else (scenarios.by_id(args.scenario),)
     for scenario in selected:
         document = build_scenario(scenario, args.seed, indicators)

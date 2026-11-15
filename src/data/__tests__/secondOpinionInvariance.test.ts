@@ -25,7 +25,12 @@ const SEED_DIR = join(process.cwd(), 'public', 'seed')
 const NINE_AM_MS = 9 * 3_600_000
 
 const scenarios: ScenarioFile[] = readdirSync(SEED_DIR)
-  .filter((name) => name.endsWith('.json') && name !== 'index.json')
+  .filter(
+    (name) =>
+      name.endsWith('.json') &&
+      name !== 'index.json' &&
+      name !== 'suit-replay.json',
+  )
   .sort()
   .map((name) =>
     scenarioFileSchema.parse(

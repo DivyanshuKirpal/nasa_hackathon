@@ -33,7 +33,12 @@ function readJson(path: string): unknown {
 }
 
 const scenarioFiles = readdirSync(SEED_DIR)
-  .filter((name) => name.endsWith('.json') && name !== 'index.json')
+  .filter(
+    (name) =>
+      name.endsWith('.json') &&
+      name !== 'index.json' &&
+      name !== 'suit-replay.json',
+  )
   .sort()
 
 function load(name: string): ScenarioFile {

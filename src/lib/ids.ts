@@ -8,3 +8,14 @@
 export function messageId(kind: string, subjectKey: string): string {
   return `${kind}:${subjectKey}`
 }
+
+/** A soreness report: crew member, mission time and a counter for reports saved at the same moment. */
+export function sorenessReportId(
+  crewId: string,
+  atMs: number,
+  taken: ReadonlySet<string>,
+): string {
+  let count = 1
+  while (taken.has(`soreness:${crewId}:${atMs}:${count}`)) count += 1
+  return `soreness:${crewId}:${atMs}:${count}`
+}

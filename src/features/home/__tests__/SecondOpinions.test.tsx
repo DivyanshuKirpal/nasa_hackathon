@@ -11,6 +11,11 @@ import { loadScenario, renderApp } from '../../../test/helpers.tsx'
 
 const card = () => screen.getByRole('region', { name: 'Second opinions' })
 
+// The region page is a lazy chunk with Recharts. Its first import in a test
+// worker is transformed on the fly, which can take more than 10 s while
+// every test file runs in parallel; the wait stays inside the 30 s limit.
+const LAZY_PAGE_WAIT = { timeout: 25000 }
+
 describe('Second opinions on Home', () => {
   it('shows the pattern-shift insight with three factors, its caveat and its tag, and no number', () => {
     loadScenario('pattern-shift')
@@ -188,7 +193,7 @@ describe('Second opinions on Home', () => {
       const card = await screen.findByRole(
         'region',
         { name: 'Second opinions about this area' },
-        { timeout: 10000 },
+        LAZY_PAGE_WAIT,
       )
       const item = within(card).getByText(
         new RegExp(`^${personalPatternModel.headline}:`),

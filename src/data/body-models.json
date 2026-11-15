@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "models": [
+    {
+      "id": "crew-a",
+      "crewId": "c1",
+      "label": "Crew member A",
+      "status": "placeholder",
+      "file": null,
+      "version": "placeholder-1",
+      "madeWith": "Procedural placeholder (code)",
+      "aiAssisted": true,
+      "profile": {
+        "heightCm": 175,
+        "inseamCm": 79,
+        "shoulderBreadthCm": 42,
+        "upperArmCm": 34,
+        "forearmCm": 27,
+        "chestCm": 102,
+        "waistCm": 86,
+        "hipCm": 98,
+        "footCm": 27
+      },
+      "patchChecks": {
+        "shoulder_r_outer": {
+          "checked": false,
+          "checkedBy": null
+        }
+      },
+      "notes": "Simple shapes built in code to the model contract (section 22.9). Kept until a delivered model passes the checker (section 23.10)."
+    },
+    {
+      "id": "crew-b",
+      "crewId": "c2",
+      "label": "Crew member B",
+      "status": "placeholder",
+      "file": null,
+      "version": "placeholder-1",
+      "madeWith": "Procedural placeholder (code)",
+      "aiAssisted": true,
+      "profile": {
+        "heightCm": 175,
+        "inseamCm": 84,
+        "shoulderBreadthCm": 37,
+        "upperArmCm": 31,
+        "forearmCm": 25,
+        "chestCm": 88,
+        "waistCm": 72,
+        "hipCm": 100,
+        "footCm": 25
+      },
+      "patchChecks": {
+        "shoulder_r_outer": {
+          "checked": false,
+          "checkedBy": null
+        }
+      },
+      "notes": "Simple shapes built in code to the model contract (section 22.9). Kept until a delivered model passes the checker (section 23.10)."
+    }
+  ]
+}

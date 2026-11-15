@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { sorenessReportSchema } from '../bodyview/schemas.ts'
 import {
   contextSampleSchema,
   crewMemberSchema,
@@ -14,7 +15,7 @@ import {
 // derived is stored: alerts, baselines and statuses are recomputed.
 
 export const STORAGE_KEY = 'chc-state'
-export const STORAGE_VERSION = 1
+export const STORAGE_VERSION = 2
 
 const alertInteractionSchema = z.strictObject({
   firstSeenDay: z.number().int().positive(),
@@ -41,11 +42,41 @@ export const persistedStateSchema = z.strictObject({
   spaceWeather: z.array(flareObservationSchema),
   alertState: z.record(z.string(), alertInteractionSchema),
   outbox: z.array(groundMessageSchema),
-  prefs: z.strictObject({}),
+  /** Crew-reported soreness (section 22.5). Never a health input. Added in B1. */
+  soreness: z.array(sorenessReportSchema),
+  /** When the suit replay was anchored; the samples themselves are never stored. Added in B1. */
+  suit: z.strictObject({ anchorMs: z.number().nonnegative().nullable() }),
+  prefs: z.strictObject({ show3d: z.boolean(), force2d: z.boolean() }),
 })
 
 export type PersistedState = z.infer<typeof persistedStateSchema>
 export type AlertInteraction = z.infer<typeof alertInteractionSchema>
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * Version 1 (before B1) had no body view. Its health data, alerts and
+ * messages are kept as they are; the body view starts empty, with the suit
+ * replay anchored at the stored mission time when a scenario is loaded, as
+ * "Restart suit replay" would. Anything else is returned unchanged and then
+ * validated like any stored state.
+ */
+export function migratePersisted(stored: unknown, version: number): unknown {
+  if (version !== 1 || !isRecord(stored)) return stored
+  const mission = isRecord(stored.mission) ? stored.mission : {}
+  const anchorMs =
+    typeof mission.nowMs === 'number' && typeof mission.scenarioId === 'string'
+      ? mission.nowMs
+      : null
+  return {
+    ...stored,
+    soreness: [],
+    suit: { anchorMs },
+    prefs: { show3d: false, force2d: false },
+  }
+}
 
 /**
  * Bad or outdated storage is discarded, never trusted: the app then starts

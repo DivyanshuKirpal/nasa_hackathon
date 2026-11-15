@@ -28,6 +28,7 @@ describe('app shell', () => {
     expect(links.map((link) => link.textContent)).toEqual([
       'Home',
       'Check-in',
+      'Body',
       'Earth link',
     ])
     expect(within(nav).getByRole('link', { name: 'Check-in' })).toHaveAttribute(

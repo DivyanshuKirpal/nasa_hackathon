@@ -4,11 +4,13 @@ import { ClockControls } from './ClockControls.tsx'
 import { CrewAndLinkControls } from './CrewAndLinkControls.tsx'
 import { ResetToSeed } from './ResetToSeed.tsx'
 import { ScenarioPicker } from './ScenarioPicker.tsx'
+import { SuitReplayControls } from './SuitReplayControls.tsx'
 
 /**
  * The presenter tools drawer (section 16), opened with Shift+D or the footer
  * link. A presenter tool only: the crew never needs it. Clock, crew,
- * environment and link, reset, and the scenario picker (M4, completed in M6).
+ * environment and link, reset, the scenario picker (M4, completed in M6) and
+ * the suit replay (B1).
  */
 export function DemoPanel({ onClose }: { onClose: () => void }) {
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -54,6 +56,7 @@ export function DemoPanel({ onClose }: { onClose: () => void }) {
         <div className="mt-4 space-y-6">
           <ClockControls />
           <CrewAndLinkControls />
+          <SuitReplayControls />
           <ResetToSeed onDone={onClose} />
           <ScenarioPicker onLoaded={onClose} />
         </div>

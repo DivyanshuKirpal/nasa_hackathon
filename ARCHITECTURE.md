@@ -1360,6 +1360,8 @@ As built in M3 (14 November 2026):
 
 As built in M6: new actions `advanceTime(missionMs)` (the ticker, "+10 min", "+1 day"), `setSpeed`, `setLinkUp` (records `link.upSinceMs` when the link comes back) and `switchCrew`. Each ends with `syncAlerts`, which records alerts, queues their automatic messages and then lets the outbox travel. The new fields `link.upSinceMs` and `message.departedAtMs` are optional, so a state stored before M6 still loads.
 
+As built in B1: `STORAGE_VERSION` is 2. `migratePersisted` turns a version 1 state into version 2 by adding `soreness: []`, `prefs: { show3d: false, force2d: false }` and `suit.anchorMs`, which is the stored `nowMs` when a scenario was loaded (as "Restart suit replay" would set it) and null otherwise; the result is then validated like any stored state, and anything invalid is discarded. New actions `addSorenessReport` (validates through `src/bodyview/pins.ts` and returns the problems), `removeSorenessReport`, `restartSuitReplay`, `setShow3d` and `setForce2d`. None of them calls `syncAlerts`, because body observations never touch alerts or the outbox.
+
 As built in M4: new actions `acknowledgeAlert`, `toggleStep`, `sendToGround` and `syncAlerts` (section 15). An alert interaction is created when the alert is first seen (`firstSeenDay`, `lastSeenDay`). `setDelay` clamps to the environment's range and ignores a value that does not change the delay. `loadScenario` clears `alertState` and `outbox`, then records the new scenario's alerts and queues their messages.
 
 ---
@@ -1533,7 +1535,7 @@ Pins:
 
 ### 22.6 Suit sensors
 
-**Cut on 14 November 2026: sensor trend charts.** Cards keep the current value, contact state, freshness and the last valid reading with its time. The trend chart, its one-line summary, `trendWindowMin` and the `trend` and `trendDeltaC` readout fields are not built. The replay file keeps its scripted shapes. The rest of this section is the full design, kept for later.
+**Cut on 14 November 2026: sensor trend charts.** Cards keep the current value, contact state, freshness and the last valid reading with its time. The replay file keeps its scripted shapes. **Trend readout brought back in B1 (15 November 2026)**, because the B1 brief asked for trends: `trendWindowMin`, the `trend` and `trendDeltaC` readout fields and the one-line summary ("Up 0.5 °C in the last hour") are built; the summary shows only while the sensor has a current reading. The trend chart itself stays cut. The rest of this section is the full design, kept for later.
 
 Sites are in `src/data/sensor-sites.json`:
 
@@ -1610,6 +1612,13 @@ Code lives in `src/features/body/viewer/` and is the only place that imports `th
 ### 22.11 What must be proven
 
 Tests in section 27 cover: pins stay attached when the model rotates; crew records stay separate; an expired or contact-lost sensor shows no current value; body observations leave the health evaluation and the outbox unchanged; the Body screen works with no WebGL and by keyboard; delivered models pass the contract checks.
+
+As built in B1 (15 November 2026):
+
+- `src/bodyview/` holds `schemas.ts`, `types.ts`, `pins.ts` (`buildReport`, `entryLabel`, `reportsForCrew`, `pinVisibility`) and `sensors.ts` (`anchorReplay`, `sensorReadout`, `trendText`). The 0 to 10 scale is named once (`SORENESS_SCORE_MIN`, `SORENESS_SCORE_MAX`). `src/data/bodyView.ts` validates `body-models.json` (both bodies `placeholder-1`), `body-areas.json` and `sensor-sites.json` at load and checks their source ids; the sensor card sentence lives in `sensor-sites.json` as `cardNote`.
+- The Body screen (`src/features/body/`): the form's area select starts at "Choose an area", so no body area is pre-selected; choosing an area pre-fills the place words, "Other, describe it" clears them and moves focus there. The slider steps with the arrow keys itself (the same steps browsers use), so keyboard use behaves the same in tests and browsers. The form keeps its values per crew member and starts afresh after a crew switch. Without the 3D body there are no pins, so the list shows no pin text.
+- Sensor cards: a stale sensor whose newest sample had contact says "No new sample in the last 15 minutes"; a lost one says "Contact lost: the sensor is not touching the skin"; both show "No current reading" and the last valid reading with its time.
+- The presenter tools gained "Restart suit replay". The invariance test (`src/data/__tests__/bodyInvariance.test.ts`) adds and removes reports, restarts the replay and switches the 3D and Force 2D preferences for every crew member in four scenarios and finds the evaluation, the alert interactions and the outbox deep-equal; the engine input has exactly its health keys.
 
 ---
 
@@ -1868,6 +1877,8 @@ On some systems the command is `python3` or `py`. After regenerating, run the te
 - Crew `c1` and `c2` only, every 5 minutes from 2 hours before the anchor to 24 hours after.
 - Scripted shape per site, with illustrative simulation parameters (not reference values; the app never compares them with anything): `chest` steady at about 34.0 °C with small noise; `upper_back` starting at about 33.0 °C at offset −120 and warming steadily by 1.5 °C until offset +60, then steady; `forearm_l` steady at about 32.5 °C with contact through offset −35 and no contact from offset −30 to the end. At load time the forearm therefore already shows "No current reading", with its last valid reading 35 minutes earlier.
 - Values have one decimal. Fixed seed; identical output on every run.
+
+As built in B1: `generate.py --suit` writes only `suit-replay.json`, and `--all` writes it with the scenarios; the existing scenario files stay byte-identical. Small noise (up to 0.1 °C) is added to the chest and forearm values; the upper back is the exact scripted line. The app fetches the file when the Body screen first opens (not at app start), validates it and keeps it in memory for the session; a failed load shows a retry. The golden scenario tests skip it, because it is not a scenario.
 
 ### 24.6 Real space weather in scenarios
 

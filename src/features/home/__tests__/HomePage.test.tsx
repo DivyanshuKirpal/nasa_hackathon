@@ -5,6 +5,11 @@ import { useAppStore } from '../../../store/index.ts'
 import { selectEvaluation } from '../../../store/selectors.ts'
 import { loadScenario, renderApp } from '../../../test/helpers.tsx'
 
+// The region page is a lazy chunk with Recharts. Its first import in a test
+// worker is transformed on the fly, which can take more than 10 s while
+// every test file runs in parallel; the wait stays inside the 30 s limit.
+const LAZY_PAGE_WAIT = { timeout: 25000 }
+
 describe('Home with the sleep-debt scenario', () => {
   it('lists the sleep alert and shows Head as Watch', () => {
     loadScenario('sleep-debt')
@@ -78,7 +83,7 @@ describe('Home with the sleep-debt scenario', () => {
         await screen.findByRole(
           'heading',
           { level: 1, name: 'Head' },
-          { timeout: 10000 },
+          LAZY_PAGE_WAIT,
         ),
       ).toBeInTheDocument()
       expect(screen.getByText(/Your normal: 6\.\d h/)).toBeInTheDocument()
@@ -173,7 +178,7 @@ describe('Home with other scenarios', () => {
           await screen.findAllByText(
             /Learning your normal \(1 of 7\)/,
             {},
-            { timeout: 10000 },
+            LAZY_PAGE_WAIT,
           )
         ).length,
       ).toBeGreaterThan(0)

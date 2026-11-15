@@ -134,10 +134,10 @@ describe('environment and delay', () => {
 })
 
 describe('persistence', () => {
-  it('writes the health slices under chc-state, version 1, and nothing derived', () => {
+  it('writes the stored slices under chc-state, version 2, and nothing derived', () => {
     loadScenario('early-mission')
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null')
-    expect(stored.version).toBe(1)
+    expect(stored.version).toBe(2)
     expect(Object.keys(stored.state).sort()).toEqual([
       'alertState',
       'context',
@@ -147,7 +147,9 @@ describe('persistence', () => {
       'outbox',
       'prefs',
       'readings',
+      'soreness',
       'spaceWeather',
+      'suit',
       'symptoms',
     ])
     expect(readPersisted(stored.state)).not.toBeNull()
