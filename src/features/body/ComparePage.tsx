@@ -21,6 +21,13 @@ const MEASUREMENTS: [keyof BodyProfile, string][] = [
   ['footCm', 'Foot length'],
 ]
 
+/** Placeholder profiles are the contract's fictional values; a delivered model's are measured on it. */
+function measuredWord(model: BodyModelEntry): string {
+  return model.profileSource === 'measured'
+    ? 'Measured on the delivered model'
+    : 'Fictional measurements'
+}
+
 function ProfileTable({
   model,
   name,
@@ -34,13 +41,13 @@ function ProfileTable({
         {name}
       </h2>
       <div className="flex flex-wrap gap-2">
-        <Tag>Fictional measurements</Tag>
+        <Tag>{measuredWord(model)}</Tag>
         {model.status === 'placeholder' && <Tag>Placeholder model</Tag>}
         {model.aiAssisted && <Tag>AI-assisted model</Tag>}
       </div>
       <table className="w-full max-w-md border-collapse">
         <caption className="sr-only">
-          Fictional measurements of {name}, in centimeters
+          {measuredWord(model)} of {name}, in centimeters
         </caption>
         <tbody>
           {MEASUREMENTS.map(([key, label]) => (
@@ -55,6 +62,9 @@ function ProfileTable({
           ))}
         </tbody>
       </table>
+      {model.attribution && (
+        <p className="text-slate-700">{model.attribution}</p>
+      )}
     </section>
   )
 }
@@ -74,9 +84,10 @@ export function ComparePage() {
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold">Compare bodies</h1>
         <p className="max-w-3xl text-slate-700">
-          The two fictional bodies at the same scale. Both have the same height
-          and different proportions; the values were chosen only to make them
-          look different and describe no real person.
+          The two bodies at the same scale. A placeholder's measurements are
+          fictional values chosen only to make the bodies look different; a
+          delivered model's are measured on that model. Neither is a copy of any
+          astronaut.
         </p>
       </header>
       {available ? (

@@ -2,16 +2,14 @@ import { Box3, Color, MeshStandardMaterial, Raycaster, Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 import { BODY_NODE, PATCH_NODE } from '../../../../bodyview/modelContract.ts'
 import type { PinAnchor } from '../../../../bodyview/types.ts'
-import { bodyModels } from '../../../../data/bodyView.ts'
 import type { ViewerColors } from '../colors.ts'
 import { createMarkerSet, markerInfo } from '../markers.ts'
 import { isTap, pickResultFromHit } from '../picking.ts'
 import { buildPlaceholder } from '../placeholderModel.ts'
+import { CONTRACT_PROFILES } from './contractProfiles.ts'
 
 function model() {
-  const entry = bodyModels[0]
-  if (!entry) throw new Error('no model')
-  const root = buildPlaceholder(entry.profile, entry.id, {
+  const root = buildPlaceholder(CONTRACT_PROFILES['crew-a'], 'crew-a', {
     body: new MeshStandardMaterial(),
     patch: new MeshStandardMaterial(),
   })

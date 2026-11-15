@@ -114,5 +114,78 @@ class CheckBodyModelTests(unittest.TestCase):
             self.assertIn('Result: FAIL (1 failed)', output.getvalue())
 
 
+ANATOMY_MAP = {
+    'body': 'BODY_Skin',
+    'patch_shoulder_r_outer': 'REGION_SHOULDER_RIGHT_DELTOID',
+    'sensor_chest': 'ANCHOR_SENSOR_CHEST',
+    'sensor_upper_back': 'ANCHOR_SENSOR_UPPER_BACK',
+    'sensor_forearm_l': 'ANCHOR_SENSOR_LEFT_FOREARM',
+}
+ANATOMY_LAYERS = [
+    {'id': 'skin', 'label': 'Skin', 'node': 'SYSTEM_ExternalBody', 'defaultVisible': True},
+    {'id': 'skeleton', 'label': 'Skeleton', 'node': 'SYSTEM_Skeletal', 'defaultVisible': False},
+]
+
+
+def anatomical_model(inner_triangles=200_000, skin_triangles=45_000) -> dict:
+    """The contract model renamed and grouped like a delivered anatomical model, with a skin binding."""
+    document = contract_model()
+    renames = dict(zip(checker.REQUIRED_NODES, ANATOMY_MAP.values()))
+    for node in document['nodes']:
+        node['name'] = renames.get(node['name'], node['name'])
+    document['accessors'][1]['count'] = 3 * skin_triangles
+    document['accessors'].append({'componentType': 5125, 'type': 'SCALAR', 'count': 3 * inner_triangles})
+    document['meshes'].append({'primitives': [{'attributes': {'POSITION': 0}, 'indices': 3, 'targets': [{}]}]})
+    document['nodes'] += [
+        {'name': 'SYSTEM_ExternalBody', 'children': [0]},
+        {'name': 'BONE_Femur_L', 'mesh': 2, 'translation': [0.1, 0.5, 0]},
+        {'name': 'SYSTEM_Skeletal', 'children': [6]},
+    ]
+    document['skins'] = [{'joints': [0]}]
+    return document
+
+
+class AnatomicalRulesTests(unittest.TestCase):
+    def run_check(self, document, layers=ANATOMY_LAYERS):
+        return checker.check_model(glb(document), 175, ANATOMY_MAP, layers)
+
+    def test_an_anatomical_model_passes_with_notes(self):
+        report = self.run_check(anatomical_model())
+        self.assertEqual([line for line in report.lines if line.startswith('FAIL')], [])
+        self.assertTrue(any(line.startswith('NOTE  3. skins') for line in report.lines))
+        self.assertTrue(any(line.startswith('NOTE  4. mesh nodes with transforms') for line in report.lines))
+        self.assertTrue(any('6. triangles in the default view: measured 45,000' in line for line in report.lines))
+
+    def test_a_missing_layer_or_role_fails(self):
+        layers = ANATOMY_LAYERS + [{'id': 'heart', 'label': 'Heart', 'node': 'SYSTEM_Cardiovascular', 'defaultVisible': False}]
+        document = anatomical_model()
+        document['nodes'][1]['name'] = 'REGION_SOMEWHERE_ELSE'
+        failed = [line for line in self.run_check(document, layers).lines if line.startswith('FAIL')]
+        self.assertTrue(any('layer heart' in line for line in failed), failed)
+        self.assertTrue(any('patch_shoulder_r_outer (as REGION_SHOULDER_RIGHT_DELTOID)' in line for line in failed), failed)
+
+    def test_budgets_apply_to_the_default_view_and_the_whole_model(self):
+        failed = [line for line in self.run_check(anatomical_model(inner_triangles=1_200_000, skin_triangles=160_000)).lines
+                  if line.startswith('FAIL')]
+        self.assertTrue(any('6. triangles in the default view' in line for line in failed), failed)
+        self.assertTrue(any('6. triangles with every layer shown' in line for line in failed), failed)
+
+    def test_compression_still_fails(self):
+        document = anatomical_model()
+        document['extensionsUsed'] = ['EXT_meshopt_compression']
+        failed = [line for line in self.run_check(document).lines if line.startswith('FAIL')]
+        self.assertTrue(any('compression' in line for line in failed), failed)
+
+    def test_main_takes_an_entry_file(self):
+        with tempfile.TemporaryDirectory() as folder:
+            model = Path(folder) / 'anatomy.glb'
+            model.write_bytes(glb(anatomical_model()))
+            entry = Path(folder) / 'entry.json'
+            entry.write_text(json.dumps({'profile': {'heightCm': 175}, 'nodeMap': ANATOMY_MAP, 'layers': ANATOMY_LAYERS}), encoding='utf-8')
+            with redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(checker.main([str(model), '--entry', str(entry)]), 0)
+            self.assertIn('anatomical model rules (section 23.12)', output.getvalue())
+
+
 if __name__ == '__main__':
     unittest.main()

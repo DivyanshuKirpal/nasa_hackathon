@@ -4,6 +4,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { act, useEffect } from 'react'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { bodyModelFor, bodyModels } from '../../../data/bodyView.ts'
 import { useBodyModelStatus } from '../../../lib/bodyModelStatus.ts'
 import { useAppStore } from '../../../store/index.ts'
 import { loadScenario, renderApp } from '../../../test/helpers.tsx'
@@ -88,6 +89,11 @@ beforeEach(() => {
   useBodyModelStatus.setState({ byModel: {} })
 })
 
+// Crew A's model may be the placeholder or a delivered model; the tests
+// expect whatever the manifest says, so publishing one is a data change.
+const crewA = bodyModelFor('c1')
+if (!crewA) throw new Error('crew A has no body model')
+
 const NO_3D =
   '3D view is not available here. The list and sensor cards show the same information.'
 
@@ -142,10 +148,16 @@ describe('Body screen with the 3D body (B2)', () => {
       .setup()
       .click(screen.getByRole('checkbox', { name: 'Show 3D body' }))
     expect(
-      await screen.findByText(/Stub viewer: placeholder-1/),
+      await screen.findByText(new RegExp(`Stub viewer: ${crewA.version}`)),
     ).toBeInTheDocument()
-    expect(screen.getByText('Placeholder model')).toBeInTheDocument()
-    expect(screen.getByText('AI-assisted model')).toBeInTheDocument()
+    const tags = {
+      'Placeholder model': crewA.status === 'placeholder',
+      'AI-assisted model': crewA.aiAssisted,
+      'Anatomical atlas model': crewA.layers !== undefined,
+    }
+    for (const [tag, shown] of Object.entries(tags)) {
+      expect(screen.queryByText(tag) !== null, tag).toBe(shown)
+    }
     expect(screen.getByText(/not a copy of\s+your body/)).toBeInTheDocument()
     expect(useAppStore.getState().prefs.show3d).toBe(true)
   })
@@ -170,7 +182,7 @@ describe('Body screen with the 3D body (B2)', () => {
     const [report] = useAppStore.getState().soreness
     expect(report?.anchor).toEqual({
       modelId: 'crew-a',
-      modelVersion: 'placeholder-1',
+      modelVersion: crewA.version,
       target: 'patch_shoulder_r_outer',
       point: [-0.2, 1.4, 0.01],
       normal: [-1, 0, 0],
@@ -273,15 +285,19 @@ describe('Compare bodies (section 22.7)', () => {
         '3D view is not available here. The tables below give the same measurements.',
       ),
     ).toBeInTheDocument()
-    expect(screen.getAllByText('Fictional measurements')).toHaveLength(2)
-    const a = screen.getByRole('region', { name: 'Crew member A' })
-    expect(
-      within(a).getByRole('row', { name: 'Shoulder breadth 42 cm' }),
-    ).toBeInTheDocument()
-    const b = screen.getByRole('region', { name: 'Crew member B' })
-    expect(
-      within(b).getByRole('row', { name: 'Shoulder breadth 37 cm' }),
-    ).toBeInTheDocument()
+    for (const model of bodyModels) {
+      const region = screen.getByRole('region', { name: model.label })
+      const label =
+        model.profileSource === 'measured'
+          ? 'Measured on the delivered model'
+          : 'Fictional measurements'
+      expect(within(region).getByText(label)).toBeInTheDocument()
+      expect(
+        within(region).getByRole('row', {
+          name: `Shoulder breadth ${model.profile.shoulderBreadthCm} cm`,
+        }),
+      ).toBeInTheDocument()
+    }
     expect(
       screen.getByRole('link', {
         name: /Anthropometric Measurement Procedures/,
@@ -301,7 +317,7 @@ describe('Presenter tools: body view', () => {
     render(<BodyViewControls />)
     expect(
       screen.getByText(
-        /Crew member A: Placeholder model \(placeholder-1\)\. Not loaded in this session\./,
+        `Crew member A: ${crewA.status === 'placeholder' ? 'Placeholder model' : 'Delivered model'} (${crewA.version}${crewA.file ? `, ${crewA.file}` : ''}). Not loaded in this session.`,
       ),
     ).toBeInTheDocument()
     await userEvent

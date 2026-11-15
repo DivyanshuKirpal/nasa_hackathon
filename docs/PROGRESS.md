@@ -2,6 +2,46 @@
 
 One entry per milestone, newest first (ARCHITECTURE.md section 30.4). Targets are in section 31.1.
 
+## B3 continued: the complete anatomical model (assessed Sun 13:03 to 13:48; integration works locally, not published, blocked on team decisions)
+- B3 review commit `24fde3a` pushed; Vercel success 12:45:27 IST (docs only, same files as B2).
+- Scope change by Divyanshu (15 November 2026): assess Chirag's complete anatomical model for integration with its layers, keep the organs, skeleton and muscles, and work on copies where needed (authorized for this task). Section 23.12 records the new rules.
+- Source: `pkapil-star/3DBlend` commit `c1531ec`, unchanged; `astronaut_digital_twin.glb` used byte for byte (SHA-256 `f5307d62…`), no working-copy edit needed. The commit is marked co-authored by Claude Opus 5.5, so the model is labeled "AI-assisted model".
+- Built on `main` (the asset is not in git):
+  - manifest support for anatomical models: `nodeMap`, `layers`, `attribution`, `profileSource`;
+  - the loader keeps every layer and paints only the skin layer gray. It keeps the bind pose and holds shape keys at zero, hides helpers but keeps the shoulder patch tappable, and stops a load only after 15 s without data, with a progress line;
+  - the viewer: "Anatomical layers" checkboxes, a see-through skin while an inner layer is shown, pins on the skin only, and the attribution line. The tag reads "Anatomical atlas model", and the note says the figure is not a copy of the crew member's body or of any astronaut;
+  - the compare view labels measured profiles;
+  - the checker's anatomical rules and budgets (`--entry` added), and the prepared entry `docs/b3-crew-a-entry.json`.
+- Tests: `npm run check` green on `main` with 766 tests in 56 files (754 before). New:
+  - a synthetic anatomical model (layers, see-through skin, skin-only picking, hidden helpers, shape keys at rest, node map);
+  - the progress-based timeout, the layer checkboxes, and the real-asset test (it runs whenever a delivered anatomical file is present);
+  - tests that previously assumed crew A is a placeholder now follow the manifest.
+
+  Python: 57 tests in `tools/tests` (5 new). Two older tests were made to wait for asynchronous updates, because they raced under the heavier parallel load: the scenario list, and the Home heading after loading a scenario from the presenter tools. Neither changes what is checked.
+- Local assessment (detached worktree outside the repository, crew A on the complete model):
+  - 768 of 768 tests;
+  - the checker: PASS under the anatomical rules, with warnings for 64,690 default-view triangles, 599,615 in all, and 14.99 MB;
+  - browser checks, 19 of 19: tags, layers by keyboard, the shoulder and calf taps, the chest tap with every layer shown landing on the skin, no pin with the skin hidden, pins kept on turning, the turn to a sensor, a placeholder-version pin kept as text, compare labels, 390 px, focus rings, no console errors.
+
+  The B2 checks still pass on a `main` build (23 of 23, 6 of 6 without WebGL).
+- Performance (headless Chrome on the laptop, localhost):
+  - load to ready: 0.55 to 0.73 s;
+  - a new view on software WebGL: 16 to 32 ms with the skin only, 126 to 250 ms with all ten layers;
+  - on the RTX 4060 laptop GPU: 18 ms (one frame) either way;
+  - JS heap: 61 to 69 MB;
+  - throttled to 500 kB/s: 32.1 s with progress, not stopped.
+
+  Phones not tested.
+- Provenance and licences, checked against the primary sources (details in `docs/b3-model-review.md`):
+  - Z-Anatomy is CC BY-SA 4.0 and lists a CC BY-NC kidney and brain sources without a licence;
+  - BodyParts3D is CC BY 4.0 today, built on a voxel model created from MRI images of a male volunteer;
+  - the delivered model keeps the kidneys and the brain and drops the inner ear.
+- Found in the render: the default skin shows nipples and a visible male genital form at the groin (the delivery says the groin was made neutral), and a detailed face.
+- **Decisions needed** (section 6 of the review): the real-person origin; the surface detail and the face against section 23.5; the licence questions (share-alike, kidney, brain); crew B (placeholder kept, `Profile_B` does not match); and the credit line (the commit's account is `pkapil-star`).
+- **Manual checks pending:** a look at the complete model in the local worktree (http://localhost:4175/#/body after `npx vite preview --port 4175` there), and the B1 and B2 lists and every earlier pending check, unchanged.
+- Optional work for M7 is listed in ARCHITECTURE.md section 31.16.
+- Next: stop. M7 and M8 are not started; publishing the model waits for the decisions.
+
 ## B3 Chirag's body models: reviewed, not integrated (review Sun 11:25 to 12:50, recorded Sun 12:43; blocked on team decisions)
 - B2 close recorded: commit `cfc4f08` pushed to `main`. Deployment confirmed from Vercel's own commit status on GitHub (state "success", "Deployment has completed", 12:39:34 IST). The public site serves `index-BJe82o-8.js`, `index-CmuCqViB.css`, `three-Ddj_nAOz.js`, `Viewer3D-CTtWohq_.js` and `Compare3D-BSZd6rU9.js`, byte-identical to the local build, and the B2 browser checks passed on the public site: 23 of 23 with software WebGL and 6 of 6 without WebGL (the load-failure run needs a local build and was done locally).
 - **Status: B3 is not complete.** Chirag's delivery (`pkapil-star/3DBlend`, commit `c1531ec`, 10:43 IST, before the 14:00 deadline) is an anatomical digital twin, not the two contract files. Every export fails `tools/check_body_model.py`; the failing lines and the full findings are in `docs/b3-model-review.md`. Both crew members keep the placeholder; nothing was copied to `public/models/`, no model file was changed, and nothing was pushed to the model repository. The repository has no Git LFS pointers.

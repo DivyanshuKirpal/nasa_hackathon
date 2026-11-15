@@ -71,10 +71,12 @@ export function BodyViewSection({
               <div className="flex flex-wrap gap-2">
                 {model.status === 'placeholder' && <Tag>Placeholder model</Tag>}
                 {model.aiAssisted && <Tag>AI-assisted model</Tag>}
+                {model.layers && <Tag>Anatomical atlas model</Tag>}
               </div>
               <p className="text-slate-700">
-                A simple figure for showing where it is sore, not a copy of your
-                body. Tap it to place a pin, or use the form.
+                A figure for showing where it is sore. It is not a copy of your
+                body or of any astronaut. Tap the skin to place a pin, or use
+                the form.
               </p>
               {failed ? (
                 <div className="space-y-2">

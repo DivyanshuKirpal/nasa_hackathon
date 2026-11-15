@@ -1,8 +1,9 @@
-"""Check a delivered body model against the contract (ARCHITECTURE.md section 23.9).
+"""Check a delivered body model against the contract (ARCHITECTURE.md sections 23.9 and 23.12).
 
 Usage:
     python tools/check_body_model.py public/models/crew-a.glb --crew c1
     python tools/check_body_model.py path/to/crew-b.glb --height-cm 175
+    python tools/check_body_model.py path/to/model.glb --entry crew-a-entry.json
 
 Reads the expected height from src/data/body-models.json (or --height-cm when
 run outside the repository) and prints PASS, FAIL or WARN for each check with
@@ -32,6 +33,13 @@ HEIGHT_TOLERANCE_M = 0.01
 GROUND_TOLERANCE_M = 0.01
 MIDLINE_TOLERANCE_M = 0.03
 PATCH_MIN_HEIGHT_SHARE = 0.65
+# Anatomical models with layers (section 23.12), set from the B3 measurements of a
+# 15 MB, 599,615-triangle model: what is drawn before any layer is chosen, the
+# whole model with every layer shown, and the file.
+ANATOMICAL_DEFAULT_VIEW_MAX = 150_000
+ANATOMICAL_TOTAL_MAX = 1_000_000
+ANATOMICAL_TOTAL_WARN = 300_000
+ANATOMICAL_MAX_BYTES = 20_000_000
 IDENTITY = [1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 1.0]
 
 
@@ -144,8 +152,37 @@ def cm(value_m: float) -> str:
     return f'{value_m * 100:.1f} cm'
 
 
-def check_model(data: bytes, height_cm: float) -> Report:
+def note(report: Report, name: str, measured: str, why: str) -> None:
+    report.lines.append(f'NOTE  {name}: measured {measured}; {why}')
+
+
+def descendants(gltf: dict, index: int) -> list[int]:
+    nodes = gltf.get('nodes', [])
+    found, stack = [], [index]
+    while stack:
+        current = stack.pop()
+        found.append(current)
+        stack.extend(nodes[current].get('children', []))
+    return found
+
+
+def node_triangles(gltf: dict, indices: list[int]) -> int:
+    total = 0
+    for index in indices:
+        node = gltf['nodes'][index]
+        if 'mesh' not in node:
+            continue
+        for primitive in gltf['meshes'][node['mesh']].get('primitives', []):
+            accessor = primitive['indices'] if 'indices' in primitive else primitive['attributes']['POSITION']
+            total += gltf['accessors'][accessor]['count'] // 3
+    return total
+
+
+def check_model(data: bytes, height_cm: float, node_map: dict | None = None, layers: list | None = None) -> Report:
+    """Section 23.9 for the lightweight mannequin; with layers, the anatomical rules of section 23.12."""
     report = Report()
+    anatomical = bool(layers)
+    names = {role: (node_map or {}).get(role, role) for role in REQUIRED_NODES}
     try:
         gltf = read_glb(data)
     except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as error:
@@ -156,24 +193,39 @@ def check_model(data: bytes, height_cm: float) -> Report:
 
     nodes = gltf.get('nodes', [])
     index_of = {node.get('name'): index for index, node in enumerate(nodes)}
-    for name in REQUIRED_NODES:
-        report.check(f'2. node {name}', name in index_of, 'present' if name in index_of else 'missing', 'present')
+    for role, name in names.items():
+        label = role if name == role else f'{role} (as {name})'
+        report.check(f'2. node {label}', name in index_of, 'present' if name in index_of else 'missing', 'present')
+    for layer in layers or []:
+        report.check(f"2. layer {layer['id']} (node {layer['node']})", layer['node'] in index_of,
+                     'present' if layer['node'] in index_of else 'missing', 'present')
 
     for key in ('skins', 'animations', 'cameras'):
         count = len(gltf.get(key, []))
-        report.check(f'3. no {key}', count == 0, str(count), '0')
+        if anatomical and count:
+            note(report, f'3. {key}', str(count), 'allowed for an anatomical model: the app keeps the bind pose and plays nothing')
+        else:
+            report.check(f'3. no {key}', count == 0, str(count), '0')
+    morphs = sum(1 for mesh in gltf.get('meshes', []) for primitive in mesh.get('primitives', []) if primitive.get('targets'))
+    if anatomical and morphs:
+        note(report, '3. meshes with shape keys', str(morphs), 'the app holds every shape key at zero')
     used = [name for name in gltf.get('extensionsUsed', []) if name in FORBIDDEN_EXTENSIONS]
-    report.check('3. no compression extensions', not used, ', '.join(used) or 'none', 'none')
+    report.check('3. no compression extensions', not used, ', '.join(used) or 'none', 'none (the app ships no decoder)')
 
     moved = [node.get('name', f'#{index}') for index, node in enumerate(nodes) if 'mesh' in node and not is_identity(node)]
     shown = ', '.join(moved[:5]) + (f' and {len(moved) - 5} more' if len(moved) > 5 else '')
-    report.check('4. mesh nodes have identity transforms', not moved, shown or 'all identity', 'all identity')
+    if anatomical:
+        if moved:
+            note(report, '4. mesh nodes with transforms', f'{len(moved)}', 'allowed: pins are stored in model coordinates')
+    else:
+        report.check('4. mesh nodes have identity transforms', not moved, shown or 'all identity', 'all identity')
 
     matrices = world_matrices(gltf)
     expected_height = height_cm / 100
-    body_bounds = mesh_bounds(gltf, index_of['body'], matrices[index_of['body']]) if 'body' in index_of else None
+    body_name = names['body']
+    body_bounds = mesh_bounds(gltf, index_of[body_name], matrices[index_of[body_name]]) if body_name in index_of else None
     if body_bounds is None:
-        report.check('5. body geometry', False, 'no mesh on body', 'a mesh named body')
+        report.check('5. body geometry', False, f'no mesh on {body_name}', f'a mesh named {body_name}')
     else:
         low, high = body_bounds
         height = high[1] - low[1]
@@ -183,32 +235,53 @@ def check_model(data: bytes, height_cm: float) -> Report:
         report.check('5. midline', abs(midline) <= MIDLINE_TOLERANCE_M, f'x = {cm(midline)}', 'x = 0 cm within 3 cm')
 
     triangles = triangle_count(gltf)
-    report.check('6. triangles', triangles <= MAX_TRIANGLES, f'{triangles:,}', f'at most {MAX_TRIANGLES:,}')
-    if triangles < WARN_BELOW_TRIANGLES:
-        report.warn('6. triangles', f'{triangles:,}', f'about {WARN_BELOW_TRIANGLES:,} or more')
-    report.check('6. file size', len(data) <= MAX_BYTES, f'{len(data) / 1e6:.2f} MB', 'at most 4 MB')
+    if anatomical:
+        shown_first = [i for layer in layers if layer['defaultVisible'] and layer['node'] in index_of
+                       for i in descendants(gltf, index_of[layer['node']])]
+        default_view = node_triangles(gltf, shown_first)
+        report.check('6. triangles in the default view', default_view <= ANATOMICAL_DEFAULT_VIEW_MAX,
+                     f'{default_view:,}', f'at most {ANATOMICAL_DEFAULT_VIEW_MAX:,}')
+        if default_view > MAX_TRIANGLES:
+            report.warn('6. triangles in the default view', f'{default_view:,}', f'about {MAX_TRIANGLES:,} for light devices (M7)')
+        report.check('6. triangles with every layer shown', triangles <= ANATOMICAL_TOTAL_MAX,
+                     f'{triangles:,}', f'at most {ANATOMICAL_TOTAL_MAX:,}')
+        if triangles > ANATOMICAL_TOTAL_WARN:
+            report.warn('6. triangles with every layer shown', f'{triangles:,}',
+                        f'slow on software rendering above {ANATOMICAL_TOTAL_WARN:,} (M7)')
+        report.check('6. file size', len(data) <= ANATOMICAL_MAX_BYTES, f'{len(data) / 1e6:.2f} MB', 'at most 20 MB')
+        if len(data) > MAX_BYTES:
+            report.warn('6. file size', f'{len(data) / 1e6:.2f} MB', 'compression or per-layer loading in M7')
+    else:
+        report.check('6. triangles', triangles <= MAX_TRIANGLES, f'{triangles:,}', f'at most {MAX_TRIANGLES:,}')
+        if triangles < WARN_BELOW_TRIANGLES:
+            report.warn('6. triangles', f'{triangles:,}', f'about {WARN_BELOW_TRIANGLES:,} or more')
+        report.check('6. file size', len(data) <= MAX_BYTES, f'{len(data) / 1e6:.2f} MB', 'at most 4 MB')
 
-    def position(name: str):
+    def position(role: str):
+        name = names[role]
         return transform(matrices[index_of[name]], (0, 0, 0)) if name in index_of else None
 
     chest, back, forearm = position('sensor_chest'), position('sensor_upper_back'), position('sensor_forearm_l')
     if chest and back:
-        report.check('7. faces +Z (chest sensor in front of back sensor)', chest[2] > back[2], f'chest z {cm(chest[2])}, back z {cm(back[2])}', 'chest z larger')
-    patch_bounds = mesh_bounds(gltf, index_of['patch_shoulder_r_outer'], matrices[index_of['patch_shoulder_r_outer']]) if 'patch_shoulder_r_outer' in index_of else None
+        report.check('7. faces +Z (chest sensor in front of back sensor)', chest[2] > back[2],
+                     f'chest z {cm(chest[2])}, back z {cm(back[2])}', 'chest z larger')
+    patch_name = names['patch_shoulder_r_outer']
+    patch_bounds = mesh_bounds(gltf, index_of[patch_name], matrices[index_of[patch_name]]) if patch_name in index_of else None
     if patch_bounds:
         center = [(patch_bounds[0][axis] + patch_bounds[1][axis]) / 2 for axis in range(3)]
         report.check('7. shoulder patch on the right side', center[0] < 0, f'x = {cm(center[0])}', 'x below 0')
-        report.check('7. shoulder patch height', center[1] > PATCH_MIN_HEIGHT_SHARE * expected_height, f'y = {cm(center[1])}', f'above {cm(PATCH_MIN_HEIGHT_SHARE * expected_height)}')
+        report.check('7. shoulder patch height', center[1] > PATCH_MIN_HEIGHT_SHARE * expected_height,
+                     f'y = {cm(center[1])}', f'above {cm(PATCH_MIN_HEIGHT_SHARE * expected_height)}')
     if forearm:
         report.check('7. left forearm sensor on the left side', forearm[0] > 0, f'x = {cm(forearm[0])}', 'x above 0')
     return report
 
 
-def expected_height_cm(crew_id: str) -> float:
+def manifest_entry(crew_id: str) -> dict:
     manifest = json.loads(MANIFEST.read_text(encoding='utf-8'))
     for model in manifest['models']:
         if model['crewId'] == crew_id:
-            return float(model['profile']['heightCm'])
+            return model
     raise SystemExit(f'No body model for crew member {crew_id} in {MANIFEST}')
 
 
@@ -216,13 +289,22 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     parser.add_argument('file', help='the .glb file to check')
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--crew', help='crew id whose profile height to expect, e.g. c1')
-    group.add_argument('--height-cm', type=float, help='expected height when run outside the repository')
+    group.add_argument('--crew', help='crew id whose manifest entry to check against, e.g. c1')
+    group.add_argument('--entry', help='a JSON file holding one manifest entry (node map, layers, profile)')
+    group.add_argument('--height-cm', type=float, help='expected height of a mannequin, when run outside the repository')
     args = parser.parse_args(argv)
     path = Path(args.file)
-    height = args.height_cm if args.height_cm is not None else expected_height_cm(args.crew)
-    report = check_model(path.read_bytes(), height)
-    print(f'Checking {path.name} against the body model contract (ARCHITECTURE.md section 23.9), expected height {height:.1f} cm')
+    if args.height_cm is not None:
+        entry = {'profile': {'heightCm': args.height_cm}}
+    elif args.entry:
+        entry = json.loads(Path(args.entry).read_text(encoding='utf-8'))
+    else:
+        entry = manifest_entry(args.crew)
+    height = float(entry['profile']['heightCm'])
+    layers = entry.get('layers')
+    report = check_model(path.read_bytes(), height, entry.get('nodeMap'), layers)
+    rules = 'the anatomical model rules (section 23.12)' if layers else 'the body model contract (section 23.9)'
+    print(f'Checking {path.name} against {rules}, expected height {height:.1f} cm')
     for line in report.lines:
         print(line)
     print('Result: PASS' if report.failures == 0 else f'Result: FAIL ({report.failures} failed)')

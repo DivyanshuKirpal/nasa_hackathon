@@ -9,7 +9,13 @@ import type {
 import { sensorSites } from '../../../data/bodyView.ts'
 import { readViewerColors, type ViewerColors } from './colors.ts'
 import { createViewer, type Viewer } from './createViewer.ts'
-import { ModelLoadError, loadBodyModel, type LoadedModel } from './loadModel.ts'
+import { LayerControls } from './LayerControls.tsx'
+import {
+  ModelLoadError,
+  loadBodyModel,
+  type LayerState,
+  type LoadedModel,
+} from './loadModel.ts'
 import { createMarkerSet, markerInfo, type MarkerSet } from './markers.ts'
 import {
   isTap,
@@ -59,6 +65,8 @@ export default function Viewer3D(props: Viewer3DProps) {
   const latest = useRef(props)
   const [loaded, setLoaded] = useState<LoadedModel | null>(null)
   const [description, setDescription] = useState('Showing the front')
+  const [progress, setProgress] = useState<number | null>(null)
+  const [layers, setLayers] = useState<LayerState[]>([])
 
   useEffect(() => {
     latest.current = props
@@ -87,7 +95,16 @@ export default function Viewer3D(props: Viewer3DProps) {
     const controller = new AbortController()
     let current: LoadedModel | null = null
     latest.current.onStatus({ state: 'loading', contract: null })
-    loadBodyModel(model, colors, sensorSites.sites, controller.signal)
+    setProgress(null)
+    loadBodyModel(
+      model,
+      colors,
+      sensorSites.sites,
+      controller.signal,
+      (fraction) => {
+        if (!controller.signal.aborted) setProgress(fraction)
+      },
+    )
       .then((result) => {
         if (controller.signal.aborted) {
           result.dispose()
@@ -96,6 +113,7 @@ export default function Viewer3D(props: Viewer3DProps) {
         current = result
         viewer.setContent([result.root])
         setLoaded(result)
+        setLayers(result.layers)
         setDescription('Showing the front')
         latest.current.onStatus({ state: 'ready', contract: result.contract })
       })
@@ -158,11 +176,12 @@ export default function Viewer3D(props: Viewer3DProps) {
       setDescription(viewDescriptionOf(viewer))
       return
     }
-    const targets = [
-      loaded.body,
-      ...(loaded.patch ? [loaded.patch] : []),
-      ...(markersRef.current?.meshes() ?? []),
-    ]
+    // Pins go on the skin and the shoulder patch only, never on an inner
+    // layer; with the skin hidden only markers can be selected.
+    const surface = loaded.surfacePickable()
+      ? [loaded.body, ...(loaded.patch ? [loaded.patch] : [])]
+      : []
+    const targets = [...surface, ...(markersRef.current?.meshes() ?? [])]
     const hit = viewer.pick(event.clientX, event.clientY, targets)
     if (!hit) return
     const marker = markerInfo(hit.object)
@@ -189,12 +208,30 @@ export default function Viewer3D(props: Viewer3DProps) {
         onPointerUp={onPointerUp}
         className="block h-[420px] w-full rounded-lg border border-slate-300 lg:h-[540px]"
       />
-      {!loaded && <p className="text-slate-700">Loading the 3D body…</p>}
+      {!loaded && (
+        <p className="text-slate-700">
+          Loading the 3D body…
+          {progress !== null && ` ${Math.round(progress * 100)}%`}
+        </p>
+      )}
+      {loaded && layers.length > 0 && (
+        <LayerControls
+          layers={layers}
+          onChange={(id, visible) => {
+            loaded.setLayerVisible(id, visible)
+            setLayers(loaded.layers)
+            viewerRef.current?.requestRender()
+          }}
+        />
+      )}
       <ViewButtons
         viewer={() => viewerRef.current}
         description={description}
         onMoved={setDescription}
       />
+      {model.attribution && (
+        <p className="text-slate-700">{model.attribution}</p>
+      )}
     </div>
   )
 }

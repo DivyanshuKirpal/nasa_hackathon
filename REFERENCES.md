@@ -151,6 +151,15 @@ Used by the Earth hospital model (milestone A4), offline only:
 
 - `sklearn.linear_model.LogisticRegression` (the shipped model; the app runs its exported coefficients in TypeScript) and `sklearn.ensemble.HistGradientBoostingClassifier` (the benchmark). https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html and https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.HistGradientBoostingClassifier.html
 
+## Body model sources under review (B3, not published)
+
+Read while assessing Chirag's anatomical model for integration (`docs/b3-model-review.md`). The model is not in the app yet; these move to the sections above if it is published.
+
+- Chirag's delivery: 3DBlend, commit c1531ec (15 November 2026). https://github.com/pkapil-star/3DBlend (licence stated there: CC BY-SA 4.0)
+- Z-Anatomy: the libre 3D atlas of anatomy. CC BY-SA 4.0. https://github.com/Z-Anatomy/Models-of-human-anatomy
+- BodyParts3D, © The Database Center for Life Science. Licence page (CC BY 4.0 today): https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html
+- Mitsuhashi N, et al. BodyParts3D: 3D structure database for anatomical concepts. Nucleic Acids Research, 2009. https://pmc.ncbi.nlm.nih.gov/articles/PMC2686534/ (how the whole-body model was built)
+
 ## Tools and assets
 
 | Tool | Used for | URL |

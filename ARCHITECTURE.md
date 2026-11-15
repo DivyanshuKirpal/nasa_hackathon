@@ -1579,7 +1579,7 @@ Code lives in `src/features/body/viewer/` and is the only place that imports `th
 - **Lights.** One hemisphere light and one directional light. No shadows.
 - **Materials.** Every mesh under `body` gets one plain gray `MeshStandardMaterial`; the file's own materials are ignored. Patch objects get a transparent material that is invisible by default and tinted when hovered or selected. Pins and sensor markers are small spheres.
 - **Colors.** Read once at mount from the CSS variables in section 20. No raw color values in viewer code.
-- **Loading.** Placeholder: built in code (section 22.9). Delivered: `GLTFLoader` from `three/addons/loaders/GLTFLoader.js`, URL relative to `import.meta.env.BASE_URL`, 15-second timeout. After loading, check the node names with `checkNodeNames` (section 23.9) and keep the result for the UI and the demo panel.
+- **Loading.** Placeholder: built in code (section 22.9). Delivered: `GLTFLoader` from `three/addons/loaders/GLTFLoader.js`, URL relative to `import.meta.env.BASE_URL`, 15-second timeout. (Changed in B3: the 15 seconds are measured from the last data received, with progress shown; see section 23.12.) After loading, check the node names with `checkNodeNames` (section 23.9) and keep the result for the UI and the demo panel.
 - **Picking.** A pointer down and up within 6 px and 500 ms is a tap; anything else is a drag. Use the pointer events' `timeStamp` for this; it is interface timing, not mission time. Raycast against the current model only; the nearest hit wins. Patch objects sit 2 mm above the skin, so a tap on the shoulder area hits the patch first. Convert the hit to the model root's space with `root.worldToLocal` and store point and normal in the anchor.
 - **Markers.** Pins and sensor markers are children of the model root at their local positions, pushed 3 mm out along the normal so the surface does not hide them. Selected markers are larger and use `--pin-selected`.
 - **Disposal.** On unmount, dispose geometries, materials, controls and the renderer, and cancel pending loads.
@@ -1781,7 +1781,46 @@ Chirag's self-check before sending, with no code: re-import each `.glb` into an 
 - The standalone checker (`tools/check_body_model.py`) is brought forward when the first rough export arrives, with Divyanshu's OK (section 30.5).
 - If only one file arrives, integrate it; the other crew member keeps the placeholder, and the compare view labels each body.
 
-As reviewed in B3 (15 November 2026): Chirag's delivery (repository `pkapil-star/3DBlend`, commit `c1531ec`, 10:43 IST, on time) is an anatomical model with no `crew-a.glb` or `crew-b.glb`. Every export fails the checker: no contract node names, a skin binding and a shape key, separate eyes and nails, and 15 MB and 599,615 triangles for the full model. Read under its own names, the outer body's geometry meets the contract. Nothing was integrated: both crew members keep the placeholder, and nothing was copied to `public/models/`. Provenance (a real donor's anatomical dataset), the CC BY-SA 4.0 licence, the scope (organs against a mannequin), crew B, who converts the files, and the AI label wait for the team's decisions. Findings, checker lines and a draft message to Chirag are in `docs/b3-model-review.md`.
+As first reviewed in B3 (15 November 2026; superseded the same day by section 23.12, which assesses the complete model): Chirag's delivery (repository `pkapil-star/3DBlend`, commit `c1531ec`, 10:43 IST, on time) is an anatomical model with no `crew-a.glb` or `crew-b.glb`. Every export fails the checker: no contract node names, a skin binding and a shape key, separate eyes and nails, and 15 MB and 599,615 triangles for the full model. Read under its own names, the outer body's geometry meets the contract. Nothing was integrated: both crew members keep the placeholder, and nothing was copied to `public/models/`. Provenance (a real donor's anatomical dataset), the CC BY-SA 4.0 licence, the scope (organs against a mannequin), crew B, who converts the files, and the AI label wait for the team's decisions. Findings, checker lines and a draft message to Chirag are in `docs/b3-model-review.md`.
+
+
+### 23.12 Anatomical models (B3, 15 November 2026)
+
+Chirag's delivery is a complete anatomical model, not the lightweight mannequin of sections 23.2 to 23.9. Divyanshu asked on 15 November 2026 that it be assessed for integration whole, with its anatomical layers, and authorized integration changes on working copies. The app now supports such a model without changing the file: the manifest entry maps the contract roles to the file's own node names and lists its layers.
+
+Requirements that protect correct behaviour, kept for every model:
+
+- glTF 2.0 binary, no compression extensions (the app ships no decoder); metric units, +Y up, facing +Z, the crew member's right at negative X.
+- A body surface whose height matches the profile within 1 cm, standing on y = 0, centered on x = 0.
+- The shoulder patch on the right and above 65% of the height, hit before the skin by a tap at its middle; the three sensor anchors on the correct sides and on the skin (within 2 mm).
+- A surface that never moves under a pin: the app keeps any rig in its bind pose, holds every shape key at zero and plays no animation.
+- Appropriate, non-identifying surfaces: no genital or nipple detail and no face texture (section 23.5). This is a rule of the product, not of the lightweight format.
+
+Assumptions of the lightweight model, replaced for anatomical models:
+
+| Lightweight rule (23.5, 23.9) | For an anatomical model |
+|---|---|
+| Node names exactly `body`, `patch_shoulder_r_outer`, `sensor_*` | `nodeMap` in the manifest maps each role to the file's name; every role must still be present |
+| No armature, skin binding or shape keys | Allowed; bind pose and zero shape keys enforced by the loader and tested |
+| Identity transforms on mesh nodes | Not needed: the checker composes transforms and pins are stored in model coordinates |
+| One closed mesh, no separate eyes | The skin layer may hold eyes and nails; all of it is painted plain gray |
+| At most 60,000 triangles and 4 MB | Default view at most 150,000 triangles, the whole model at most 1,000,000, the file at most 20 MB; warnings above 60,000, 300,000 and 4 MB |
+| Profile from section 23.8 | `profileSource: "measured"`: the values measured on the model, shown as "Measured on the delivered model", never as the fictional profile |
+
+The budgets come from the B3 measurements of a 15 MB, 599,615-triangle model (`docs/b3-model-review.md`): on software rendering the default view took 16 to 32 ms per new view and the whole model 126 to 250 ms; on a laptop GPU both took one frame.
+
+Manifest entry fields (all optional, in `src/bodyview/schemas.ts`): `nodeMap`, `layers` (id, label, group node, `defaultVisible`), `attribution` (the credit the model's licence requires, shown under the 3D view and in the compare view) and `profileSource`.
+
+Viewer behaviour:
+
+- Layers are group nodes shown or hidden as a whole with plain checkboxes under the 3D view, under "Anatomical layers", with the line that they show typical anatomy for orientation, not the crew member's own body and not a finding about them. Only the skin layer is shown at first.
+- The layer that contains the body surface is painted plain gray; inner layers keep the file's own materials. While an inner layer is shown the skin turns see-through (opacity 0.25).
+- Pins go on the skin and the shoulder patch only: taps never hit an inner layer, even when it is visible. With the skin layer hidden, taps place no pin and a line says to turn the skin back on.
+- Helpers the file marks hidden (`default_visible: false` in the node extras) stay hidden, except the shoulder patch and its parent group, which must take taps. The patch material uses a polygon offset, so a patch lying about 1 mm above the skin does not flicker into it when tinted.
+- Loading shows the percentage received and stops only if no data arrives for 15 seconds, so a large file on a slow link still loads (section 22.8 had a 15-second total limit).
+- The tags read "Anatomical atlas model" and, when the manifest says so, "AI-assisted model"; the 3D view says the figure is not a copy of the crew member's body or of any astronaut.
+
+Checks: `tools/check_body_model.py --crew <id>` (or `--entry <file>`) applies these rules when the entry has `layers`; `src/features/body/viewer/__tests__/deliveredAnatomy.test.ts` loads each delivered anatomical file with three.js and checks scale, layers, the patch hit, the anchors on the skin, the shape keys and the skin-only picking. Publishing such a model is a data change: the file in `public/models/`, the prepared entry (`docs/b3-crew-a-entry.json` for Chirag's delivery) in `body-models.json`, then the checks above and the B2 and B3 browser checks.
 
 ---
 
@@ -2977,7 +3016,7 @@ Carried into M7 from B1 to B3 (15 November 2026): optional polish and performanc
 6. The sensor trend chart (cut on 14 November; B1 built only the one-line trend).
 7. `public/seed/suit-replay.json` is 174 kB (one object per sample): a compact form would cut the fetch.
 8. Tests: pre-bundle Recharts and three.js for Vitest, so the lazy-page tests no longer need waits of up to 25 seconds.
-9. Chirag's model, once the B3 decisions are made and a re-export passes the checker: the optional items in `docs/b3-model-review.md` section 3.2 (arm angle, guide measurements, eyelid rims).
+9. The complete anatomical model, once published: compression (meshopt or Draco, with its decoder), loading layers on demand (the delivery has one file per system), lighter versions for phones, material tuning for the inner layers, a polished layer panel (presets such as "skeleton only", remembered choices), a highlight of the selected layer, and checks on real phones.
 
 **Goal.** Breadth and quality: every rule in section 12, the reaction test, and an accessibility pass.
 **Read first.** 8.4, 12, 17, 18, 19.6, 19.7, 20, 24.3.

@@ -3,11 +3,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { bodyModels, sensorSites } from '../../../../data/bodyView.ts'
 import type { ViewerColors } from '../colors.ts'
 import {
-  LOAD_TIMEOUT_MS,
+  LOAD_STALL_MS,
   ModelLoadError,
   loadBodyModel,
   prepareModel,
-  withTimeout,
+  withStallTimeout,
 } from '../loadModel.ts'
 
 const colors: ViewerColors = {
@@ -21,8 +21,8 @@ const colors: ViewerColors = {
 }
 
 function entry() {
-  const model = bodyModels[0]
-  if (!model) throw new Error('no model')
+  const model = bodyModels.find((entry) => entry.status === 'placeholder')
+  if (!model) throw new Error('no placeholder model')
   return model
 }
 
@@ -107,33 +107,59 @@ describe('loading a body (sections 22.8 and 22.10)', () => {
       finish = resolve
     })
     const onLate = vi.fn()
-    const result = withTimeout(
-      slow,
-      LOAD_TIMEOUT_MS,
+    const result = withStallTimeout(
+      () => slow,
+      LOAD_STALL_MS,
       new AbortController().signal,
       onLate,
     )
-    const expectation = expect(result).rejects.toThrow('Loading timed out')
-    await vi.advanceTimersByTimeAsync(LOAD_TIMEOUT_MS)
+    const expectation = expect(result).rejects.toThrow('Loading stalled')
+    await vi.advanceTimersByTimeAsync(LOAD_STALL_MS)
     await expectation
     finish('late model')
     await vi.runAllTimersAsync()
     expect(onLate).toHaveBeenCalledWith('late model')
   })
 
+  it('keeps waiting while data arrives and stops 15 seconds after the last data', async () => {
+    vi.useFakeTimers()
+    let progress: () => void = () => undefined
+    const result = withStallTimeout(
+      (onProgress) => {
+        progress = onProgress
+        return new Promise<string>(() => undefined)
+      },
+      LOAD_STALL_MS,
+      new AbortController().signal,
+      () => undefined,
+    )
+    let stopped = false
+    result.catch(() => {
+      stopped = true
+    })
+    for (let step = 0; step < 3; step++) {
+      await vi.advanceTimersByTimeAsync(10_000)
+      progress()
+    }
+    expect(stopped).toBe(false)
+    const expectation = expect(result).rejects.toThrow('Loading stalled')
+    await vi.advanceTimersByTimeAsync(LOAD_STALL_MS)
+    await expectation
+  })
+
   it('stops when cancelled and reports a failed file as a load error', async () => {
     const controller = new AbortController()
-    const pending = withTimeout(
-      new Promise(() => undefined),
-      LOAD_TIMEOUT_MS,
+    const pending = withStallTimeout(
+      () => new Promise(() => undefined),
+      LOAD_STALL_MS,
       controller.signal,
       () => undefined,
     )
     controller.abort()
     await expect(pending).rejects.toThrow('Loading was cancelled')
-    const failing = withTimeout(
-      Promise.reject(new Error('404')),
-      LOAD_TIMEOUT_MS,
+    const failing = withStallTimeout(
+      () => Promise.reject(new Error('404')),
+      LOAD_STALL_MS,
       new AbortController().signal,
       () => undefined,
     )

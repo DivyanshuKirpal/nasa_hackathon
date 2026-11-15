@@ -92,7 +92,7 @@ python ml/train_sep_risk.py --seed 42                 # model file, parity file,
 
 ## Team
 
-Team VoidShifters. Divyanshu builds the app with Claude Code (see [AI_USAGE.md](AI_USAGE.md)). Chirag is responsible for the Blender body models. His first delivery, an anatomical model derived from the Z-Anatomy and BodyParts3D atlases (CC BY-SA 4.0), is reviewed in [docs/b3-model-review.md](docs/b3-model-review.md) and is not in the app yet. Until the team decides the open points there, the 3D view shows the labeled placeholder built in code.
+Team VoidShifters. Divyanshu builds the app with Claude Code (see [AI_USAGE.md](AI_USAGE.md)). Chirag is responsible for the Blender body models. His delivery, a complete anatomical model with ten layers derived from the Z-Anatomy and BodyParts3D atlases (CC BY-SA 4.0), works with the app in local tests (assessment in [docs/b3-model-review.md](docs/b3-model-review.md)) but is not published yet: questions about its origin, its surface detail and parts of its licence wait for the team. Until then the 3D view shows the labeled placeholder built in code.
 
 ## Documents
 

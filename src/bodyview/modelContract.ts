@@ -2,6 +2,8 @@
 // and 23.9). A model without `body` is rejected; a missing patch or sensor
 // anchor only switches off that feature.
 
+import type { NodeMap } from './types.ts'
+
 export const BODY_NODE = 'body'
 export const PATCH_NODE = 'patch_shoulder_r_outer'
 export const SENSOR_NODES = [
@@ -9,6 +11,21 @@ export const SENSOR_NODES = [
   'sensor_upper_back',
   'sensor_forearm_l',
 ] as const
+
+export type ContractRole = keyof NodeMap
+
+/** The contract's own names: what a file without a node map must use. */
+export const CONTRACT_NAMES: NodeMap = {
+  body: BODY_NODE,
+  patch_shoulder_r_outer: PATCH_NODE,
+  sensor_chest: 'sensor_chest',
+  sensor_upper_back: 'sensor_upper_back',
+  sensor_forearm_l: 'sensor_forearm_l',
+}
+
+export function isContractRole(name: string): name is ContractRole {
+  return name in CONTRACT_NAMES
+}
 
 export type ContractOutcome = 'accept' | 'degrade' | 'reject'
 
@@ -18,11 +35,17 @@ export interface ContractResult {
   missing: string[]
 }
 
-export function checkNodeNames(names: Iterable<string>): ContractResult {
+/**
+ * Checks that every contract role is present, under the file's own name when
+ * a node map gives one. `missing` lists the roles, in contract order.
+ */
+export function checkNodeNames(
+  names: Iterable<string>,
+  nodeMap: NodeMap = CONTRACT_NAMES,
+): ContractResult {
   const present = new Set(names)
-  const missing = [BODY_NODE, PATCH_NODE, ...SENSOR_NODES].filter(
-    (name) => !present.has(name),
-  )
+  const roles: ContractRole[] = [BODY_NODE, PATCH_NODE, ...SENSOR_NODES]
+  const missing = roles.filter((role) => !present.has(nodeMap[role]))
   if (missing.includes(BODY_NODE)) return { outcome: 'reject', missing }
   return { outcome: missing.length === 0 ? 'accept' : 'degrade', missing }
 }

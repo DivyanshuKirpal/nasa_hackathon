@@ -60,6 +60,26 @@ const patchCheckSchema = z.strictObject({
   checkedBy: z.string().min(1).nullable(),
 })
 
+/**
+ * Where each contract role sits in a delivered file whose own node names
+ * differ (section 23.12). Without a map the names are the contract's own.
+ */
+export const nodeMapSchema = z.strictObject({
+  body: z.string().min(1),
+  patch_shoulder_r_outer: z.string().min(1),
+  sensor_chest: z.string().min(1),
+  sensor_upper_back: z.string().min(1),
+  sensor_forearm_l: z.string().min(1),
+})
+
+/** One anatomical layer of a delivered model: a group node shown or hidden as a whole. */
+export const modelLayerSchema = z.strictObject({
+  id: z.string().regex(/^[a-z_]+$/),
+  label: z.string().min(1),
+  node: z.string().min(1),
+  defaultVisible: z.boolean(),
+})
+
 export const bodyModelEntrySchema = z
   .strictObject({
     id: z.string().min(1),
@@ -75,10 +95,23 @@ export const bodyModelEntrySchema = z
     profile: bodyProfileSchema,
     patchChecks: z.strictObject({ shoulder_r_outer: patchCheckSchema }),
     notes: z.string(),
+    /** "contract": the fictional profile of section 23.8; "measured": values measured on the delivered model. */
+    profileSource: z.enum(['contract', 'measured']).optional(),
+    nodeMap: nodeMapSchema.optional(),
+    layers: z.array(modelLayerSchema).min(1).optional(),
+    /** Credit the model's licence requires wherever it is shown. */
+    attribution: z.string().min(1).optional(),
   })
   .refine(
     (entry) => (entry.status === 'placeholder') === (entry.file === null),
     { message: 'a placeholder has no file; a delivered model has one' },
+  )
+  .refine(
+    (entry) =>
+      entry.layers === undefined ||
+      new Set(entry.layers.map((layer) => layer.id)).size ===
+        entry.layers.length,
+    { message: 'layer ids must be unique' },
   )
 
 export const bodyModelsFileSchema = z.strictObject({

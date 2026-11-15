@@ -79,8 +79,11 @@ describe('presenter tools', () => {
     const dialog = await screen.findByRole('dialog', {
       name: 'Presenter tools',
     })
+    // The scenario list arrives after a fetch, so wait for it.
     expect(
-      within(dialog).getByText(/Day 142 · Mars transit vehicle · Loaded now/),
+      await within(dialog).findByText(
+        /Day 142 · Mars transit vehicle · Loaded now/,
+      ),
     ).toBeInTheDocument()
     await user.click(
       await within(dialog).findByRole('button', {
@@ -90,8 +93,9 @@ describe('presenter tools', () => {
 
     await waitFor(() => expect(panel()).not.toBeInTheDocument())
     expect(useAppStore.getState().mission.scenarioId).toBe('solar-storm')
+    // Home renders after the navigation that follows the store update.
     expect(
-      screen.getByRole('heading', {
+      await screen.findByRole('heading', {
         level: 1,
         name: 'How you are doing today',
       }),

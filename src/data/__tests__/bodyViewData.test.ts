@@ -46,29 +46,38 @@ describe('body view data files', () => {
     expect(bodyModelFor('c3')).toBeNull()
   })
 
-  it('uses the fictional profiles of section 23.8', () => {
-    expect(bodyModelFor('c1')?.profile).toEqual({
-      heightCm: 175,
-      inseamCm: 79,
-      shoulderBreadthCm: 42,
-      upperArmCm: 34,
-      forearmCm: 27,
-      chestCm: 102,
-      waistCm: 86,
-      hipCm: 98,
-      footCm: 27,
-    })
-    expect(bodyModelFor('c2')?.profile).toEqual({
-      heightCm: 175,
-      inseamCm: 84,
-      shoulderBreadthCm: 37,
-      upperArmCm: 31,
-      forearmCm: 25,
-      chestCm: 88,
-      waistCm: 72,
-      hipCm: 100,
-      footCm: 25,
-    })
+  it('placeholders use the fictional profiles of section 23.8; a delivered model uses values measured on it', () => {
+    const contract: Record<string, unknown> = {
+      c1: {
+        heightCm: 175,
+        inseamCm: 79,
+        shoulderBreadthCm: 42,
+        upperArmCm: 34,
+        forearmCm: 27,
+        chestCm: 102,
+        waistCm: 86,
+        hipCm: 98,
+        footCm: 27,
+      },
+      c2: {
+        heightCm: 175,
+        inseamCm: 84,
+        shoulderBreadthCm: 37,
+        upperArmCm: 31,
+        forearmCm: 25,
+        chestCm: 88,
+        waistCm: 72,
+        hipCm: 100,
+        footCm: 25,
+      },
+    }
+    for (const model of bodyModels) {
+      if (model.status === 'placeholder') {
+        expect(model.profile).toEqual(contract[model.crewId])
+      } else {
+        expect(model.profileSource).toBe('measured')
+      }
+    }
   })
 
   it('has the named shoulder area with its source and all 24 general areas', () => {
