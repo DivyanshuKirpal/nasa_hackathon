@@ -22,7 +22,7 @@ Three extensions:
 
 - **Divyanshu, with you (Claude Code)**: everything in this repository: engine, data, simulator, the ML pipeline in `ml/`, UI, the 3D viewer and its placeholder body, tests, deployment, docs, submission.
 - **Chirag, in Blender with his own Claude**: the two body models `crew-a.glb` and `crew-b.glb`, built to the contract in `ARCHITECTURE.md` section 23. Divyanshu adds them to `public/models/` when they are ready (milestone B3). Until then the 3D view uses the procedural placeholder (section 22.9), labeled "Placeholder model".
-- You never create, edit, repair, convert or re-export a file in `public/models/`, and you never try to make a realistic human model. You may read model files to check them.
+- You never create, edit, repair, convert or re-export a file in `public/models/`, and you never try to make a realistic human model. You may read model files to check them. (On 15 November 2026 Divyanshu had Claude Code copy Chirag's anatomical model unchanged into `public/models/crew-a.glb`; ARCHITECTURE.md section 23.12.)
 
 ## Read first
 
@@ -268,7 +268,7 @@ Do not generate images that include NASA logos or branding. AI-generated images 
 - Commit PhysioNet files or any patient-level hospital data.
 - Type, round differently or invent a model metric, coefficient or threshold.
 - State a health fact without a source, or present an illustrative threshold as established.
-- Use real people's names, photos, scans or health data.
+- Use real people's names, photos, scans or health data. (One narrow exception, decided by Divyanshu on 15 November 2026: the published anatomical atlas for crew A, derived from BodyParts3D, which was built from MRI images of one volunteer. Its origin is documented and the app says it is not a replica of any crew member or astronaut; ARCHITECTURE.md section 23.12.)
 - Create, edit, repair, convert or re-export files in `public/models/`.
 - Let a body observation change an alert, a route or a message to Earth.
 - Remove or hide the "Simulated" labels, the "Model estimate" tag, the "Placeholder model" tag or the "Not a medical device" notice.

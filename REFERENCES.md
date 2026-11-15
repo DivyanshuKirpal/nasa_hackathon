@@ -151,14 +151,16 @@ Used by the Earth hospital model (milestone A4), offline only:
 
 - `sklearn.linear_model.LogisticRegression` (the shipped model; the app runs its exported coefficients in TypeScript) and `sklearn.ensemble.HistGradientBoostingClassifier` (the benchmark). https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html and https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.HistGradientBoostingClassifier.html
 
-## Body model sources under review (B3, not published)
+## Body model (B3, published 15 November 2026)
 
-Read while assessing Chirag's anatomical model for integration (`docs/b3-model-review.md`). The model is not in the app yet; these move to the sections above if it is published.
+Crew A's 3D body (`public/models/crew-a.glb`) is licensed CC BY-SA 4.0. Its licence checks are in `docs/b3-model-review.md` section 4.
 
-- Chirag's delivery: 3DBlend, commit c1531ec (15 November 2026). https://github.com/pkapil-star/3DBlend (licence stated there: CC BY-SA 4.0)
-- Z-Anatomy: the libre 3D atlas of anatomy. CC BY-SA 4.0. https://github.com/Z-Anatomy/Models-of-human-anatomy
-- BodyParts3D, © The Database Center for Life Science. Licence page (CC BY 4.0 today): https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html
-- Mitsuhashi N, et al. BodyParts3D: 3D structure database for anatomical concepts. Nucleic Acids Research, 2009. https://pmc.ncbi.nlm.nih.gov/articles/PMC2686534/ (how the whole-body model was built)
+- The model: by Chirag, team VoidShifters (3DBlend, commit c1531ec, 15 November 2026; co-authored with Claude Opus 5.5). https://github.com/pkapil-star/3DBlend. Licence CC BY-SA 4.0.
+- Z-Anatomy: the libre 3D atlas of anatomy, by Gauthier Kervyn and contributors. CC BY-SA 4.0. https://github.com/Z-Anatomy/Models-of-human-anatomy
+- BodyParts3D, © The Database Center for Life Science, licensed under CC Attribution 4.0 International (cited as CC BY-SA 2.1 Japan by Z-Anatomy). https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html
+- Mitsuhashi N, et al. BodyParts3D: 3D structure database for anatomical concepts. Nucleic Acids Research, 2009. https://pmc.ncbi.nlm.nih.gov/articles/PMC2686534/ (the whole-body model was built from MRI images of one male volunteer)
+- Cranial Nerves and Foramina, by the University of Dundee, CAHID. CC BY 4.0. Listed by Z-Anatomy as included and adapted.
+- BodyParts3D 4.0 OBJ files (`partof_BP3D_4.0_obj_99.zip`), DBCLS. Used only to compare the delivered meshes with their source; not part of the app. https://dbarchive.biosciencedbc.jp/en/bodyparts3d/download.html
 
 ## Tools and assets
 

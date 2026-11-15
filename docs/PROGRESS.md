@@ -2,6 +2,24 @@
 
 One entry per milestone, newest first (ARCHITECTURE.md section 30.4). Targets are in section 31.1.
 
+## B3 published: Chirag's anatomical model on the site (Sun 14:27 to 14:40; production checks in the report; human checks pending)
+- Previous commit `35415a5` deployed: Vercel success 13:50:16 IST. Its files were byte-identical to the local build, `models/crew-a.glb` returned 404 there (not yet published), and the B2 checks passed on the site (23 of 23, 6 of 6 without WebGL).
+- Divyanshu's decision (15 November 2026): publish the atlas as a generic anatomical reference with its appearance and layers, as a narrow exception documented in ARCHITECTURE.md sections 23.5 and 23.12 and in CLAUDE.md; state its real-volunteer origin and that it is not a replica; credit the team, Chirag and the upstream creators.
+- Licences settled from the meshes (`docs/b3-model-review.md` section 4):
+  - **Kidneys:** BodyParts3D's own meshes (median 0.83 and 0.88 mm, 91–95% of vertices within 2 mm). They are not the CC BY-NC kidney Z-Anatomy lists.
+  - **Brain:** agrees with BodyParts3D at the level of other same-source parts. The cerebellum's outer surface: 85.5% within 5 mm.
+  - **Inner ear:** dropped. **Cranial nerves:** CC BY 4.0, credited.
+  - **Result:** the model is licensed CC BY-SA 4.0, with full attribution in the app.
+- Published: `public/models/crew-a.glb`, unchanged from 3DBlend commit `c1531ec` (14,987,144 bytes, SHA-256 `f5307d62…`). Crew A's entry is active (`chirag-1`, `profileSource: "measured"`, node map, ten layers, attribution). Crew B is a placeholder.
+- Checks:
+  - `npm run check` green with 768 tests in 56 files; the real-asset tests now run on `main`;
+  - 57 Python tests (one checker test moved from crew A to crew B, the remaining placeholder);
+  - the checker passes the model with three M7 warnings;
+  - local browser checks: B3 19 of 19 with the published attribution; fallback without WebGL 6 of 6.
+- The handoff note for Chirag has an update; Divyanshu should send it, with the message in the review.
+- **Manual checks pending:** on the site, crew A's anatomical body and its layers, a shoulder tap and a calf tap with pins kept while turning, sensor selection, the compare view, 390 px and "Force 2D"; a real phone; B1 and B2 lists and every earlier pending check, unchanged.
+- Next: stop. M7 and M8 are not started.
+
 ## B3 continued: the complete anatomical model (assessed Sun 13:03 to 13:48; integration works locally, not published, blocked on team decisions)
 - B3 review commit `24fde3a` pushed; Vercel success 12:45:27 IST (docs only, same files as B2).
 - Scope change by Divyanshu (15 November 2026): assess Chirag's complete anatomical model for integration with its layers, keep the organs, skeleton and muscles, and work on copies where needed (authorized for this task). Section 23.12 records the new rules.

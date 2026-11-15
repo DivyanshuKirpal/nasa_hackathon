@@ -4,6 +4,10 @@ For: Chirag (Blender, with your own Claude)
 From: Divyanshu (the app, with Claude Code)
 Source of truth: `ARCHITECTURE.md` section 23 in https://github.com/DivyanshuKirpal/nasa_hackathon. If this file and section 23 ever differ, section 23 wins; tell Divyanshu so this file gets fixed.
 
+## Update, 15 November 2026 (afternoon)
+
+Your complete anatomical model is live as crew A's body, unchanged. The app now reads anatomical models through a node map and keeps every layer (ARCHITECTURE.md section 23.12), so the renaming and stripping steps below are not needed for it. Crew B keeps the placeholder until a body to the crew B profile exists. Still welcome: `model-notes.md` (the AI question and who checked the shoulder placement against the UW atlas), and a crew B body. A new version of a file needs a new version name (`chirag-2`) and passes the same checks.
+
 ## Update, 14 November 2026 (evening)
 
 We started the app later than planned, so the team re-planned the schedule. **The 3D body is still a goal.** The 3D viewer and your two models stay in the plan, and the team postponed a different feature (a third machine-learning model) to make room.

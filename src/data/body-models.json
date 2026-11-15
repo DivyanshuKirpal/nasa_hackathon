@@ -5,21 +5,21 @@
       "id": "crew-a",
       "crewId": "c1",
       "label": "Crew member A",
-      "status": "placeholder",
-      "file": null,
-      "version": "placeholder-1",
-      "madeWith": "Procedural placeholder (code)",
+      "status": "delivered",
+      "file": "models/crew-a.glb",
+      "version": "chirag-1",
+      "madeWith": "Blender 5.3 by Chirag (team VoidShifters), from the Z-Anatomy atlas",
       "aiAssisted": true,
       "profile": {
-        "heightCm": 175,
-        "inseamCm": 79,
-        "shoulderBreadthCm": 42,
-        "upperArmCm": 34,
-        "forearmCm": 27,
-        "chestCm": 102,
-        "waistCm": 86,
-        "hipCm": 98,
-        "footCm": 27
+        "heightCm": 175.0,
+        "inseamCm": 78.8,
+        "shoulderBreadthCm": 36.6,
+        "upperArmCm": 33.2,
+        "forearmCm": 25.0,
+        "chestCm": 109.7,
+        "waistCm": 83.6,
+        "hipCm": 98.8,
+        "footCm": 26.1
       },
       "patchChecks": {
         "shoulder_r_outer": {
@@ -27,7 +27,78 @@
           "checkedBy": null
         }
       },
-      "notes": "Simple shapes built in code to the model contract (section 22.9). Kept until a delivered model passes the checker (section 23.10)."
+      "notes": "Complete anatomical atlas from 3DBlend commit c1531ec, published unchanged with a node map (section 23.12) under the narrow exception decided on 15 November 2026. Licences checked against the meshes in docs/b3-model-review.md.",
+      "profileSource": "measured",
+      "nodeMap": {
+        "body": "BODY_Skin",
+        "patch_shoulder_r_outer": "REGION_SHOULDER_RIGHT_DELTOID",
+        "sensor_chest": "ANCHOR_SENSOR_CHEST",
+        "sensor_upper_back": "ANCHOR_SENSOR_UPPER_BACK",
+        "sensor_forearm_l": "ANCHOR_SENSOR_LEFT_FOREARM"
+      },
+      "layers": [
+        {
+          "id": "skin",
+          "label": "Skin",
+          "node": "SYSTEM_ExternalBody",
+          "defaultVisible": true
+        },
+        {
+          "id": "skeleton",
+          "label": "Skeleton",
+          "node": "SYSTEM_Skeletal",
+          "defaultVisible": false
+        },
+        {
+          "id": "muscles",
+          "label": "Muscles",
+          "node": "SYSTEM_Muscular",
+          "defaultVisible": false
+        },
+        {
+          "id": "heart_vessels",
+          "label": "Heart and blood vessels",
+          "node": "SYSTEM_Cardiovascular",
+          "defaultVisible": false
+        },
+        {
+          "id": "lungs_airway",
+          "label": "Lungs and airway",
+          "node": "SYSTEM_Respiratory",
+          "defaultVisible": false
+        },
+        {
+          "id": "nerves",
+          "label": "Brain and nerves",
+          "node": "SYSTEM_Nervous",
+          "defaultVisible": false
+        },
+        {
+          "id": "digestive",
+          "label": "Digestive organs",
+          "node": "SYSTEM_Digestive",
+          "defaultVisible": false
+        },
+        {
+          "id": "urinary",
+          "label": "Kidneys and bladder",
+          "node": "SYSTEM_Urinary",
+          "defaultVisible": false
+        },
+        {
+          "id": "glands",
+          "label": "Hormone glands",
+          "node": "SYSTEM_Endocrine",
+          "defaultVisible": false
+        },
+        {
+          "id": "lymphatic",
+          "label": "Lymphatic system",
+          "node": "SYSTEM_Lymphatic",
+          "defaultVisible": false
+        }
+      ],
+      "attribution": "Generic anatomical atlas, not a replica of any crew member or astronaut. Derived from Z-Anatomy (CC BY-SA 4.0), which builds on BodyParts3D, © The Database Center for Life Science (CC BY 4.0), made from MRI images of one volunteer, and lists cranial nerve models by the University of Dundee, CAHID (CC BY 4.0). Adapted by Chirag (team VoidShifters). This model: CC BY-SA 4.0."
     },
     {
       "id": "crew-b",

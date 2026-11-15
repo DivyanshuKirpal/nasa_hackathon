@@ -1700,7 +1700,7 @@ bpy.ops.export_scene.gltf(
 ### 23.5 Mesh rules
 
 - One mesh object named `body`: the whole figure as one closed, smooth surface.
-- A neutral mannequin surface: no hair, eyebrows, eyelashes, separate eyes, teeth, tongue or clothing; no face texture; no genital or nipple detail.
+- A neutral mannequin surface: no hair, eyebrows, eyelashes, separate eyes, teeth, tongue or clothing; no face texture; no genital or nipple detail. (Narrow exception, 15 November 2026: the published anatomical atlas of section 23.12 keeps its anatomical appearance.)
 - Normals point outward; smooth shading; no loose vertices, inner faces or duplicate vertices (merge by distance).
 - 20,000 to 60,000 triangles after modifiers, about 40,000 as a target. Check with the Statistics overlay.
 - No armature, skin, shape keys or animation in the exported file. If a rig was used for posing, apply the pose and remove the armature modifier before export.
@@ -1820,7 +1820,9 @@ Viewer behaviour:
 - Loading shows the percentage received and stops only if no data arrives for 15 seconds, so a large file on a slow link still loads (section 22.8 had a 15-second total limit).
 - The tags read "Anatomical atlas model" and, when the manifest says so, "AI-assisted model"; the 3D view says the figure is not a copy of the crew member's body or of any astronaut.
 
-Checks: `tools/check_body_model.py --crew <id>` (or `--entry <file>`) applies these rules when the entry has `layers`; `src/features/body/viewer/__tests__/deliveredAnatomy.test.ts` loads each delivered anatomical file with three.js and checks scale, layers, the patch hit, the anchors on the skin, the shape keys and the skin-only picking. Publishing such a model is a data change: the file in `public/models/`, the prepared entry (`docs/b3-crew-a-entry.json` for Chirag's delivery) in `body-models.json`, then the checks above and the B2 and B3 browser checks.
+Published on 15 November 2026: crew A's body is Chirag's complete anatomical model (`public/models/crew-a.glb`, `chirag-1`, unchanged from 3DBlend commit `c1531ec`); crew B keeps the placeholder. Divyanshu decided to publish it as a generic anatomical reference with its anatomical appearance and layers kept. This is a narrow exception, for this atlas only, to two rules: the rule against real people's scans (the geometry descends from BodyParts3D, built from MRI images of one volunteer), and the rule of section 23.5 against genital or nipple detail. The origin is stated in the attribution, and the app says the model is not a replica of any crew member or astronaut. The licences of the parts Z-Anatomy flags (a CC BY-NC kidney, brain models with no stated licence) were settled by comparing the delivered meshes with BodyParts3D itself: the kidneys and the brain are BodyParts3D geometry (`docs/b3-model-review.md` section 4).
+
+Checks: `tools/check_body_model.py --crew <id>` (or `--entry <file>`) applies these rules when the entry has `layers`; `src/features/body/viewer/__tests__/deliveredAnatomy.test.ts` loads each delivered anatomical file with three.js and checks scale, layers, the patch hit, the anchors on the skin, the shape keys and the skin-only picking. Publishing such a model is a data change: the file in `public/models/`, its entry in `body-models.json`, then the checks above and the B2 and B3 browser checks.
 
 ---
 

@@ -108,7 +108,8 @@ class CheckBodyModelTests(unittest.TestCase):
             bad = Path(folder) / 'crew-b.glb'
             bad.write_bytes(glb(contract_model(skins=[{}])))
             with redirect_stdout(io.StringIO()) as output:
-                self.assertEqual(checker.main([str(good), '--crew', 'c1']), 0)
+                # Crew B is a placeholder, so its entry uses the mannequin contract.
+                self.assertEqual(checker.main([str(good), '--crew', 'c2']), 0)
                 self.assertEqual(checker.main([str(bad), '--height-cm', '175']), 1)
             self.assertIn('expected height 175.0 cm', output.getvalue())
             self.assertIn('Result: FAIL (1 failed)', output.getvalue())
