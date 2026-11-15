@@ -8,7 +8,7 @@ Team VoidShifters' entry for the 2026 NASA Space Apps Challenge, challenge "Crea
 
 A browser-only web app for a crew member checking their own health once a day. They enter a few readings; the app compares each one with that person's own in-flight normal, shows status on a body map, explains each result with a source, gives a short action card, and says whether to handle the problem on board or consult doctors on Earth, based on how long a reply from Earth would take.
 
-Status: milestones M0 to M6 are done: the health engine, the simulated scenarios and the NASA DONKI space weather records (see [Data](#data)), Home with the body map, the daily check-in, the alert screen with triage by communication delay (change the environment or the Mars delay slider in the header and watch the route change), a screen per body area with 30-day trends against the person's own usual range and a check-in streak, and the Earth link: messages travel for the one-way delay while a mission clock runs (open "Presenter tools" to set its speed, take the link down or switch crew member). The first machine learning model, `sep-risk`, is trained, evaluated and running in the app as a watch-level solar flare outlook (milestones A1 and A2, see [Machine learning](#machine-learning)). To see it, open "Presenter tools" in the footer and load "A large solar flare this morning: the model outlook". The second, `personal-pattern`, gives on-board second opinions (milestone A3); to see one, load "Several readings shift a little at once". The plan is in [ARCHITECTURE.md](ARCHITECTURE.md), section 31; progress is in [docs/PROGRESS.md](docs/PROGRESS.md).
+Status: milestones M0 to M6 and the three machine learning milestones A1 to A4 are done: the health engine, the simulated scenarios and the NASA DONKI space weather records (see [Data](#data)), Home with the body map, the daily check-in, the alert screen with triage by communication delay (change the environment or the Mars delay slider in the header and watch the route change), a screen per body area with 30-day trends against the person's own usual range and a check-in streak, and the Earth link: messages travel for the one-way delay while a mission clock runs (open "Presenter tools" to set its speed, take the link down or switch crew member). The first machine learning model, `sep-risk`, is trained, evaluated and running in the app as a watch-level solar flare outlook (milestones A1 and A2, see [Machine learning](#machine-learning)). To see it, open "Presenter tools" in the footer and load "A large solar flare this morning: the model outlook". The second, `personal-pattern`, gives on-board second opinions (milestone A3); to see one, load "Several readings shift a little at once". The plan is in [ARCHITECTURE.md](ARCHITECTURE.md), section 31; progress is in [docs/PROGRESS.md](docs/PROGRESS.md).
 
 Live site: https://void-shifters.vercel.app/
 
@@ -65,6 +65,12 @@ python ml/train_sep_risk.py --seed 42                 # model file, parity file,
 - The app runs the same steps as the Python code, in plain TypeScript, and a test matches them within 1e-9.
 - The scenario "Several readings shift a little at once" (`pattern-shift`) was built to show an insight: four readings shift a little for three days, too little for any rule. The insight is there by construction; it is not a measure of how often the model notices such a change.
 
+`earth-hospital` is a second opinion learned from Earth ICU patients: a logistic regression on five changes from a person's own baseline (heart rate, temperature, blood pressure upper and lower, glucose), never on absolute values. It was trained on one hospital system of the PhysioNet 2019 challenge and tested once on a second.
+
+- **It was never tested on astronauts.** The model card, [ml/reports/earth-hospital-v1.md](ml/reports/earth-hospital-v1.md), has the data, the exclusions, the results on the second hospital with patient-level intervals, and the limitations. The model is weak, and it does not beat temperature change alone: the card says so plainly.
+- In the app it shows an insight only, tagged "Model estimate" and "Earth ICU data", with no number and no disease name on the crew card. The model card screen (`#/model/earth-hospital`) explains the label and shows the results.
+- It needs today's readings for all five, so in the `fever` scenario it speaks after the day's check-in, not at 09:00 when nothing has been logged yet; the card reports both.
+
 ## Data
 
 - **Simulated health data.** Every crew member, reading and scenario in `public/seed/` comes from `tools/simulator` (seed 42). The crew are fictional, and the app labels this data "Simulated". Two scenarios also replay real solar events from DONKI on the simulated mission timeline; the app marks them "Historical solar event", and `public/data/space-weather.json` lists the records.
@@ -79,6 +85,11 @@ python ml/train_sep_risk.py --seed 42                 # model file, parity file,
     - The files are a snapshot, and a later download may differ.
   - DONKI describes its content as experimental research information. Official U.S. space weather forecasts come from NOAA's Space Weather Prediction Center.
 
+## Data credits
+
+- NASA DONKI space weather records, credited to NASA's Community Coordinated Modeling Center (see [Data](#data)).
+- PhysioNet/Computing in Cardiology Challenge 2019 (Reyna et al.), PhysioNet: the ICU data behind the Earth hospital model. Its patient files are never published with this project; citations and licence are in [REFERENCES.md](REFERENCES.md).
+
 ## Documents
 
 - [ARCHITECTURE.md](ARCHITECTURE.md): the design, the milestones and the cut list
@@ -88,4 +99,5 @@ python ml/train_sep_risk.py --seed 42                 # model file, parity file,
 - [ml/README.md](ml/README.md): how to rebuild the dataset and the model
 - [ml/reports/sep-risk-v1.md](ml/reports/sep-risk-v1.md): the model card of the `sep-risk` model
 - [ml/reports/personal-pattern-v1.md](ml/reports/personal-pattern-v1.md): the model card of the `personal-pattern` model (simulated evaluation)
+- [ml/reports/earth-hospital-v1.md](ml/reports/earth-hospital-v1.md): the model card of the `earth-hospital` model (Earth ICU data, never tested on astronauts)
 - [docs/body-model-handoff.md](docs/body-model-handoff.md): the 3D body model contract for the Blender work

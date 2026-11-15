@@ -660,6 +660,178 @@ export const personalPatternModelFileSchema = personalPatternModelSchema
     message: 'minIndicatorsToday cannot exceed the number of indicators',
   })
 
+// The Earth hospital model (section 26.19). The fields inference needs; the
+// whole file is checked by earthHospitalModelFileSchema.
+
+/** The five shared variables, in the order of ml/build_hospital_dataset.py. */
+export const EARTH_HOSPITAL_INDICATORS = [
+  'heart_rate',
+  'body_temp',
+  'systolic_bp',
+  'diastolic_bp',
+  'blood_glucose',
+] as const
+
+export const earthHospitalModelSchema = z.object({
+  modelId: z.literal('earth-hospital'),
+  version: z.string().min(1),
+  features: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        indicator: indicatorIdSchema,
+        physionet: z.string().min(1),
+        mean: z.number(),
+        scale: z.number().positive(),
+        coef: z.number(),
+      }),
+    )
+    .min(1),
+  intercept: z.number(),
+  threshold: z.number().gt(0).lt(1),
+  targetFalsePositiveRate: z.number().gt(0).lt(1),
+})
+
+const hospitalScoresSchema = z.object({
+  rows: countSchema,
+  positiveRows: countSchema,
+  rocAuc: z.number(),
+  prAuc: z.number(),
+  brier: z.number().nonnegative(),
+  brierSkill: scoreSchema,
+  sensitivity: scoreSchema,
+  falsePositiveRate: scoreSchema,
+  precision: scoreSchema,
+  tss: scoreSchema,
+  hss: scoreSchema,
+  confusion: z.strictObject({
+    tp: countSchema,
+    fp: countSchema,
+    tn: countSchema,
+    fn: countSchema,
+  }),
+})
+
+const hospitalIntervalsSchema = z.object({
+  rocAuc: intervalSchema,
+  tss: intervalSchema,
+  sensitivity: intervalSchema,
+  falsePositiveRate: intervalSchema,
+})
+
+const differenceSchema = z.object({
+  value: z.number(),
+  ci95: intervalSchema,
+  finding: z.enum(['higher', 'lower', 'inconclusive']),
+})
+
+const hospitalComparisonSchema = z.object({
+  threshold: z.number(),
+  validation: hospitalScoresSchema,
+  test: hospitalScoresSchema,
+  testIntervals: hospitalIntervalsSchema,
+  shippedMinusThis: z.object({
+    test: z.object({ rocAuc: differenceSchema, tss: differenceSchema }),
+  }),
+})
+
+const hospitalCountsSchema = z.object({
+  patients: countSchema,
+  rows: countSchema,
+  positiveRows: countSchema,
+  patientsWithPositiveRow: countSchema,
+})
+
+/** src/data/models/earth-hospital-v1.json, written by ml/train_earth_hospital.py. */
+export const earthHospitalModelFileSchema = earthHospitalModelSchema
+  .extend({
+    schemaVersion: z.literal(1),
+    kind: z.literal('logistic-regression'),
+    createdAt: z.string().min(1),
+    label: z.string().min(1),
+    thresholdRule: z.string().min(1),
+    headline: z.string().min(1),
+    notableText: z.string().min(1),
+    caveat: z.string().min(1),
+    hyperparameters: z.object({ C: z.number().positive() }),
+    data: z.object({
+      source: z.string().min(1),
+      version: z.string().min(1),
+      page: z.url(),
+      doi: z.url(),
+      licenseOnPage: z.string().min(1),
+      licenseFileFirstLine: z.string().min(1),
+      citations: z.array(z.string().min(1)).min(1),
+      retrieved: z.object({ start: z.string(), end: z.string() }),
+      hospitals: z.record(
+        z.string(),
+        z.object({
+          patients: countSchema,
+          included: countSchema,
+          rows: countSchema,
+          positiveRows: countSchema,
+          excluded: z.record(z.string(), countSchema),
+        }),
+      ),
+      splits: z.object({
+        train: hospitalCountsSchema,
+        validation: hospitalCountsSchema,
+        test: hospitalCountsSchema,
+      }),
+    }),
+    metrics: z.object({
+      validation: hospitalScoresSchema.extend({
+        intervals: hospitalIntervalsSchema,
+      }),
+      test: hospitalScoresSchema.extend({ intervals: hospitalIntervalsSchema }),
+      highestTssOnValidation: z.object({
+        threshold: z.number(),
+        tss: z.number(),
+        sensitivity: z.number(),
+        falsePositiveRate: z.number(),
+      }),
+      testPatients: z.object({
+        patientsWithLabel: countSchema,
+        ofThemFlaggedAtLeastOnce: countSchema,
+        patientsWithoutLabel: countSchema,
+        ofThemFlaggedAtLeastOnceWithout: countSchema,
+      }),
+      bootstrap: z.object({
+        resamples: countSchema,
+        used: countSchema,
+        seed: z.number().int(),
+      }),
+    }),
+    comparisons: z.object({
+      temperatureOnly: hospitalComparisonSchema,
+      gradientBoosting: hospitalComparisonSchema,
+    }),
+    scenarioCheck: z.object({
+      note: z.string().min(1),
+      fever: z.array(
+        z.object({
+          crewId: z.string(),
+          moment: z.string(),
+          day: z.number().int(),
+          scored: z.boolean(),
+          output: z.number().nullable(),
+          notable: z.boolean(),
+        }),
+      ),
+    }),
+    limitations: z.array(z.string().min(1)).min(1),
+    sourceIds: z.array(z.string().min(1)).min(1),
+  })
+  .refine(
+    (model) =>
+      model.features.length === EARTH_HOSPITAL_INDICATORS.length &&
+      model.features.every(
+        (feature, index) =>
+          feature.indicator === EARTH_HOSPITAL_INDICATORS[index],
+      ),
+    { message: 'features must be the five shared indicators, in order' },
+  )
+
 // Scenario files generated by tools/simulator (section 24.1).
 
 const slugSchema = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/)

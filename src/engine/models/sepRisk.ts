@@ -1,4 +1,9 @@
 import { SEP_RISK_DURATION_FEATURE } from '../schemas.ts'
+import {
+  logisticContribution,
+  logisticLogit,
+  logisticOutput,
+} from './logistic.ts'
 import type {
   FlareObservation,
   MissionMs,
@@ -105,15 +110,11 @@ export function flareFeatures(
 
 /** One feature's share of the logit: coef × (value − mean) ÷ scale, as in Python. */
 function contribution(feature: SepRiskFeature, value: number): number {
-  return (feature.coef * (value - feature.mean)) / feature.scale
+  return logisticContribution(feature, value)
 }
 
 function logitOf(model: SepRiskModel, values: readonly number[]): number {
-  let logit = model.intercept
-  model.features.forEach((feature, index) => {
-    logit += contribution(feature, values[index] ?? 0)
-  })
-  return logit
+  return logisticLogit(model.intercept, model.features, values)
 }
 
 /**
@@ -127,7 +128,7 @@ export function sepRiskProbability(
 ): number | null {
   const values = flareFeatures(model, obs)
   if (!values) return null
-  return 1 / (1 + Math.exp(-logitOf(model, values)))
+  return logisticOutput(logitOf(model, values))
 }
 
 /**

@@ -7,6 +7,10 @@ import {
 } from './baseline.ts'
 import type { ConditionContext } from './conditions.ts'
 import {
+  assessEarthHospital,
+  earthHospitalInsight,
+} from './models/earthHospital.ts'
+import {
   assessPattern,
   personalPatternInsight,
 } from './models/personalPattern.ts'
@@ -39,6 +43,11 @@ export {
   type FlareInput,
   type SepRiskFactor,
 } from './models/sepRisk.ts'
+export {
+  assessEarthHospital,
+  earthHospitalInsight,
+  type EarthHospitalAssessment,
+} from './models/earthHospital.ts'
 export {
   assessPattern,
   ledoitWolfSecondMoment,
@@ -118,6 +127,15 @@ export function evaluate(input: EvaluationInput): Evaluation {
     patternModel && pattern
       ? personalPatternInsight(patternModel, input.crewId, today, pattern)
       : null
+  const hospitalModel = input.models.earthHospital
+  const hospital = hospitalModel
+    ? earthHospitalInsight(
+        hospitalModel,
+        input.crewId,
+        today,
+        assessEarthHospital(hospitalModel, { today, dailyValues, baselines }),
+      )
+    : null
 
   return {
     baselines,
@@ -127,7 +145,9 @@ export function evaluate(input: EvaluationInput): Evaluation {
     overdue,
     missingFeeds,
     regionGaps: gaps,
-    insights: insight ? [insight] : [],
+    insights: [insight, hospital].filter(
+      (entry): entry is NonNullable<typeof entry> => entry !== null,
+    ),
     patternReadiness: pattern?.readiness ?? null,
   }
 }

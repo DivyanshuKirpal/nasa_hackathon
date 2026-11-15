@@ -38,6 +38,12 @@ export type PersonalPatternModel = z.infer<
 export type PersonalPatternModelFile = z.infer<
   typeof schemas.personalPatternModelFileSchema
 >
+export type EarthHospitalModel = z.infer<
+  typeof schemas.earthHospitalModelSchema
+>
+export type EarthHospitalModelFile = z.infer<
+  typeof schemas.earthHospitalModelFileSchema
+>
 export type ScenarioFile = z.infer<typeof schemas.scenarioFileSchema>
 export type ScenarioIndex = z.infer<typeof schemas.scenarioIndexSchema>
 export type GroundMessage = z.infer<typeof schemas.groundMessageSchema>
@@ -154,8 +160,8 @@ export interface EvaluationInput {
     sepRisk: SepRiskModel | null
     /** null turns the personal pattern second opinion off: no insight. */
     personalPattern: PersonalPatternModel | null
-    /** The Earth hospital model is deferred with A4 (section 26.19). */
-    earthHospital: null
+    /** null turns the Earth hospital second opinion off: no insight (section 26.19). */
+    earthHospital: EarthHospitalModel | null
   }
 }
 

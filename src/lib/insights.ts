@@ -1,4 +1,4 @@
-import { personalPatternModel } from '../data/index.ts'
+import { earthHospitalModel, personalPatternModel } from '../data/index.ts'
 import type {
   Baseline,
   Evaluation,
@@ -16,21 +16,36 @@ import { formatNormal, formatValue, indicatorDef } from './labels.ts'
 /** The hash route of the personal pattern model card. */
 export const PERSONAL_PATTERN_CARD_PATH = '/model/personal-pattern'
 
-/** The model file wording behind an insight. Only personal-pattern exists; earth-hospital is deferred with A4. */
+/** The hash route of the Earth hospital model card. */
+export const EARTH_HOSPITAL_CARD_PATH = '/model/earth-hospital'
+
+/**
+ * The model file wording behind an insight. None of it names a disease or
+ * gives a number: the model card explains the label and the score.
+ */
 export function insightText(insight: Insight): {
   headline: string
   note: string
   caveat: string
   cardPath: string
+  /** An extra tag that says where the model learned, or null. */
+  originTag: string | null
 } {
+  if (insight.modelId === 'earth-hospital') {
+    return {
+      headline: earthHospitalModel.headline,
+      note: earthHospitalModel.notableText,
+      caveat: earthHospitalModel.caveat,
+      cardPath: EARTH_HOSPITAL_CARD_PATH,
+      originTag: 'Earth ICU data',
+    }
+  }
   return {
     headline: personalPatternModel.headline,
     note: personalPatternModel.notableText,
     caveat: personalPatternModel.caveat,
-    cardPath:
-      insight.modelId === 'personal-pattern'
-        ? PERSONAL_PATTERN_CARD_PATH
-        : `/model/${insight.modelId}`,
+    cardPath: PERSONAL_PATTERN_CARD_PATH,
+    originTag: null,
   }
 }
 

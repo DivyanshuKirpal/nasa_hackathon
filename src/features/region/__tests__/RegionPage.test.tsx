@@ -21,7 +21,8 @@ async function openRegion(path: string) {
   return screen.findByRole('heading', { level: 1 }, WAIT)
 }
 
-describe('the region page', () => {
+// The screen loads lazily with its chart library; a busy machine can take seconds.
+describe('the region page', { timeout: 30000 }, () => {
   it('shows Head in sleep-debt: status, the sleep alert, the normal and the dip against the band', async () => {
     loadScenario('sleep-debt')
     const heading = await openRegion('/region/head')

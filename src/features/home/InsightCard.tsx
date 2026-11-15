@@ -99,6 +99,7 @@ export function InsightCard({
         <Lightbulb aria-hidden="true" size={20} />
         <span className="font-semibold">Insight</span>
         <Tag>Model estimate</Tag>
+        {text.originTag && <Tag>{text.originTag}</Tag>}
         <span className="text-slate-700">
           {modelName({
             modelId: insight.modelId,

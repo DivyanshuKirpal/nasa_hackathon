@@ -15,6 +15,9 @@ Design: ARCHITECTURE.md sections 25 and 26. Label policy: decision D22 in sectio
 | `train_sep_risk.py` | Trains, evaluates and exports the model | the packages in `requirements.txt` |
 | `personal_pattern.py` | The personal pattern model: baseline z-scores, Ledoit-Wolf shrinkage, distance, leave-one-out threshold, contributions. The app's `personalPattern.ts` mirrors it | the packages in `requirements.txt` |
 | `eval_personal_pattern.py` | The simulated evaluation of the personal pattern model, and its export | the packages in `requirements.txt`, and `tools/simulator` |
+| `fetch_physionet_sepsis.py` | Downloads the PhysioNet 2019 challenge files into `data/raw/physionet/` and checks them; `--verify` re-checks offline. The patient files are never committed; `meta.json` is | Python standard library |
+| `build_hospital_dataset.py` | Baselines, exclusions, carried-forward values, z-features and the patient-level split; writes row-level files to the ignored `data/processed/hospital/` and the counts-only `data/processed/hospital_dataset_summary.json` | the packages in `requirements.txt` |
+| `train_earth_hospital.py` | Trains, evaluates and exports the Earth hospital model | the packages in `requirements.txt` |
 | `tests/` | Tests for all of the above | the packages in `requirements.txt` for the training tests |
 
 ## Reproduce
@@ -30,6 +33,9 @@ python ml/fetch_donki.py --verify        # checks the committed raw files; no ne
 python ml/build_dataset.py
 python ml/train_sep_risk.py --seed 42
 python ml/eval_personal_pattern.py --seed 42
+python ml/fetch_physionet_sepsis.py                     # about 16 minutes, 40,336 files; never committed
+python ml/build_hospital_dataset.py
+python ml/train_earth_hospital.py --seed 42
 python -m unittest discover -s ml/tests
 ```
 
@@ -70,5 +76,7 @@ The evaluation uses simulated data only, made with `tools/simulator/model.py`; n
 - A new instrument name in a later download is `unknown` until `sep_instrument_classes.json` records official documentation for it.
 - A retrain that changes any coefficient becomes `v2` with new files.
 - The personal pattern evaluation is simulated, and every place that shows its results says so. Never change a shift, a size or a scenario to make the results look better.
+- PhysioNet patient files and row-level hospital data never go into git (decision D21). Before every commit that touches `ml/`, `git status` must show no file under `data/raw/physionet/` other than `meta.json`, and nothing under `data/processed/hospital/`. Parity files hold synthetic numbers only.
+- Hospital B is the external test: nothing is chosen from it. C and the threshold come from hospital A validation patients.
 
 Data credit: NASA Community Coordinated Modeling Center (CCMC), DONKI. DONKI describes its content as experimental research information.

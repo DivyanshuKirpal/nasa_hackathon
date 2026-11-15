@@ -1,4 +1,5 @@
 import {
+  earthHospitalModelFileSchema,
   environmentsFileSchema,
   indicatorsFileSchema,
   personalPatternModelFileSchema,
@@ -10,6 +11,7 @@ import {
 } from '../engine/schemas.ts'
 import { findDataProblems, type HealthData } from '../engine/validateData.ts'
 import environmentsJson from './environments.json'
+import earthHospitalModelJson from './models/earth-hospital-v1.json'
 import indicatorsJson from './indicators.json'
 import personalPatternModelJson from './models/personal-pattern-v1.json'
 import sepRiskModelJson from './models/sep-risk-v1.json'
@@ -59,6 +61,15 @@ export const personalPatternModel = personalPatternModelFileSchema.parse(
   personalPatternModelJson,
 )
 
+/**
+ * The Earth hospital model (section 26.19), written by
+ * ml/train_earth_hospital.py from PhysioNet ICU data. Learned on Earth,
+ * never tested on astronauts; it can only ever produce an insight.
+ */
+export const earthHospitalModel = earthHospitalModelFileSchema.parse(
+  earthHospitalModelJson,
+)
+
 function modelFileProblems(): string[] {
   const knownSource = (id: string) =>
     healthData.sources.some((source) => source.id === id)
@@ -73,13 +84,21 @@ function modelFileProblems(): string[] {
           `the personal-pattern model file names an unknown source: ${id}`,
       ),
   ]
-  // The model scores today's readings, so each must be a daily indicator.
-  for (const id of personalPatternModel.indicators) {
+  problems.push(
+    ...earthHospitalModel.sourceIds
+      .filter((id) => !knownSource(id))
+      .map(
+        (id) => `the earth-hospital model file names an unknown source: ${id}`,
+      ),
+  )
+  // The models score today's readings, so each must be a daily indicator.
+  for (const id of [
+    ...personalPatternModel.indicators,
+    ...earthHospitalModel.features.map((feature) => feature.indicator),
+  ]) {
     const def = healthData.indicators.find((entry) => entry.id === id)
     if (def?.cadenceDays !== 1) {
-      problems.push(
-        `the personal-pattern model needs a daily indicator, not ${id}`,
-      )
+      problems.push(`a second-opinion model needs a daily indicator, not ${id}`)
     }
   }
   return problems

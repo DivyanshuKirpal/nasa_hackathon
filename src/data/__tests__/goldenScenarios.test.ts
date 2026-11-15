@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { MS_PER_DAY, evaluate } from '../../engine/index.ts'
 import type {
+  EarthHospitalModel,
   PersonalPatternModel,
   ScenarioFile,
   SepRiskModel,
@@ -12,7 +13,12 @@ import {
   scenarioIndexSchema,
   spaceWeatherFileSchema,
 } from '../../engine/schemas.ts'
-import { healthData, personalPatternModel, sepRiskModel } from '../index.ts'
+import {
+  earthHospitalModel,
+  healthData,
+  personalPatternModel,
+  sepRiskModel,
+} from '../index.ts'
 
 // Golden scenario tests (ARCHITECTURE.md section 27): every generated file in
 // public/seed must trigger exactly its expectedAlerts, and give exactly its
@@ -37,11 +43,13 @@ function load(name: string): ScenarioFile {
 interface Models {
   sepRisk: SepRiskModel | null
   personalPattern: PersonalPatternModel | null
+  earthHospital: EarthHospitalModel | null
 }
 
 const LOADED: Models = {
   sepRisk: sepRiskModel,
   personalPattern: personalPatternModel,
+  earthHospital: earthHospitalModel,
 }
 
 /** One crew member at 09:00 on the scenario's mission day, as the app evaluates it. */
@@ -69,7 +77,7 @@ function evaluateAt(
     indicators: healthData.indicators,
     rules: healthData.rules,
     spaceWeather: scenario.spaceWeather,
-    models: { ...models, earthHospital: null },
+    models,
   })
 }
 
@@ -124,9 +132,8 @@ describe('generated scenario files', () => {
       .flatMap((member) => evaluateAt(scenario, member.id).insights)
       .map((insight) => `${insight.crewId}:${insight.modelId}`)
       .sort()
-    // Only models that are loaded can give an insight; earth-hospital is deferred with A4.
+    // Both second-opinion models are loaded: the file lists every insight they give.
     const expected = scenario.expectedInsights
-      .filter((insight) => insight.modelId === 'personal-pattern')
       .map((insight) => `${insight.crewId}:${insight.modelId}`)
       .sort()
     expect(insights).toEqual(expected)

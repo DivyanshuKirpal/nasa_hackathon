@@ -10,7 +10,12 @@ import {
   type ScenarioFile,
 } from '../../engine/index.ts'
 import { scenarioFileSchema } from '../../engine/schemas.ts'
-import { healthData, personalPatternModel, sepRiskModel } from '../index.ts'
+import {
+  earthHospitalModel,
+  healthData,
+  personalPatternModel,
+  sepRiskModel,
+} from '../index.ts'
 
 // Second-opinion invariance (ARCHITECTURE.md sections 26.17 and 27): with
 // the second-opinion models loaded or set to null, evaluate() gives identical
@@ -106,7 +111,7 @@ describe('second opinions never change alerts, statuses or routes', () => {
           models: {
             sepRisk,
             personalPattern: personalPatternModel,
-            earthHospital: null,
+            earthHospital: earthHospitalModel,
           },
         })
         const off = evaluate({
@@ -133,7 +138,7 @@ describe('second opinions never change alerts, statuses or routes', () => {
           models: {
             sepRisk: sepRiskModel,
             personalPattern: personalPatternModel,
-            earthHospital: null,
+            earthHospital: earthHospitalModel,
           },
         }).insights.length > 0
       )

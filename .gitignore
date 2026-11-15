@@ -19,8 +19,11 @@ coverage/
 __pycache__/
 *.pyc
 
-# Hospital data: never committed (decision D21)
-ml/data/raw/physionet/
+# Hospital data: never committed (decision D21). Only meta.json (counts, checksums,
+# licence, citations; no patient data) is committed. Row-level processed data stays out.
+ml/data/raw/physionet/*
+!ml/data/raw/physionet/meta.json
+ml/data/processed/hospital/
 
 # Logs
 logs/

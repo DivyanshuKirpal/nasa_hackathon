@@ -1,4 +1,5 @@
 import {
+  earthHospitalModel,
   healthData,
   personalPatternModel,
   sepRiskModel,
@@ -33,7 +34,7 @@ export function selectEvaluationInput(state: AppState): EvaluationInput {
     models: {
       sepRisk: sepRiskModel,
       personalPattern: personalPatternModel,
-      earthHospital: null,
+      earthHospital: earthHospitalModel,
     },
   }
 }

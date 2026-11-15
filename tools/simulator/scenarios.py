@@ -130,6 +130,10 @@ SCENARIOS = (
     Scenario(
         scenario_id='fever',
         title='Temperature climbing over two days',
+        # A4 (section 26.19): at 09:00 on the mission day nobody has logged today's
+        # readings, so the earth-hospital model does not run and no insight is
+        # expected. On the last logged day it flags crew member A (model card,
+        # "Sanity check in simulation"). The scenario was not changed for the model.
         mission_day=100,
         environment_id='mars_surface',
         effects=_fever_effects(),

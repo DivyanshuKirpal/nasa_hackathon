@@ -1,5 +1,10 @@
 import { Link, useParams } from 'react-router'
-import { personalPatternModel, sepRiskModel } from '../../data/index.ts'
+import {
+  earthHospitalModel,
+  personalPatternModel,
+  sepRiskModel,
+} from '../../data/index.ts'
+import { EarthHospitalModelCard } from './EarthHospitalModelCard.tsx'
 import { PersonalPatternModelCard } from './PersonalPatternModelCard.tsx'
 import { SepRiskModelCard } from './SepRiskModelCard.tsx'
 
@@ -14,6 +19,9 @@ export function ModelCardPage() {
   }
   if (modelId === personalPatternModel.modelId) {
     return <PersonalPatternModelCard model={personalPatternModel} />
+  }
+  if (modelId === earthHospitalModel.modelId) {
+    return <EarthHospitalModelCard model={earthHospitalModel} />
   }
   return (
     <section aria-labelledby="model-missing">

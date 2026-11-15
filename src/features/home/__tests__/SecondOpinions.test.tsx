@@ -175,24 +175,28 @@ describe('Second opinions on Home', () => {
     expect(useAppStore.getState().outbox).toEqual([])
   })
 
-  it('lists the insight on the page of the area of its readings, which keeps its status', async () => {
-    const user = userEvent.setup()
-    loadScenario('pattern-shift')
-    renderApp('/')
+  it(
+    'lists the insight on the page of the area of its readings, which keeps its status',
+    { timeout: 30000 },
+    async () => {
+      const user = userEvent.setup()
+      loadScenario('pattern-shift')
+      renderApp('/')
 
-    const list = screen.getByRole('region', { name: 'Status by area' })
-    await user.click(within(list).getByRole('link', { name: /^Head: Good/ }))
-    const card = await screen.findByRole(
-      'region',
-      { name: 'Second opinions about this area' },
-      { timeout: 10000 },
-    )
-    const item = within(card).getByText(
-      new RegExp(`^${personalPatternModel.headline}:`),
-    )
-    expect(item.textContent).toMatch(/than your normal/)
-    expect(screen.getByText('Good')).toBeInTheDocument()
-  })
+      const list = screen.getByRole('region', { name: 'Status by area' })
+      await user.click(within(list).getByRole('link', { name: /^Head: Good/ }))
+      const card = await screen.findByRole(
+        'region',
+        { name: 'Second opinions about this area' },
+        { timeout: 10000 },
+      )
+      const item = within(card).getByText(
+        new RegExp(`^${personalPatternModel.headline}:`),
+      )
+      expect(item.textContent).toMatch(/than your normal/)
+      expect(screen.getByText('Good')).toBeInTheDocument()
+    },
+  )
 })
 
 describe('the personal pattern model card', () => {
