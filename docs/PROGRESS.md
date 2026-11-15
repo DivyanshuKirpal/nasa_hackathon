@@ -2,7 +2,7 @@
 
 One entry per milestone, newest first (ARCHITECTURE.md section 30.4). Targets are in section 31.1.
 
-## B3 published: Chirag's anatomical model on the site (Sun 14:27 to 14:40; production checks in the report; human checks pending)
+## B3 published: Chirag's anatomical model on the site (Sun 14:27 to 14:40; verified on the site; human checks pending)
 - Previous commit `35415a5` deployed: Vercel success 13:50:16 IST. Its files were byte-identical to the local build, `models/crew-a.glb` returned 404 there (not yet published), and the B2 checks passed on the site (23 of 23, 6 of 6 without WebGL).
 - Divyanshu's decision (15 November 2026): publish the atlas as a generic anatomical reference with its appearance and layers, as a narrow exception documented in ARCHITECTURE.md sections 23.5 and 23.12 and in CLAUDE.md; state its real-volunteer origin and that it is not a replica; credit the team, Chirag and the upstream creators.
 - Licences settled from the meshes (`docs/b3-model-review.md` section 4):
@@ -16,6 +16,12 @@ One entry per milestone, newest first (ARCHITECTURE.md section 30.4). Targets ar
   - 57 Python tests (one checker test moved from crew A to crew B, the remaining placeholder);
   - the checker passes the model with three M7 warnings;
   - local browser checks: B3 19 of 19 with the published attribution; fallback without WebGL 6 of 6.
+- **Production** (commit `1a4e4d0`, Vercel success 14:42:43 IST):
+  - the model URL https://void-shifters.vercel.app/models/crew-a.glb returns HTTP 200, `model/gltf-binary`, 14,987,144 bytes, SHA-256 equal to Chirag's export. Browsers get it Brotli-compressed: 10,440,695 bytes, 0.7 s from this machine;
+  - the app files are byte-identical to the local build;
+  - browser checks in headless Chrome on the site: B3 19 of 19 with software WebGL. That covers loading (1.15 s), the tags and attribution, ten layers by keyboard, the shoulder and calf taps, the chest tap with every layer shown landing on the skin, no pin with the skin hidden, pins kept while turning, sensor selection and "Turn to this sensor", a placeholder-version pin kept as text, the compare labels, 390 px, focus rings and no console errors;
+  - "Force 2D" 4 of 4 (crew A shown as delivered model `chirag-1` in the presenter tools); without WebGL 6 of 6;
+  - on the laptop GPU over the network: load 0.96 s, 7–8 ms per new view with the skin only or all layers.
 - The handoff note for Chirag has an update; Divyanshu should send it, with the message in the review.
 - **Manual checks pending:** on the site, crew A's anatomical body and its layers, a shoulder tap and a calf tap with pins kept while turning, sensor selection, the compare view, 390 px and "Force 2D"; a real phone; B1 and B2 lists and every earlier pending check, unchanged.
 - Next: stop. M7 and M8 are not started.

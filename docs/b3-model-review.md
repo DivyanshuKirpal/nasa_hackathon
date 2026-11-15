@@ -89,7 +89,7 @@ Measured in headless Chrome 157 on a Windows 11 laptop, from `vite preview` on l
 | GPU (NVIDIA GeForce RTX 4060 Laptop, Direct3D 11) | 0.72 s | 18 ms (one frame) | 18 ms (one frame) | 61 to 64 MB |
 | Software WebGL, 500 kB/s with 150 ms latency | 32.1 s, progress 0 to 100% | n/a | n/a | 63 MB |
 
-Production download figures are in docs/PROGRESS.md (B3 entry). Real phones are not tested.
+On the site, browsers get the model Brotli-compressed (10,440,695 bytes); it loaded in 1.15 s on software WebGL and 0.96 s on the GPU from this machine (docs/PROGRESS.md, B3 entry). Real phones are not tested.
 
 ## 7. Message to Chirag (for Divyanshu to send)
 
